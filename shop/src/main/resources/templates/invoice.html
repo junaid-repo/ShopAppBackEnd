@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .invoice-container {
+            max-width: 850px;  /* slightly wider */
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px;
+            overflow-x: auto; /* avoids clipping on smaller screens */
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;   /* fixes overflow */
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .shop-info {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .shop-name {
+            font-size: 26px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .shop-address {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .barcode {
+            flex-shrink: 0;
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        .barcode img {
+            max-width: 180px;
+            height: auto;
+        }
+
+        .invoice-details {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap; /* fix overflow */
+            gap: 20px;
+        }
+
+        .invoice-details div {
+            font-size: 14px;
+            color: #444;
+            min-width: 200px;
+        }
+
+        .customer-details {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f4f6f9;
+            border-left: 4px solid #2c3e50;
+            border-radius: 6px;
+        }
+
+        .customer-details h4 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            table-layout: auto;
+        }
+
+        table th {
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 13px;
+            word-wrap: break-word;
+        }
+
+        table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .total-section {
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        .total-section h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+<div class="invoice-container">
+    <!-- HEADER -->
+    <div class="header">
+        <div class="shop-info">
+            <div class="shop-name" th:text="${shopName}">My Shop</div>
+            <div class="shop-address" th:text="${shopAddress}">123 Main Street, Bangalore</div>
+        </div>
+    <!--     <div class="barcode">
+                <img th:src="'data:image/png;base64,' + ${barcodeBase64}" alt="Invoice Barcode"/>
+                <p th:text="'Invoice #: ' + ${invoiceNumber}"></p>
+        </div> -->
+    </div>
+
+    <!-- INVOICE DETAILS -->
+    <div class="invoice-details">
+        <div>
+            <b>Invoice ID:</b> <span th:text="${invoiceId}"></span><br/>
+            <b>Date:</b> <span th:text="${#dates.format(today, 'dd MMM yyyy HH:mm')}"></span>
+        </div>
+    </div>
+
+    <!-- CUSTOMER DETAILS -->
+    <div class="customer-details">
+        <h4>Customer Details</h4>
+        <b>Name:</b> <span th:text="${customerName}"></span><br/>
+        <b>Email:</b> <span th:text="${customerEmail}"></span><br/>
+        <b>Phone:</b> <span th:text="${customerPhone}"></span>
+    </div>
+
+    <!-- PRODUCT TABLE -->
+    <table>
+        <thead>
+        <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Price (₹)</th>
+            <th>Total (₹)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="product : ${products}">
+            <td th:text="${product.productName}"></td>
+            <td th:text="${product.quantity}"></td>
+            <td th:text="${product.unitPrice}"></td>
+            <td th:text="${product.unitPrice * product.quantity}"></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- GRAND TOTAL -->
+    <div class="total-section">
+        <h3>Grand Total: ₹<span th:text="${grandTotal}"></span></h3>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        Thank you for shopping with us!<br/>
+        This is a computer-generated invoice, no signature required.
+    </div>
+</div>
+</body>
+</html>
