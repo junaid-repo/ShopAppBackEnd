@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.management.shop.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -41,28 +42,6 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
-import com.management.shop.dto.AnalyticsRequest;
-import com.management.shop.dto.AnalyticsResponse;
-import com.management.shop.dto.BillingRequest;
-import com.management.shop.dto.BillingResponse;
-import com.management.shop.dto.CustomerRequest;
-import com.management.shop.dto.CustomerSuccessDTO;
-import com.management.shop.dto.DasbboardResponseDTO;
-import com.management.shop.dto.InvoiceDetails;
-import com.management.shop.dto.OrderItem;
-import com.management.shop.dto.OtpVerifyRequest;
-import com.management.shop.dto.OtpVerifyResponse;
-import com.management.shop.dto.PaymentDetails;
-import com.management.shop.dto.ProductRequest;
-import com.management.shop.dto.ProductSuccessDTO;
-import com.management.shop.dto.RegisterRequest;
-import com.management.shop.dto.RegisterResponse;
-import com.management.shop.dto.ReportRequest;
-import com.management.shop.dto.ReportResponse;
-import com.management.shop.dto.SalesResponseDTO;
-import com.management.shop.dto.UpdateUserDTO;
-import com.management.shop.dto.ValidateContactRequest;
-import com.management.shop.dto.ValidateContactResponse;
 import com.management.shop.entity.BillingEntity;
 import com.management.shop.entity.CustomerEntity;
 import com.management.shop.entity.PaymentEntity;
@@ -159,6 +138,7 @@ public class ShopService {
 
     public String addUser(UserInfo userInfo) {
         userInfo.setRoles("USER");
+        userInfo.setIsActive(true);
         userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
         UserInfo res = userinfoRepo.save(userInfo);
         if (res.getId() > 0) {
@@ -231,6 +211,41 @@ public class ShopService {
 
     }
 
+    public ValidateContactResponse forgotPaswrod(ForgotPassRequest forgotPassRequest) {
+        List<UserInfo> res = userinfoRepo.validateUser(forgotPassRequest.getEmailId(), forgotPassRequest.getUserId(), true);
+
+
+        if (res.size() > 0) {
+            System.out.println(res.get(0));
+            Random random = new Random();
+            int otp = 100000 + random.nextInt(900000);
+            var otpVerifyReq = OtpVerifyRequest.builder().otp(String.valueOf(otp)).username(res.get(0).getUsername()).build();
+
+
+            RegisterUserOTPEntity res2 = newUserRepo.getByUsername(res.get(0).getUsername());
+            if (res2 != null) {
+                newUserRepo.removeOldOTP(res.get(0).getUsername());
+            }
+
+            try {
+                otpSender.sendEmail(forgotPassRequest.getEmailId(), "help@friendsmobile.store", res.get(0).getName(), "Friends Mobile",
+                        "OTP for resetting you password", "Please enter OTP " + otp + " to proceed forward ");
+            } catch (MailjetException | MailjetSocketTimeoutException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            var regsiterUserTemp = RegisterUserOTPEntity.builder().username(res.get(0).getUsername())
+                    .createdDate(LocalDateTime.now()).otp(String.valueOf(otp)).status("fresh").retries(0).build();
+            newUserRepo.save(regsiterUserTemp);
+
+
+            return ValidateContactResponse.builder().status(true).message("OTP sent to your email Id").build();
+        }
+        return ValidateContactResponse.builder().status(false).message("No user found with provided details").build();
+
+    }
+
     @Transactional
     public OtpVerifyResponse reEnterOtp(OtpVerifyRequest otpVerifyReq) {
 
@@ -293,6 +308,29 @@ public class ShopService {
 
 
         return response;
+    }
+
+    public ValidateContactResponse confirmOtpAndUpdatePassword(UpdatePasswordRequest updatePassRequest) {
+        List<UserInfo> userInfo = userinfoRepo.validateUser(updatePassRequest.getEmailId(), updatePassRequest.getUserId(), true);
+
+        if (userInfo.size() > 0) {
+            RegisterUserOTPEntity otpedUser = newUserRepo.getLatestOtp(userInfo.get(0).getUsername());
+
+            if (otpedUser != null) {
+                if (otpedUser.getOtp().equals(updatePassRequest.getOtp())) {
+
+                    updatePassword(UserInfo.builder().username(userInfo.get(0).getUsername()).password(updatePassRequest.getNewPassword()).build());
+
+                    return ValidateContactResponse.builder().status(true).message("Your password has been updated successfully").build();
+                } else {
+                    return ValidateContactResponse.builder().status(false).message("Your otp doesn't matched please re-enter").build();
+
+                }
+            }
+
+        }
+        return null;
+
     }
 
     public boolean checkUserStatus(String username) {

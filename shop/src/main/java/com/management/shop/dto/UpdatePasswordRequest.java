@@ -5,13 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
-@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class OtpVerifyRequest {
-
-	private String username;
-	private String otp;
+@Data
+public class UpdatePasswordRequest  {
+    private String otp;
+    private String newPassword;
+    String emailId;
+    String userId;
 }

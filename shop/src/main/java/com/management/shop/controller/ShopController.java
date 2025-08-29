@@ -58,6 +58,16 @@ public class ShopController {
 		System.out.println("Entered validateContact with payload  "+userInfo);
 		return serv.validateContact(userInfo);
 	}
+    @PostMapping("/auth/forgot-password")
+    public ValidateContactResponse forgotPassword(@RequestBody ForgotPassRequest forgotPassRequest) {
+        System.out.println("Entered forgotPassword with payload  "+forgotPassRequest);
+        return serv.forgotPaswrod(forgotPassRequest);
+    }
+    @PostMapping("/auth/update-password")
+    public ValidateContactResponse confirmOtpAndUpdatePassword(@RequestBody UpdatePasswordRequest updatePassRequest) {
+        System.out.println("Entered confirmOtpAndUpdatePassword with payload  "+updatePassRequest);
+        return serv.confirmOtpAndUpdatePassword(updatePassRequest);
+    }
 	
 	@PostMapping("/auth/register/newuser")
 	public RegisterResponse addNewThirdPartyUser(@RequestBody RegisterRequest userInfo) {
@@ -370,10 +380,10 @@ public class ShopController {
 	    	
 	    	System.out.println("Entered analytic controller with payload-->"+ request);
 
-	    	AnalyticsResponse response2=	serv.getAnalytics(request);
+	    	AnalyticsResponse response=	serv.getAnalytics(request);
 
 
-			return ResponseEntity.ok(response2);
+			return ResponseEntity.ok(response);
 		}
 
     @GetMapping("api/shop/get/order/{saleId}")
