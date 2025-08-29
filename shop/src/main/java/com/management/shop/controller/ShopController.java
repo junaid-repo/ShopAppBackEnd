@@ -82,9 +82,9 @@ public class ShopController {
 		Authentication authentication = authenticationManager.authenticate(
 				new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
 		
-		boolean isUserActive =serv.checkUserStatus(authRequest.getUsername());
+		//boolean isUserActive =serv.checkUserStatus(authRequest.getUsername());
 		
-		if (isUserActive && authentication.isAuthenticated()) {
+		if (authentication.isAuthenticated()) {
 			String token = jwtService.generateToken(authRequest.getUsername());
 			// System.out.println("The generated token --> "+token);
 			return token;

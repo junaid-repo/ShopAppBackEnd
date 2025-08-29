@@ -44,5 +44,6 @@ List<Object[]> getMonthlyCustomerCount(
      @Param("toDate") LocalDateTime toDate
 );
 
-
+    @Query(value = "SELECT * FROM shop_customer WHERE phone = ?1 AND status = ?2", nativeQuery = true)
+    List<CustomerEntity> findByPhone(String phone, String aTrue);
 }

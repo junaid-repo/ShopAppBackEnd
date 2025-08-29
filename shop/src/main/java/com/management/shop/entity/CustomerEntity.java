@@ -1,16 +1,12 @@
 package com.management.shop.entity;
 
-import java.time.LocalDateTime;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Builder
 @AllArgsConstructor
@@ -25,6 +21,7 @@ public class CustomerEntity {
 	private Integer id;
 	private String name;
 	private String email;
+    @Column(name="phone", unique=true,nullable=true)
 	private String phone;
 	private Integer totalSpent;
 	private String status;
