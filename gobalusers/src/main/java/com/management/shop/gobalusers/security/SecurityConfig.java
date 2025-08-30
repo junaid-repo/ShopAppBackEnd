@@ -1,6 +1,6 @@
-package com.management.shop.security;
+package com.management.shop.gobalusers.security;
 
-import com.management.shop.filter.JwtAuthFilter;
+import com.management.shop.gobalusers.filter.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,7 +49,8 @@ public class SecurityConfig {
     }
 
 
-   /* @Bean
+/*
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
             throws Exception {
         http.csrf(csrf ->
@@ -59,6 +60,8 @@ public class SecurityConfig {
         return http.build();
     }
 */
+
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

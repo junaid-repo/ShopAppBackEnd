@@ -1,7 +1,8 @@
-package com.management.shop.filter;
+package com.management.shop.gobalusers.filter;
 
-import com.management.shop.security.UserInfoUserDetailsService;
-import com.management.shop.service.JwtService;
+
+import com.management.shop.gobalusers.security.UserInfoUserDetailsService;
+import com.management.shop.gobalusers.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
