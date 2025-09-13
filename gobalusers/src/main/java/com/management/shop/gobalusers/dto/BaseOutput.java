@@ -5,14 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
 @Builder
-public class RegisterResponse {
-	
-	private String username;
+public class BaseOutput {
+
     private Boolean success;
     private String message;
-
 }

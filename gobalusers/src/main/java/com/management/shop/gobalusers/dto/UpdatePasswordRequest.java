@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 public class UpdatePasswordRequest  {
     private String otp;
     private String newPassword;
-    String emailId;
-    String userId;
+    String emailId="";
+    String userId="";
 }

@@ -23,15 +23,15 @@ public class EmailSender {
 		MailjetClient client;
 		MailjetRequest request;
 		MailjetResponse response;
-		//System.out.println("From emailId is-->"+fromEmail);
-		System.out.println("To emailId is-->"+emailId);
+
+		System.out.println("To emailId is--> "+emailId);
 
 		client = new MailjetClient("3e292e1e3e850abe850793dbb22554b9",
 				"2fa15000afb8c7ad2cd676c9828bcd5e", new ClientOptions("v3.1"));
 		request = new MailjetRequest(Emailv31.resource).property(Emailv31.MESSAGES,
 				new JSONArray().put(new JSONObject()
 						.put(Emailv31.Message.FROM, new JSONObject().put("Email", "tahanasim3001@gmail.com")
-								.put("Name", "Friends Mobile"))
+								.put("Name", "Clear Bill"))
 						.put(Emailv31.Message.TO,
 								new JSONArray().put(
 										new JSONObject().put("Email", emailId).put("JPC Waqf Board", "Hello")))
@@ -78,12 +78,12 @@ public class EmailSender {
 	                .property(Emailv31.MESSAGES, new JSONArray()
 	                        .put(new JSONObject()
 	            					.put(Emailv31.Message.FROM, new JSONObject().put("Email", "help@friendsmobile.store")
-	        								.put("Name", "Friends Mobile"))
+	        								.put("Name", "Clear Bill"))
 	        						.put(Emailv31.Message.TO,
 	        								new JSONArray().put(
-	        										new JSONObject().put("Email", emailId).put("Friends Mobile", "Hello")))
+	        										new JSONObject().put("Email", emailId).put("Clear Bill", "Hello")))
 	        						.put(Emailv31.Message.SUBJECT, "Order has been confirmed with Order Number "+orderId)
-	                                .put(Emailv31.Message.TEXTPART, "Dear Mr."+name+" Welcome to Friends Mobile")
+	                                .put(Emailv31.Message.TEXTPART, "Dear Mr."+name+" Welcome to Clear Bill")
 	                                .put(Emailv31.Message.HTMLPART, "<h3>We are happy to inform to inform you that we received your payment and your order is confirmed. Please find below the order details attached as pdf document.\n"
 	                                		+ "Really happy to serve you.\n"
 	                                		+ "\n"

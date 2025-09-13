@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class ForgotPassRequest {
-      String emailId;
-      String userId;
+      String emailId="";
+      String userId="";
 }

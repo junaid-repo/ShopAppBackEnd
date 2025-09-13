@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Data
 @AllArgsConstructor
@@ -25,4 +27,6 @@ public class UserInfo {
     private String roles;
     private String username;
     private Boolean isActive;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

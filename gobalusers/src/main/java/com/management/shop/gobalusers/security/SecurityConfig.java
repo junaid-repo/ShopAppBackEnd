@@ -49,8 +49,7 @@ public class SecurityConfig {
     }
 
 
-/*
-    @Bean
+/*    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
             throws Exception {
         http.csrf(csrf ->
@@ -58,8 +57,7 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable()).httpBasic(basic -> basic.disable());
 
         return http.build();
-    }
-*/
+    }*/
 
 
     @Bean

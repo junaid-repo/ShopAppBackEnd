@@ -23,4 +23,8 @@ public interface RegisterUserRepo extends JpaRepository<RegisterUserOTPEntity, I
 
     @Query(value = "SELECT * FROM newuo WHERE username = ?1 ORDER BY created_date DESC LIMIT 1", nativeQuery = true)
     RegisterUserOTPEntity getLatestOtp(String username);
+    @Transactional
+    @Modifying
+    @Query(value = "DELETE FROM newuo WHERE id = ?1", nativeQuery = true)
+    void removeOldOTPById(Integer id);
 }

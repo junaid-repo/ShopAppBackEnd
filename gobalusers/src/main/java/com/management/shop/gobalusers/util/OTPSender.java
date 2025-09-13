@@ -39,17 +39,18 @@ public class OTPSender {
 		MailjetClient client;
 		MailjetRequest request;
 		MailjetResponse response;
-		System.out.println("From emailId is-->" + fromEmailId);
+		System.out.println("From emailId  is-->" + fromEmailId);
 		System.out.println("To emailId is-->" + toEmailId);
 
 		client = new MailjetClient("3e292e1e3e850abe850793dbb22554b9", "2fa15000afb8c7ad2cd676c9828bcd5e",
 				new ClientOptions("v3.1"));
 		request = new MailjetRequest(Emailv31.resource).property(Emailv31.MESSAGES, new JSONArray().put(new JSONObject()
-				.put(Emailv31.Message.FROM, new JSONObject().put("Email", fromEmailId).put(receiptName, subject))
+				.put(Emailv31.Message.FROM, new JSONObject().put("Email", "support@clearbill.store")
+                        .put("Name", "Clear Bill"))
 				.put(Emailv31.Message.TO,
 						new JSONArray().put(new JSONObject().put("Email", toEmailId).put(receiptName, "Hello")))
-				.put(Emailv31.Message.SUBJECT, subject).put(Emailv31.Message.TEXTPART, content)
-				.put(Emailv31.Message.HTMLPART, "<h3>" + content)
+				.put(Emailv31.Message.SUBJECT, subject).put(Emailv31.Message.TEXTPART, subject)
+				.put(Emailv31.Message.HTMLPART, content)
 				.put(Emailv31.Message.CUSTOMID, "AppGettingStartedTest")));
 		response = client.post(request);
 		System.out.println(response.getStatus());
