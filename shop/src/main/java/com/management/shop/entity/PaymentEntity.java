@@ -35,6 +35,7 @@ public class PaymentEntity {
 	private Integer total;
 	private String paymentReferenceNumber;
 	private LocalDateTime createdDate;
+    private String userId;
 	
 	@PostPersist
     public void generateOrderNumberOnPersist() {

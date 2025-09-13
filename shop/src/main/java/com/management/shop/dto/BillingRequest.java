@@ -2,6 +2,7 @@ package com.management.shop.dto;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.management.shop.entity.CustomerEntity;
 
 import lombok.AllArgsConstructor;
@@ -18,6 +19,7 @@ public class BillingRequest {
 	private List<ProductBillDTO> cart;
 	private Integer tax;
 	//private Long subTotal;
+    @JsonProperty("sellingSubtotal")
 	private Integer total;
     private Double discountPercentage;
     private String remarks;

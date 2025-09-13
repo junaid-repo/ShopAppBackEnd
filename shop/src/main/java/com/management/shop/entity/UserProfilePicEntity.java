@@ -27,4 +27,5 @@ public class UserProfilePicEntity {
 	private String username;
 	private String profilePic;
 	private LocalDateTime updated_date;
+    private String userId;
 }

@@ -28,5 +28,6 @@ public class ProductSalesEntity {
 	private Integer subTotal;
 	private Integer total;
     private Double discountPercentage;
+    private String userId;
 
 }

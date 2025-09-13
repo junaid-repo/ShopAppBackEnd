@@ -28,4 +28,5 @@ public class UserCredential {
 	private String username;
 	private LocalDateTime createdDate;
 	private LocalDateTime updatedDate;
+    private String userId;
 }

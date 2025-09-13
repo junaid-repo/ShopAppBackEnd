@@ -35,4 +35,5 @@ public class ProductEntity {
 	private Boolean active;
 	@JsonProperty("tax")
 	private Integer taxPercent;
+    private String userId;
 }

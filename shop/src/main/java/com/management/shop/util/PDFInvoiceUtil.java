@@ -22,10 +22,12 @@ public class PDFInvoiceUtil {
 			this.templateEngine = templateEngine;
 		}
 	
-		public byte[] generateInvoice(String customerName, String customerEmail, String customerPhone,  String invoiceId, List<OrderItem> products)
+		public byte[] generateInvoice(String customerName, String customerEmail, String customerPhone, String invoiceId, List<OrderItem> products, String orderedDate, double totalAmount, boolean paid, double gstRate)
 				throws Exception {
 			Context context = new Context();
-			double grandTotal = products.stream().mapToDouble(p -> p.getUnitPrice() * p.getQuantity()).sum();
+            double grandTotal = totalAmount;
+            totalAmount=totalAmount-gstRate;
+
 			
 			//String barcodeBase64 = BarcodeGenerator.generateBarcodeBase64(invoiceId);
 
@@ -37,6 +39,10 @@ public class PDFInvoiceUtil {
 			context.setVariable("customerName", customerName);
 			context.setVariable("customerEmail", customerEmail);
 			context.setVariable("customerPhone", customerPhone);
+            context.setVariable("orderedDate", orderedDate);
+            context.setVariable("totalAmount", totalAmount);
+            context.setVariable("paid", paid);
+            context.setVariable("gstRate", gstRate);
 			//context.setVariable("barcodeBase64", barcodeBase64);
 
 			// Render Thymeleaf template into HTML string

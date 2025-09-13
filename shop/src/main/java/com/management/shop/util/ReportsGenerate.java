@@ -43,13 +43,13 @@ public class ReportsGenerate {
 	
 	
 
-	public byte[] downloadReport(String reportType, LocalDateTime fromDate, LocalDateTime toDate) {
+	public byte[] downloadReport(String reportType, LocalDateTime fromDate, LocalDateTime toDate, String userId) {
 
 		byte[] fileBytes=null;
 		
 		if (reportType.equals("Sales Report")) {
 			try {
-				fileBytes=generateSalesReport(fromDate, toDate);
+				fileBytes=generateSalesReport(fromDate, toDate, userId);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -61,7 +61,7 @@ public class ReportsGenerate {
 		 */
 		if (reportType.equals("Payment Reports")) {
 			try {
-				fileBytes=generatePaymentReport(fromDate, toDate);
+				fileBytes=generatePaymentReport(fromDate, toDate, userId);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -69,7 +69,7 @@ public class ReportsGenerate {
 		}
 		if (reportType.equals("Customers Report")) {
 			try {
-				fileBytes=generateCustomerReport(fromDate, toDate);
+				fileBytes=generateCustomerReport(fromDate, toDate, userId);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -79,9 +79,9 @@ public class ReportsGenerate {
 		return fileBytes;
 	}
 
-	private byte[] generateCustomerReport(LocalDateTime fromDate, LocalDateTime toDate) throws IOException {
+	private byte[] generateCustomerReport(LocalDateTime fromDate, LocalDateTime toDate, String userId) throws IOException {
 		
-		List<CustomerEntity> customerEntity=shopRepo.findCustomerByDateRange(fromDate, toDate);
+		List<CustomerEntity> customerEntity=shopRepo.findCustomerByDateRange(fromDate, toDate, userId);
 		
 		 try (Workbook workbook = new XSSFWorkbook();
 	             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -126,16 +126,16 @@ public class ReportsGenerate {
 		
 	}
 
-	private byte[] generatePaymentReport(LocalDateTime fromDate, LocalDateTime toDate) throws IOException {
-		List<BillingEntity> billList = billRepo.findPaymentsByDateRange(fromDate, toDate);
+	private byte[] generatePaymentReport(LocalDateTime fromDate, LocalDateTime toDate, String userId) throws IOException {
+		List<BillingEntity> billList = billRepo.findPaymentsByDateRange(fromDate, toDate, userId);
 		List<PaymentDetails> response = new ArrayList<>();
 		billList.stream().forEach(obj -> {
 
 			response.add(PaymentDetails.builder()
-					.id(salesPaymentRepo.findPaymentDetails(obj.getId()).getPaymentReferenceNumber())
+					.id(salesPaymentRepo.findPaymentDetails(obj.getId(), userId).getPaymentReferenceNumber())
 					.amount(obj.getTotalAmount()).date(String.valueOf(obj.getCreatedDate()))
 					.saleId(obj.getInvoiceNumber())
-					.method(salesPaymentRepo.findPaymentDetails(obj.getId()).getPaymentMethod()).build());
+					.method(salesPaymentRepo.findPaymentDetails(obj.getId(), userId).getPaymentMethod()).build());
 		});
 		
 		
@@ -224,15 +224,15 @@ public class ReportsGenerate {
 	 * }
 	 */
 
-	private byte[] generateSalesReport(LocalDateTime fromDate, LocalDateTime toDate) throws IOException {
-		List<BillingEntity> listOfBills = billRepo.findPaymentsByDateRange(fromDate, toDate);
+	private byte[] generateSalesReport(LocalDateTime fromDate, LocalDateTime toDate, String userId) throws IOException {
+		List<BillingEntity> listOfBills = billRepo.findPaymentsByDateRange(fromDate, toDate, userId);
 		List<SalesResponseDTO> response = new ArrayList();
 		listOfBills.stream().forEach(obj -> {
 			// SalesResponseDTO salesResponse
-			var salesResponse = SalesResponseDTO.builder()
-					.customer(shopRepo.findById(obj.getCustomerId()).get().getName())
-					.date(String.valueOf(obj.getCreatedDate())).id(obj.getInvoiceNumber()).total(obj.getTotalAmount())
-					.status(salesPaymentRepo.findPaymentDetails(obj.getId()).getStatus()).build();
+            var salesResponse = SalesResponseDTO.builder()
+                    .customer(shopRepo.findByIdAndUserId(obj.getCustomerId(), userId).getName())
+                    .date(String.valueOf(obj.getCreatedDate())).id(obj.getInvoiceNumber()).total(obj.getTotalAmount())
+                    .status(salesPaymentRepo.findPaymentDetails(obj.getId(), userId).getStatus()).build();
 
 			response.add(salesResponse);
 

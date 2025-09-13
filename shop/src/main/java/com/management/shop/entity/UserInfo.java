@@ -25,4 +25,5 @@ public class UserInfo {
     private String roles;
     private String username;
     private Boolean isActive;
+    private String userId;
 }

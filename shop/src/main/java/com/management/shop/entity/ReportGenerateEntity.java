@@ -21,5 +21,5 @@ public class ReportGenerateEntity {
 	private String duration;
 	private String createdDate;
 	private String fileName;
-
+    private String userId;
 }

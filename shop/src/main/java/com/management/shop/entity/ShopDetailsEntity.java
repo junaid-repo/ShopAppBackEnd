@@ -26,5 +26,5 @@ public class ShopDetailsEntity {
 	private String ownerName;
 	private String addresss;
 	private String gstNumber;
-
+    private String userId;
 }

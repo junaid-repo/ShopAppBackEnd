@@ -22,4 +22,5 @@ public class InvoiceDetails {
 	    private double discountRate;
 	    private String customerEmail;
 	    private String customerPhone;
+        private String orderedDate;
 }

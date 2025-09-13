@@ -35,6 +35,8 @@ public class BillingEntity {
 	private Integer unitsSold;
     private String remarks;
 	private LocalDateTime createdDate;
+    private String userId;
+
 	
 	 @PostPersist
 	    public void generateOrderNumberOnPersist() {
@@ -47,7 +49,7 @@ public class BillingEntity {
 	            String sequentialPart = String.format("%04d", this.id);
 
 
-	            this.invoiceNumber = "INV-" + datePart + "-" + sequentialPart;
+	            this.invoiceNumber = "FMS-" + datePart + "-" + sequentialPart;
 
 	        }
 	    }

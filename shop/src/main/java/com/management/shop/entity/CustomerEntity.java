@@ -26,5 +26,5 @@ public class CustomerEntity {
 	private Integer totalSpent;
 	private String status;
 	private LocalDateTime createdDate;
-
+    private String userId;
 }

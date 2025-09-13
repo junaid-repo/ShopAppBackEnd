@@ -48,6 +48,21 @@ public class ShopController {
         System.out.println(userInfo.toString());
         return serv.updatePassword(userInfo);
     }
+    @PostMapping("auth/new/welcome")
+    public ResponseEntity<String> addNewUser(@RequestBody UserInfo userInfo) {
+          return ResponseEntity.status(HttpStatus.OK).body("welcome to the app");
+
+    }
+    @GetMapping("api/shop/user/profile")
+    public ResponseEntity<AuthRequest> userProfile() {
+
+        Map<String, String> servResponse = serv.getUserProfileDetails();
+
+        AuthRequest response=new AuthRequest();
+        response.setUsername(servResponse.get("username"));
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
 
     @PostMapping("api/shop/create/customer")
     ResponseEntity<CustomerSuccessDTO> createCustomer(@RequestBody CustomerRequest request) {
@@ -74,6 +89,39 @@ public class ShopController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
+    }
+    @GetMapping("api/shopd/get/cacheable/customersList")
+    ResponseEntity<List<CustomerEntity>> getCustomersListCacheable() {
+
+        List<CustomerEntity> response = serv.getAllCustomer();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+
+    @GetMapping("/api/shop/get/cacheable/customersList")
+    public ResponseEntity<Map<String, Object>> getCustomersListCacheable(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false, defaultValue = "") String search) {
+
+        try {
+            // Call the updated service method
+            Page<CustomerEntity> customerPage =  serv.getCacheableCustomersList(search, page, size);
+
+            // Build the response map to match the frontend's expected structure
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", customerPage.getContent());
+            response.put("totalPages", customerPage.getTotalPages());
+            response.put("totalCount", customerPage.getTotalElements());
+            response.put("currentPage", customerPage.getNumber() + 1); // Send back the current page
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            // Basic error handling
+            return ResponseEntity.internalServerError().body(null);
+        }
     }
 
     @DeleteMapping("api/shop/customer/delete/{id}")
@@ -115,7 +163,7 @@ public class ShopController {
     }
 
     @PutMapping("api/shop/update/product")
-    ResponseEntity<ProductSuccessDTO> updateCustomer(@RequestBody ProductRequest request) {
+    ResponseEntity<ProductSuccessDTO> updateProduct(@RequestBody ProductRequest request) {
 
         ProductSuccessDTO response = serv.updateProduct(request);
 
@@ -131,6 +179,32 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+    @GetMapping("api/shop/get/withCache/productsList")
+    public ResponseEntity<Map<String, Object>> getProductsList(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String dir
+    ) {
+        try {
+            // Call the updated service method
+            Page<ProductEntity> productPage = serv.getAllProducts(search, page, limit, sort, dir);
+
+            // Build the response map to match the frontend's expected structure
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", productPage.getContent());
+            response.put("totalPages", productPage.getTotalPages());
+            response.put("totalCount", productPage.getTotalElements());
+            response.put("currentPage", productPage.getNumber() + 1); // Send back the current page
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            // Basic error handling
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
 
     @PostMapping("api/shop/do/billing")
     ResponseEntity<BillingResponse> doBilling(@RequestBody BillingRequest request) throws Exception {
@@ -143,9 +217,20 @@ public class ShopController {
     }
 
     @GetMapping("api/shop/get/sales")
-    ResponseEntity<List<SalesResponseDTO>> getSalesList() {
+    ResponseEntity<Page<SalesResponseDTO>> getSalesList(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, @RequestParam String search) {
 
-        List<SalesResponseDTO> response = serv.getAllSales();
+        System.out.println("the search param is -->" + search);
+        Page<SalesResponseDTO> response = serv.getAllSales(page, size, search);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+    @GetMapping("api/shop/get/count/sales")
+    ResponseEntity<List<SalesResponseDTO>> getLastNSales(@RequestParam(defaultValue = "3") int count) {
+
+
+        List<SalesResponseDTO> response = serv.getLastNSales(count);
+
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
@@ -267,7 +352,7 @@ public class ShopController {
     }
 
     @GetMapping("api/shop/user/get/userprofile/{username}")
-    public ResponseEntity<UpdateUserDTO> updateUserProfilePic(
+    public ResponseEntity<UpdateUserDTO> updateUserProfile(
             @PathVariable String username) throws IOException {
 
         UpdateUserDTO response = serv.getUserProfile(username);

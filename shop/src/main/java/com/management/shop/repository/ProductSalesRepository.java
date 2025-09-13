@@ -9,7 +9,7 @@ import com.management.shop.entity.ProductSalesEntity;
 
 public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity, Integer>{
 
-	@Query(value="select * from product_sales where billing_id=?1", nativeQuery=true)
-	List<ProductSalesEntity> findByOrderId(Integer id);
+	@Query(value="select * from product_sales where billing_id=?1 and user_id=?2", nativeQuery=true)
+	List<ProductSalesEntity> findByOrderId(Integer id, String userId);
 
 }

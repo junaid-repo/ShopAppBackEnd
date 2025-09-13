@@ -41,7 +41,7 @@ public class Report {
     
     //@Column(nullable = false)
     private String status;
-
+    private String userId;
     public Report() {
     }
 

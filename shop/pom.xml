@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>com.management</groupId>
 	<artifactId>shop</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.3-USER_SPECIFIC</version>
 	<name>shop</name>
 	<description>Demo project for Spring Boot</description>
 	<url />
@@ -125,6 +125,10 @@
 			<version>2.25.49</version> <!-- pick the latest stable from Maven
 			Central -->
 		</dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
 	</dependencies>
 
 	<build>

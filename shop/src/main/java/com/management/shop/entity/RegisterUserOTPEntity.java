@@ -29,5 +29,5 @@ public class RegisterUserOTPEntity {
 	private String username;
 	private String status;
 	private Integer retries;
-
+    private String userId;
 }

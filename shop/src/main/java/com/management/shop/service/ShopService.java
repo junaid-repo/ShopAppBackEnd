@@ -8,23 +8,20 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.management.shop.dto.*;
+import com.management.shop.util.*;
+import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -62,11 +59,6 @@ import com.management.shop.repository.ShopDetailsRepo;
 import com.management.shop.repository.ShopRepository;
 import com.management.shop.repository.UserInfoRepository;
 import com.management.shop.repository.UserProfilePicRepo;
-import com.management.shop.util.CSVUpload;
-import com.management.shop.util.EmailSender;
-import com.management.shop.util.OTPSender;
-import com.management.shop.util.PDFInvoiceUtil;
-import com.management.shop.util.ReportsGenerate;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -131,10 +123,20 @@ public class ShopService {
     @Autowired
     private OTPSender otpSender;
 
+    @Autowired
+    OrderEmailTemplate emailTemplate;
+
     private final Random random = new Random();
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
+
+    public String extractUsername() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        System.out.println("Current user: " + username);
+      //  username="junaid1";
+        return username;
+    }
 
 
     public boolean checkUserStatus(String username) {
@@ -142,23 +144,24 @@ public class ShopService {
         return userinfoRepo.findByUsername(username).get().getIsActive();
     }
 
+    //@CacheEvict(value = "customerLists", allEntries = true)
     public CustomerSuccessDTO saveCustomer(CustomerRequest request) {
         System.out.println("entered into saveCustomer with" + request.toString());
 
-        List<CustomerEntity> existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE");
+        List<CustomerEntity> existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
 
         CustomerEntity ent = null;
 
         if (existingCustomer.size() > 0) {
 
-            var customerEntity = CustomerEntity.builder().id(existingCustomer.get(0).getId()).name(request.getName()).email(request.getEmail())
+            var customerEntity = CustomerEntity.builder().userId(extractUsername()).id(existingCustomer.get(0).getId()).name(request.getName()).email(request.getEmail())
                     .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").totalSpent(existingCustomer.get(0).getTotalSpent()).build();
 
             ent = shopRepo.save(customerEntity);
 
         } else {
 
-            var customerEntity = CustomerEntity.builder().name(request.getName()).email(request.getEmail())
+            var customerEntity = CustomerEntity.builder().userId(extractUsername()).name(request.getName()).email(request.getEmail())
                     .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").totalSpent(0).build();
 
             ent = shopRepo.save(customerEntity);
@@ -174,22 +177,23 @@ public class ShopService {
 
     }
 
+    //@CacheEvict(value = "customerLists", allEntries = true)
     public CustomerEntity saveCustomerForBilling(CustomerRequest request) {
         System.out.println("entered into saveCustomer with" + request.toString());
-        List<CustomerEntity> existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE");
+        List<CustomerEntity> existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
 
         CustomerEntity ent = null;
 
         if (existingCustomer.size() > 0) {
 
-            var customerEntity = CustomerEntity.builder().id(existingCustomer.get(0).getId()).name(request.getName()).email(request.getEmail())
+            var customerEntity = CustomerEntity.builder().id(existingCustomer.get(0).getId()).userId(extractUsername()).name(request.getName()).email(request.getEmail())
                     .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").totalSpent(existingCustomer.get(0).getTotalSpent()).build();
 
             ent = shopRepo.save(customerEntity);
 
         } else {
 
-            var customerEntity = CustomerEntity.builder().name(request.getName()).email(request.getEmail())
+            var customerEntity = CustomerEntity.builder().name(request.getName()).userId(extractUsername()).email(request.getEmail())
                     .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").totalSpent(0).build();
 
             ent = shopRepo.save(customerEntity);
@@ -204,9 +208,11 @@ public class ShopService {
 
     }
 
+    //@Cacheable("customerLists")
     public List<CustomerEntity> getAllCustomer() {
+        System.out.println("The extracted username is " + extractUsername());
 
-        return shopRepo.findAllActiveCustomer("ACTIVE");
+        return shopRepo.findAllActiveCustomer("ACTIVE",  extractUsername());
     }
 
     @Transactional
@@ -225,12 +231,12 @@ public class ShopService {
             // prodRepo.addProductStock(request.getSelectedProductId(), request.getStock());
 
             productEntity = ProductEntity.builder().id(request.getSelectedProductId()).name(request.getName())
-                    .category(request.getCategory()).status(status).stock(request.getStock()).active(true)
+                    .category(request.getCategory()).status(status).userId(extractUsername()).stock(request.getStock()).active(true)
                     .taxPercent(request.getTax()).price(request.getPrice()).costPrice(request.getCostPrice()).build();
 
         } else {
 
-            productEntity = ProductEntity.builder().name(request.getName()).category(request.getCategory()).active(true)
+            productEntity = ProductEntity.builder().name(request.getName()).userId(extractUsername()).category(request.getCategory()).active(true)
                     .status(status).stock(request.getStock()).taxPercent(request.getTax()).costPrice(request.getCostPrice()).price(request.getPrice())
                     .build();
 
@@ -246,6 +252,7 @@ public class ShopService {
 
     }
 
+    //@CacheEvict(value = "products", allEntries = true)
     public ProductSuccessDTO updateProduct(ProductRequest request) {
 
         String status = "In Stock";
@@ -253,7 +260,7 @@ public class ShopService {
             status = "Out of Stock";
         System.out.println("The updated request" + request.getTax());
         var productEntity = ProductEntity.builder().id(request.getSelectedProductId()).name(request.getName())
-                .active(true).category(request.getCategory()).status(status).stock(request.getStock())
+                .active(true).category(request.getCategory()).userId(extractUsername()).status(status).stock(request.getStock())
                 .taxPercent(request.getTax()).price(request.getPrice()).costPrice(request.getCostPrice()).build();
 
         ProductEntity ent = prodRepo.save(productEntity);
@@ -269,10 +276,67 @@ public class ShopService {
 
     public List<ProductEntity> getAllProducts() {
 
-        return prodRepo.findAllActiveProducts(Boolean.TRUE);
+        return prodRepo.findAllActiveProducts(Boolean.TRUE,  extractUsername());
+    }
+
+
+    public Page<ProductEntity> getAllProducts(String search, int page, int limit, String sort, String dir) {
+        // Create Sort object based on direction and sort field
+        {
+            String sortField = sort;
+
+            // Map API field name to DB field
+            if ("createdAt".equalsIgnoreCase(sortField)) {
+                sortField = "created_date";
+            }
+
+            Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+            // ✅ Use mapped field name here
+            Sort sortOrder = Sort.by(direction, sortField);
+
+            Pageable pageable = PageRequest.of(page - 1, limit, sortOrder);
+
+            String username = extractUsername();
+
+            return prodRepo.findAllActiveProductsWithPagination(Boolean.TRUE, username, search, pageable);
+        }
+
+    }
+
+    public Page<CustomerEntity> getCacheableCustomersList(String search, int page, int size)  {
+
+
+        // Map API field name to DB field
+
+        if(page==0){
+            page=1;
+        }
+
+        String    sortField = "created_date";
+
+
+        Sort.Direction direction = "desc".equalsIgnoreCase("desc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        // ✅ Use mapped field name here
+        Sort sortOrder = Sort.by(direction, sortField);
+
+        Pageable pageable = PageRequest.of(page - 1, size, sortOrder);
+
+        String username = extractUsername();
+        Page<CustomerEntity> response=null;
+        try{
+            response=   shopRepo.findAllCustomersWithPagination(username, search, pageable);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return response;
     }
 
     @Transactional
+    //@CacheEvict(value = {"salesCache", "products"}, allEntries = true)
     public BillingResponse doPayment(BillingRequest request) throws Exception {
 
         Integer unitsSold = 0;
@@ -280,7 +344,7 @@ public class ShopService {
             unitsSold += obj.getQuantity();
         }
         var billingEntity = BillingEntity.builder().customerId(request.getSelectedCustomer().getId())
-                .unitsSold(unitsSold).taxAmount(request.getTax()).totalAmount(request.getTotal())
+                .unitsSold(unitsSold).taxAmount(request.getTax()).userId(extractUsername()).totalAmount(request.getTotal())
                 .discountPercent(request.getDiscountPercentage()).remarks(request.getRemarks()).subTotalAmount(request.getTotal() - request.getTax()).createdDate(LocalDateTime.now()).build();
 
         BillingEntity billResponse = billRepo.save(billingEntity);
@@ -288,20 +352,26 @@ public class ShopService {
         if (billResponse.getId() != null) {
             request.getCart().stream().forEach(obj -> {
 
-                ProductEntity prodRes = prodRepo.findById(obj.getId()).get();
+                ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getId(), extractUsername());
                 System.out.println("Product details " + prodRes);
                 Integer tax = (prodRes.getTaxPercent() * obj.getQuantity() * obj.getPrice()) / 100;
-                Integer subTotal = obj.getQuantity() * obj.getPrice();
-                Integer total = tax + subTotal;
+                Double discountedTotal=0d;
+                if (obj.getDiscountPercentage()!=0)
+                      discountedTotal=obj.getPrice()- (obj.getDiscountPercentage()*obj.getPrice()) / 100;
+                else
+                    discountedTotal=(double)obj.getPrice();
+
+                Integer total = obj.getQuantity() * (int)Math.round(discountedTotal);
+                Integer subTotal = total- tax;
 
                 var productSalesEntity = ProductSalesEntity.builder().billingId(billResponse.getId())
-                        .productId(obj.getId()).discountPercentage(obj.getDiscountPercentage()).quantity(obj.getQuantity()).tax(tax).subTotal(subTotal).total(total)
+                        .productId(obj.getId()).userId(extractUsername()).discountPercentage(obj.getDiscountPercentage()).quantity(obj.getQuantity()).tax(tax).subTotal(subTotal).total(total)
                         .build();
 
                 ProductSalesEntity prodSalesResponse = prodSalesRepo.save(productSalesEntity);
 
                 if (prodSalesResponse.getId() != null) {
-                    prodRepo.updateProductStock(obj.getId(), obj.getQuantity());
+                    prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername());
 
                 }
 
@@ -312,23 +382,26 @@ public class ShopService {
             }
 
             var paymentEntity = PaymentEntity.builder().billingId(billResponse.getId()).createdDate(LocalDateTime.now())
-                    .paymentMethod(paymentMethod).status("Paid").tax(request.getTax())
+                    .paymentMethod(paymentMethod).status("Paid").tax(request.getTax()).userId(extractUsername())
                     .subtotal(request.getTotal() - request.getTax()).total(request.getTotal()).build();
 
             salesPaymentRepo.save(paymentEntity);
 
             try {
-                shopRepo.updateCustomerSpentAmount(request.getSelectedCustomer().getId(), request.getTotal());
+                shopRepo.updateCustomerSpentAmount(request.getSelectedCustomer().getId(), request.getTotal(), extractUsername());
             } catch (Exception e) {
-                // TODO Auto-generated catch block
+                // TODO Auto-generated catch block,
                 e.printStackTrace();
             }
             InvoiceDetails order = getOrderDetails(billResponse.getInvoiceNumber());
             try {
+                String htmlContent = emailTemplate.generateOrderHtml(order);
+
                 CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
                         billResponse.getInvoiceNumber(), order.getCustomerName(),
-                        generateInvoicePdf(billResponse.getInvoiceNumber()));
+                        generateInvoicePdf(billResponse.getInvoiceNumber()), htmlContent);
                 System.out.println(futureResult);
+
             } catch (MailjetException | MailjetSocketTimeoutException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -341,33 +414,74 @@ public class ShopService {
         return BillingResponse.builder().status("FAILURE").build();
     }
 
-    public List<SalesResponseDTO> getAllSales() {
+    public Page<SalesResponseDTO> getAllSales(int page, int size, String searchTerm) {
+        String username = extractUsername();
 
-        List<BillingEntity> listOfBills = billRepo.findAll();
-        listOfBills.sort(Comparator.comparing(BillingEntity::getCreatedDate).reversed());
-        List<SalesResponseDTO> response = new ArrayList();
-        // String name =
-        // shopRepo.findById(listOfBills.get(0).getCustomerId()).get().getName();
-        // salesPaymentRepo.findPaymentDetails(listOfBills.get(0).getId()).getStatus();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("created_date").descending());
 
-        try {
-            listOfBills.stream().forEach(obj -> { // SalesResponseDTO salesResponse
-                var salesResponse = SalesResponseDTO.builder()
-                        .customer(shopRepo.findById(obj.getCustomerId()).get().getName())
-                        .remarks(obj.getRemarks())
-                        .date(String.valueOf(obj.getCreatedDate())).id(obj.getInvoiceNumber())
-                        .total(obj.getTotalAmount())
-                        .status(salesPaymentRepo.findPaymentDetails(obj.getId()).getStatus()).build();
+        Page<BillingEntity> billingPage=null;
 
-                response.add(salesResponse);
-
-            });
-        } catch (Exception e) { // TODO Auto-generated catch block
-            e.printStackTrace();
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            // Use a custom query to search by invoice number or customer name
+            try {
+                billingPage = billRepo.findByUserIdAndSearchNative(username, searchTerm.trim(), pageable);
+            }
+            catch(Exception e){
+                e.printStackTrace();
+            }
+        } else {
+            billingPage = billRepo.findAllByUserId(username, pageable);
         }
 
-        return response;
+        List<SalesResponseDTO> dtoList = billingPage.getContent().stream()
+                .map(obj -> {
+                    String customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), username).getName();
+                    String paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
+
+                    return SalesResponseDTO.builder()
+                            .customer(customerName)
+                            .remarks(obj.getRemarks())
+                            .date(obj.getCreatedDate().toString())
+                            .id(obj.getInvoiceNumber())
+                            .total(obj.getTotalAmount())
+                            .status(paymentStatus)
+                            .build();
+                })
+                .toList();
+
+        return new PageImpl<>(dtoList, pageable, billingPage.getTotalElements());
     }
+
+    public List<SalesResponseDTO> getLastNSales(int count) {
+
+
+        String username = extractUsername();
+
+
+        List<BillingEntity> billingDetails = billRepo.findNNumberWithUserId(username, count);
+
+
+        List<SalesResponseDTO> dtoList = billingDetails.stream()
+                .map(obj -> {
+                    String customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), username).getName();
+                    String paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
+
+                    return SalesResponseDTO.builder()
+                            .customer(customerName)
+                            .remarks(obj.getRemarks())
+                            .date(obj.getCreatedDate().toString())
+                            .id(obj.getInvoiceNumber())
+                            .total(obj.getTotalAmount())
+                            .status(paymentStatus)
+                            .build();
+                })
+                .toList();
+
+        return dtoList;
+
+    }
+
+
 
     public Page<SalesResponseDTO> getAllSalesWithPagination(Integer page, Integer size) {
 
@@ -375,8 +489,8 @@ public class ShopService {
 
         return billRepo.findAll(pageable)
                 .map(sale -> new SalesResponseDTO(sale.getInvoiceNumber(),
-                        shopRepo.findById(sale.getCustomerId()).get().getName(), String.valueOf(sale.getCreatedDate()),
-                        sale.getTotalAmount(), sale.getRemarks(), salesPaymentRepo.findPaymentDetails(sale.getId()).getStatus()));
+                        shopRepo.findByIdAndUserId(sale.getCustomerId(), extractUsername()).getName(), String.valueOf(sale.getCreatedDate()),
+                        sale.getTotalAmount(), sale.getRemarks(), salesPaymentRepo.findPaymentDetails(sale.getId(), extractUsername()).getStatus()));
     }
 
     public DasbboardResponseDTO getDashBoardDetails(String range) {
@@ -394,16 +508,16 @@ public class ShopService {
             if (range.equals("lastWeek")) {
                 days = 7;
             }
-            billList = billRepo.findAllByDayRange(LocalDateTime.now().minusDays(days));
+            billList = billRepo.findAllByDayRange(LocalDateTime.now().minusDays(days), extractUsername());
 
         } else if (range.equals("today")) {
             LocalDateTime startOfDay = LocalDate.now().atStartOfDay(); // today 00:00
             LocalDateTime endOfDay = startOfDay.plusDays(1); // tomorrow 00:00
-            billList = billRepo.findAllCreatedToday(startOfDay, endOfDay);
+            billList = billRepo.findAllCreatedToday(startOfDay, endOfDay, extractUsername());
             // prodList = prodRepo.findAllCreatedToday(startOfDay, endOfDay);
 
         }
-        prodList = prodRepo.findAllByStatus(Boolean.TRUE);
+        prodList = prodRepo.findAllByStatus(Boolean.TRUE, extractUsername());
         Integer monthlyRevenue = 0;
         Integer taxCollected = 0;
         Integer totalUnitsSold = 0;
@@ -426,16 +540,16 @@ public class ShopService {
     }
 
     public List<PaymentDetails> getPaymentList() {
-        List<BillingEntity> billList = billRepo.findAll();
+        List<BillingEntity> billList = billRepo.findAllWithUserId(extractUsername());
         billList.sort(Comparator.comparing(BillingEntity::getCreatedDate).reversed());
         List<PaymentDetails> response = new ArrayList<>();
         billList.stream().forEach(obj -> {
 
             response.add(PaymentDetails.builder()
-                    .id(salesPaymentRepo.findPaymentDetails(obj.getId()).getPaymentReferenceNumber())
+                    .id(salesPaymentRepo.findPaymentDetails(obj.getId(), extractUsername()).getPaymentReferenceNumber())
                     .amount(obj.getTotalAmount()).date(String.valueOf(obj.getCreatedDate()))
                     .saleId(obj.getInvoiceNumber())
-                    .method(salesPaymentRepo.findPaymentDetails(obj.getId()).getPaymentMethod()).build());
+                    .method(salesPaymentRepo.findPaymentDetails(obj.getId(), extractUsername()).getPaymentMethod()).build());
         });
 
         return response;
@@ -446,6 +560,7 @@ public class ShopService {
         return null;
     }
 
+    //@CacheEvict(value = "products", allEntries = true)
     public List<ProductRequest> uploadBulkProduct(MultipartFile file) {
 
         try {
@@ -589,18 +704,18 @@ public class ShopService {
 
     public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
 
-        BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber);
+        BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber, extractUsername());
 
-        PaymentEntity paymentEntity = salesPaymentRepo.findPaymentDetails(billDetails.getId());
+        PaymentEntity paymentEntity = salesPaymentRepo.findPaymentDetails(billDetails.getId(), extractUsername());
 
         boolean paid = false;
         if (paymentEntity.getStatus().equalsIgnoreCase("Paid")) {
             paid = true;
         }
 
-        CustomerEntity customerEntity = shopRepo.findById(billDetails.getCustomerId()).get();
+        CustomerEntity customerEntity = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername());
 
-        List<ProductSalesEntity> prodSales = prodSalesRepo.findByOrderId(billDetails.getId());
+        List<ProductSalesEntity> prodSales = prodSalesRepo.findByOrderId(billDetails.getId(), extractUsername());
         Double gst = 0d;
         for (ProductSalesEntity orders : prodSales) {
             gst = gst + orders.getTax();
@@ -608,15 +723,15 @@ public class ShopService {
 
         List<OrderItem> items = prodSales.stream().map(obj -> {
 
-            ProductEntity prodRes = prodRepo.findById(obj.getProductId()).get();
+            ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), extractUsername());
 
-            var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(prodRes.getPrice())
+            var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal())
                     .quantity(obj.getQuantity()).build();
             return orderItems;
         }).collect(Collectors.toList());
         var response = InvoiceDetails.builder().discountRate(0).invoiceId(orderReferenceNumber)
                 .paymentReferenceNumber(paymentEntity.getPaymentReferenceNumber()).items(items).gstRate(gst)
-                .customerPhone(customerEntity.getPhone()).customerEmail(customerEntity.getEmail())
+                .customerPhone(customerEntity.getPhone()).customerEmail(customerEntity.getEmail()).orderedDate(String.valueOf(billDetails.getCreatedDate()).substring(0, 10))
                 .totalAmount(billDetails.getTotalAmount()).customerName(customerEntity.getName()).paid(paid).build();
         return response;
     }
@@ -635,19 +750,20 @@ public class ShopService {
 
         System.out.println(toDateTime);
 
-        byte[] fileBytes = repogen.downloadReport(request.getReportType(), fromDateTime, toDateTime);
+        byte[] fileBytes = repogen.downloadReport(request.getReportType(), fromDateTime, toDateTime, extractUsername());
 
         return fileBytes;
     }
 
     public String saveReportDetails(Report request) {
         request.setStatus("READY");
+        request.setUserId(extractUsername());
         reportDRepo.save(request);
         return "Success";
     }
 
     public List<ReportResponse> getReportsList(Integer limit) {
-        List<Report> reportList = reportDRepo.findByLimit(limit);
+        List<Report> reportList = reportDRepo.findByLimit(limit, extractUsername());
 
         return reportList.stream().map(obj -> {
 
@@ -726,8 +842,9 @@ public class ShopService {
     }
 
     @Transactional
+    //@CacheEvict(value = "customerLists", allEntries = true)
     public void deleteCustomer(Integer id) {
-        shopRepo.updateStatus(id, "IN-ACTIVE");
+        shopRepo.updateStatus(id, "IN-ACTIVE", extractUsername());
 
     }
 
@@ -735,7 +852,7 @@ public class ShopService {
         System.out.println(orderId);
         InvoiceDetails order = getOrderDetails(orderId);
         byte[] response = pdfutil.generateInvoice(order.getCustomerName(), order.getCustomerEmail(),
-                order.getCustomerPhone(), order.getInvoiceId(), order.getItems());
+                order.getCustomerPhone(), order.getInvoiceId(), order.getItems(), order.getOrderedDate(), order.getTotalAmount(), order.isPaid(), order.getGstRate());
 
         return response;
     }
@@ -748,12 +865,24 @@ public class ShopService {
 
         ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(username);
 
-        var response = UpdateUserDTO.builder().address(shopDetails.getAddresss()).email(userinfo.getEmail())
-                .gstNumber(shopDetails.getGstNumber()).name(userinfo.getName()).phone(userinfo.getPhoneNumber())
-                .shopLocation(shopDetails.getAddresss()).shopOwner(shopDetails.getOwnerName()).username(username)
-                .build();
+        if(shopDetails!=null) {
 
+          var   response = UpdateUserDTO.builder().address(shopDetails.getAddresss()).email(userinfo.getEmail())
+                    .gstNumber(shopDetails.getGstNumber()).name(userinfo.getName()).phone(userinfo.getPhoneNumber())
+                    .shopLocation(shopDetails.getAddresss()).shopOwner(shopDetails.getOwnerName()).username(username)
+                    .build();
+          return response;
+        }
+        else{
+        var     response = UpdateUserDTO.builder().address("").email(userinfo.getEmail())
+                    .gstNumber("").name(userinfo.getName()).phone(userinfo.getPhoneNumber())
+                    .shopLocation("").shopOwner("").username(username)
+                    .build();
         return response;
+        }
+
+
+
     }
 
     public byte[] getProfilePic(String username) throws IOException {
@@ -773,16 +902,18 @@ public class ShopService {
     }
 
     @Transactional
+    //@CacheEvict(value = "products", allEntries = true)
     public void deleteProduct(Integer id) {
         System.out.println("endtered deleteProduct with productId " + id);
 
-        prodRepo.deActivateProduct(id, Boolean.FALSE);
+        prodRepo.deActivateProduct(id, Boolean.FALSE, extractUsername());
 
     }
 
     public AnalyticsResponse getAnalytics(AnalyticsRequest request) {
 
         AnalyticsResponse response = new AnalyticsResponse();
+        String userId=extractUsername();
 
         List<String> labels = new ArrayList<>();
         List<Long> sales = new ArrayList<>();
@@ -795,7 +926,7 @@ public class ShopService {
         LocalDateTime startDate = LocalDate.parse(request.getStartDate()).atStartOfDay();
         LocalDateTime endDate = LocalDate.parse(request.getEndDate()).atTime(LocalTime.MAX);
 
-        List<Object[]> resultsSales = billRepo.getMonthlySalesSummary(startDate, endDate);
+        List<Object[]> resultsSales = billRepo.getMonthlySalesSummary(startDate, endDate, userId);
 
         for (Object[] row : resultsSales) {
             String month = (String) row[0];
@@ -804,23 +935,34 @@ public class ShopService {
             sales.add(count);
         }
 
-        List<Object[]> resultsStocks = billRepo.getMonthlyStocksSold(startDate, endDate);
-        for (Object[] row : resultsStocks) {
+        try {
+            List<Object[]> resultsStocks = billRepo.getMonthlyStocksSold(startDate, endDate, userId);
+            for (Object[] row : resultsStocks) {
 
-            Long count = ((Number) row[1]).longValue();
-            stocks.add(count);
+                Long count = ((Number) row[1]).longValue();
+                stocks.add(count);
+            }
         }
-        List<Object[]> resultsTaxes = billRepo.getMonthlyTaxesSummary(startDate, endDate);
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        List<Object[]> resultsTaxes = billRepo.getMonthlyTaxesSummary(startDate, endDate, userId);
         for (Object[] row : resultsTaxes) {
             Integer count = ((Number) row[1]).intValue();
             taxes.add(count);
         }
-        List<Object[]> resultsCustomers = shopRepo.getMonthlyCustomerCount(startDate, endDate);
+        try{
+        List<Object[]> resultsCustomers = shopRepo.getMonthlyCustomerCount(startDate, endDate, userId);
         for (Object[] row : resultsCustomers) {
             Integer count = ((Number) row[1]).intValue();
             customers.add(count);
         }
-        List<Object[]> resultsOnlinePaymentCount = salesPaymentRepo.getMonthlyPaymentCounts(startDate, endDate);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        List<Object[]> resultsOnlinePaymentCount = salesPaymentRepo.getMonthlyPaymentCounts(startDate, endDate, userId);
 
         for (Object[] row : resultsOnlinePaymentCount) {
             Integer count = ((Number) row[1]).intValue();
@@ -845,6 +987,16 @@ public class ShopService {
 
         return response;
     }
+
+
+    public Map<String, String> getUserProfileDetails() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        System.out.println("Current user: " + username);
+        Map<String, String> response = new HashMap<>();
+        response.put("username", username);
+        return response;
+    }
+
 
 
 }
