@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -126,6 +127,9 @@ public class ShopService {
     @Autowired
     OrderEmailTemplate emailTemplate;
 
+    @Autowired
+    SalesCacheService salesCacheService;
+
     private final Random random = new Random();
 
     @Value("${aws.s3.bucket-name}")
@@ -144,7 +148,7 @@ public class ShopService {
         return userinfoRepo.findByUsername(username).get().getIsActive();
     }
 
-    //@CacheEvict(value = "customerLists", allEntries = true)
+    @CacheEvict(value = "customers", key = "#root.target.extractUsername()")
     public CustomerSuccessDTO saveCustomer(CustomerRequest request) {
         System.out.println("entered into saveCustomer with" + request.toString());
 
@@ -177,7 +181,7 @@ public class ShopService {
 
     }
 
-    //@CacheEvict(value = "customerLists", allEntries = true)
+    @CacheEvict(value = "customers", key = "#root.target.extractUsername()")
     public CustomerEntity saveCustomerForBilling(CustomerRequest request) {
         System.out.println("entered into saveCustomer with" + request.toString());
         List<CustomerEntity> existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
@@ -208,7 +212,7 @@ public class ShopService {
 
     }
 
-    //@Cacheable("customerLists")
+    @Cacheable(value = "customers", key = "#root.target.extractUsername()")
     public List<CustomerEntity> getAllCustomer() {
         System.out.println("The extracted username is " + extractUsername());
 
@@ -245,7 +249,17 @@ public class ShopService {
         ProductEntity ent = prodRepo.save(productEntity);
         if (ent.getId() != null) {
 
+            try {
+                salesCacheService.evictUserProducts(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
             return ProductSuccessDTO.builder().success(true).product(request).build();
+
+
         }
 
         return ProductSuccessDTO.builder().success(false).product(request).build();
@@ -267,6 +281,14 @@ public class ShopService {
 
         if (ent.getId() != null) {
 
+            try {
+                salesCacheService.evictUserProducts(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
             return ProductSuccessDTO.builder().success(true).product(request).build();
         }
 
@@ -274,12 +296,14 @@ public class ShopService {
 
     }
 
+
     public List<ProductEntity> getAllProducts() {
 
         return prodRepo.findAllActiveProducts(Boolean.TRUE,  extractUsername());
     }
 
 
+    @Cacheable(value = "products", keyGenerator = "userScopedKeyGenerator")
     public Page<ProductEntity> getAllProducts(String search, int page, int limit, String sort, String dir) {
         // Create Sort object based on direction and sort field
         {
@@ -336,7 +360,6 @@ public class ShopService {
     }
 
     @Transactional
-    //@CacheEvict(value = {"salesCache", "products"}, allEntries = true)
     public BillingResponse doPayment(BillingRequest request) throws Exception {
 
         Integer unitsSold = 0;
@@ -393,6 +416,10 @@ public class ShopService {
                 // TODO Auto-generated catch block,
                 e.printStackTrace();
             }
+
+
+
+
             InvoiceDetails order = getOrderDetails(billResponse.getInvoiceNumber());
             try {
                 String htmlContent = emailTemplate.generateOrderHtml(order);
@@ -406,6 +433,15 @@ public class ShopService {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
+            try {
+              salesCacheService.evictUserSales(extractUsername());
+                salesCacheService.evictUserProducts(extractUsername());
+                salesCacheService.evictUserPayments(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
 
             return BillingResponse.builder().paymentReferenceNumber(paymentEntity.getPaymentReferenceNumber())
                     .invoiceNumber(billResponse.getInvoiceNumber()).status("SUCCESS").build();
@@ -414,6 +450,7 @@ public class ShopService {
         return BillingResponse.builder().status("FAILURE").build();
     }
 
+    @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
     public Page<SalesResponseDTO> getAllSales(int page, int size, String searchTerm) {
         String username = extractUsername();
 
@@ -482,7 +519,7 @@ public class ShopService {
     }
 
 
-
+    @Cacheable(value = "sales", key = "#root.target.extractUsername()")
     public Page<SalesResponseDTO> getAllSalesWithPagination(Integer page, Integer size) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
@@ -539,8 +576,12 @@ public class ShopService {
                 .taxCollected(taxCollected).totalUnitsSold(totalUnitsSold).build();
     }
 
-    public List<PaymentDetails> getPaymentList() {
-        List<BillingEntity> billList = billRepo.findAllWithUserId(extractUsername());
+    @Cacheable(value = "payments", keyGenerator = "userScopedKeyGenerator")
+    public List<PaymentDetails> getPaymentList(String fromDate, String toDate) {
+
+        LocalDateTime startDate = LocalDate.parse(fromDate).atStartOfDay();
+        LocalDateTime endDate = LocalDate.parse(toDate).atTime(LocalTime.MAX);
+        List<BillingEntity> billList = billRepo.findAllWithUserId(extractUsername(), startDate, endDate);
         billList.sort(Comparator.comparing(BillingEntity::getCreatedDate).reversed());
         List<PaymentDetails> response = new ArrayList<>();
         billList.stream().forEach(obj -> {
@@ -570,6 +611,14 @@ public class ShopService {
                 ProductSuccessDTO prodsaveResponse = saveProduct(obj);
                 System.out.println(prodsaveResponse);
             });
+
+            try {
+                salesCacheService.evictUserProducts(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
             return prodList;
 
         } catch (IOException e) {
@@ -701,6 +750,7 @@ public class ShopService {
 
         return baos;
     }
+
 
     public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
 
@@ -842,7 +892,7 @@ public class ShopService {
     }
 
     @Transactional
-    //@CacheEvict(value = "customerLists", allEntries = true)
+    @CacheEvict(value = "customers", key = "#root.target.extractUsername()")
     public void deleteCustomer(Integer id) {
         shopRepo.updateStatus(id, "IN-ACTIVE", extractUsername());
 
@@ -902,11 +952,18 @@ public class ShopService {
     }
 
     @Transactional
-    //@CacheEvict(value = "products", allEntries = true)
     public void deleteProduct(Integer id) {
         System.out.println("endtered deleteProduct with productId " + id);
 
         prodRepo.deActivateProduct(id, Boolean.FALSE, extractUsername());
+
+        try {
+            salesCacheService.evictUserProducts(extractUsername());
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
     }
 
@@ -987,6 +1044,7 @@ public class ShopService {
 
         return response;
     }
+
 
 
     public Map<String, String> getUserProfileDetails() {

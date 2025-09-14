@@ -179,6 +179,8 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+
+
     @GetMapping("api/shop/get/withCache/productsList")
     public ResponseEntity<Map<String, Object>> getProductsList(
             @RequestParam(defaultValue = "1") int page,
@@ -256,8 +258,10 @@ public class ShopController {
     }
 
     @GetMapping("api/shop/get/paymentLists")
-    ResponseEntity<List<PaymentDetails>> getPaymentList() {
-        List<PaymentDetails> response = serv.getPaymentList();
+    ResponseEntity<List<PaymentDetails>> getPaymentList(
+            @RequestParam String fromDate,
+            @RequestParam String toDate) {
+        List<PaymentDetails> response = serv.getPaymentList(fromDate, toDate);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

@@ -53,8 +53,8 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
 	List<Object[]> getMonthlyTaxesSummary(@Param("fromDate") LocalDateTime fromDate,
 			@Param("toDate") LocalDateTime toDate, @Param("userId") String userId);
 
-    @Query(value = "select * from billing_details where user_id=?1", nativeQuery = true)
-    List<BillingEntity> findAllWithUserId(String userId);
+    @Query(value = "select * from billing_details where user_id=?1 and created_date BETWEEN ?2 AND ?3", nativeQuery = true)
+    List<BillingEntity> findAllWithUserId(String userId, LocalDateTime startDate, LocalDateTime endDate);
 
     @Query(value = "select * from billing_details where user_id=?1 order by created_date desc limit ?2", nativeQuery = true)
     List<BillingEntity> findNNumberWithUserId(String userId, int count);
