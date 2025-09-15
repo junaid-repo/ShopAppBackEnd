@@ -3,6 +3,7 @@ package com.management.shop.controller;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,12 +103,12 @@ public class ShopController {
     @GetMapping("/api/shop/get/cacheable/customersList")
     public ResponseEntity<Map<String, Object>> getCustomersListCacheable(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "10") int limit,
             @RequestParam(required = false, defaultValue = "") String search) {
 
         try {
             // Call the updated service method
-            Page<CustomerEntity> customerPage =  serv.getCacheableCustomersList(search, page, size);
+            Page<CustomerEntity> customerPage =  serv.getCacheableCustomersList(search, page, limit);
 
             // Build the response map to match the frontend's expected structure
             Map<String, Object> response = new HashMap<>();
@@ -190,6 +191,7 @@ public class ShopController {
             @RequestParam(defaultValue = "desc") String dir
     ) {
         try {
+            System.out.println("entered getProductsList");
             // Call the updated service method
             Page<ProductEntity> productPage = serv.getAllProducts(search, page, limit, sort, dir);
 
@@ -409,8 +411,25 @@ public class ShopController {
 
         AnalyticsResponse response = serv.getAnalytics(request);
 
+        AnalyticsResponse response2 =  AnalyticsResponse.builder()
+                .labels(Arrays.asList("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+                .sales(Arrays.asList(1200L, 1500L, 1800L, 2000L, 2200L, 2500L,
+                        2700L, 2600L, 2800L, 3000L, 3200L, 3500L))
+                .stocks(Arrays.asList(300L, 280L, 260L, 240L, 230L, 220L,
+                        210L, 200L, 190L, 185L, 180L, 175L))
+                .taxes(Arrays.asList(120, 150, 180, 200, 220, 250,
+                        270, 260, 280, 300, 320, 350))
+                .customers(Arrays.asList(50, 65, 70, 80, 90, 100,
+                        110, 105, 120, 125, 130, 140))
+                .profits(Arrays.asList(500L, 600L, 750L, 800L, 900L, 1000L,
+                        1100L, 1050L, 1200L, 1250L, 1300L, 1400L))
+                .onlinePayments(Arrays.asList(30, 40, 55, 60, 70, 85,
+                        90, 88, 95, 100, 110, 120))
+                .build();
 
-        return ResponseEntity.ok(response);
+
+        return ResponseEntity.ok(response2);
     }
 
     @GetMapping("api/shop/get/order/{saleId}")

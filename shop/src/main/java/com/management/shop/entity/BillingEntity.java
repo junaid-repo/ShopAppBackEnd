@@ -34,6 +34,7 @@ public class BillingEntity {
 	private Integer customerId;
 	private Integer unitsSold;
     private String remarks;
+    private Double totalProfitOnCP;
 	private LocalDateTime createdDate;
     private String userId;
 

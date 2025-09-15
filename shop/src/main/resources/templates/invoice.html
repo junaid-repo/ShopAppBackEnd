@@ -151,17 +151,32 @@
     <div class="invoice-details">
         <div>
             <b>Invoice ID:</b> <span th:text="${invoiceId}"></span><br/>
-            <b>Date:</b> <span th:text="${#dates.format(today, 'dd MMM yyyy HH:mm')}"></span>
+            <b>Date:</b> <span th:text="${orderedDate}"></span>
         </div>
     </div>
 
-    <!-- CUSTOMER DETAILS -->
-    <div class="customer-details">
-        <h4>Customer Details</h4>
-        <b>Name:</b> <span th:text="${customerName}"></span><br/>
-        <b>Email:</b> <span th:text="${customerEmail}"></span><br/>
-        <b>Phone:</b> <span th:text="${customerPhone}"></span>
+    <!-- CUSTOMER DETAILS + BARCODE -->
+    <!-- CUSTOMER DETAILS + BARCODE -->
+    <div class="customer-details" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-top: 20px;">
+
+        <!-- Customer Info -->
+        <div style="flex: 1;">
+            <h4>Customer Details</h4>
+            <b>Name:</b> <span th:text="${customerName}"></span><br/>
+            <b>Email:</b> <span th:text="${customerEmail}"></span><br/>
+            <b>Phone:</b> <span th:text="${customerPhone}"></span>
+        </div>
+
+
     </div>
+
+    <!-- Barcode inside customer-details -->
+    <div style="text-align: right;">
+        <img th:src="'data:image/png;base64,' + ${barcodeBase64}" alt="Invoice Barcode" style="width: 250px; margin-top: 18px; height: 40px;"/>
+        <p style="font-size: 12px; margin-top: 5px;"> <span th:text="${invoiceId}"></span></p>
+    </div>
+
+
 
     <!-- PRODUCT TABLE -->
     <table>

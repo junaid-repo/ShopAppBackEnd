@@ -26,12 +26,19 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
 	@Query(value = "SELECT * FROM billing_details WHERE created_date >= ?1 	   AND created_date < ?2 and user_id=?3", nativeQuery = true)
 	List<BillingEntity> findAllCreatedToday(LocalDateTime startOfDay, LocalDateTime endOfDay, String userId);
 
-	@Query(value = "SELECT DATE_FORMAT(created_date, '%b') AS month, " + "SUM(total) AS count "
-			+ "FROM billing_payments " + "WHERE created_date BETWEEN :fromDate AND :toDate and user_id=:userId "
-			+ "GROUP BY MONTH(created_date), DATE_FORMAT(created_date, '%b') "
-			+ "ORDER BY MONTH(created_date)", nativeQuery = true)
-	List<Object[]> getMonthlySalesSummary(@Param("fromDate") LocalDateTime fromDate,
-			@Param("toDate") LocalDateTime toDate, @Param("userId") String userId);
+    @Query(value = "SELECT DATE_FORMAT(bp.created_date, '%b') AS month, " +
+            "SUM(bp.total) AS count, " +
+            "SUM(bd.total_profit_oncp) AS totalProfit " +
+            "FROM billing_payments bp " +
+            "JOIN billing_details bd ON bp.billing_id = bd.id " +
+            "WHERE bp.created_date BETWEEN :fromDate AND :toDate " +
+            "AND bp.user_id = :userId " +
+            "GROUP BY MONTH(bp.created_date), DATE_FORMAT(bp.created_date, '%b') " +
+            "ORDER BY MONTH(bp.created_date)",
+            nativeQuery = true)
+    List<Object[]> getMonthlySalesSummary(@Param("fromDate") LocalDateTime fromDate,
+                                          @Param("toDate") LocalDateTime toDate,
+                                          @Param("userId") String userId);
 
     @Query(value = "SELECT DATE_FORMAT(bp.created_date, '%b') AS month, " +
             "SUM(ps.quantity) AS totalStocksSold " +

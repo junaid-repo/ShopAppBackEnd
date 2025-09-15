@@ -30,8 +30,10 @@ public class PDFInvoiceUtil {
 
 			
 			//String barcodeBase64 = BarcodeGenerator.generateBarcodeBase64(invoiceId);
+            String barcodeBase64 = BarcodeGenerator.generateBarcodeBase64(invoiceId);
 
-			context.setVariable("shopName", "Friends Mobile Store");
+
+            context.setVariable("shopName", "Friends Mobile Store");
 			context.setVariable("shopAddress", "Bariatu Ranchi");
 			context.setVariable("invoiceId", invoiceId);
 			context.setVariable("products", products);
@@ -43,7 +45,7 @@ public class PDFInvoiceUtil {
             context.setVariable("totalAmount", totalAmount);
             context.setVariable("paid", paid);
             context.setVariable("gstRate", gstRate);
-			//context.setVariable("barcodeBase64", barcodeBase64);
+			context.setVariable("barcodeBase64", barcodeBase64);
 
 			// Render Thymeleaf template into HTML string
 			String htmlContent = templateEngine.process("invoice", context);

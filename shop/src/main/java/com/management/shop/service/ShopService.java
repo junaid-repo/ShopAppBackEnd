@@ -8,6 +8,7 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -148,7 +149,7 @@ public class ShopService {
         return userinfoRepo.findByUsername(username).get().getIsActive();
     }
 
-    @CacheEvict(value = "customers", key = "#root.target.extractUsername()")
+
     public CustomerSuccessDTO saveCustomer(CustomerRequest request) {
         System.out.println("entered into saveCustomer with" + request.toString());
 
@@ -173,6 +174,13 @@ public class ShopService {
 
 
         if (ent.getId() != null) {
+            try {
+                salesCacheService.evictUserCustomers(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
 
             return CustomerSuccessDTO.builder().success(true).customer(request).build();
         }
@@ -204,6 +212,14 @@ public class ShopService {
         }
 
         if (ent.getId() != null) {
+
+            try {
+                salesCacheService.evictUserCustomers(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
 
             return ent;
         }
@@ -328,14 +344,13 @@ public class ShopService {
 
     }
 
+    @Cacheable(value = "customers", keyGenerator = "userScopedKeyGenerator")
     public Page<CustomerEntity> getCacheableCustomersList(String search, int page, int size)  {
 
 
         // Map API field name to DB field
 
-        if(page==0){
-            page=1;
-        }
+
 
         String    sortField = "created_date";
 
@@ -371,7 +386,7 @@ public class ShopService {
                 .discountPercent(request.getDiscountPercentage()).remarks(request.getRemarks()).subTotalAmount(request.getTotal() - request.getTax()).createdDate(LocalDateTime.now()).build();
 
         BillingEntity billResponse = billRepo.save(billingEntity);
-
+        final Double[] totalProfitOnCP = {0d};
         if (billResponse.getId() != null) {
             request.getCart().stream().forEach(obj -> {
 
@@ -386,12 +401,17 @@ public class ShopService {
 
                 Integer total = obj.getQuantity() * (int)Math.round(discountedTotal);
                 Integer subTotal = total- tax;
-
+                Double profitOnCp= (discountedTotal - prodRes.getCostPrice())*obj.getQuantity();
+                totalProfitOnCP[0] = totalProfitOnCP[0] +Math.round(profitOnCp);
                 var productSalesEntity = ProductSalesEntity.builder().billingId(billResponse.getId())
+                        .profitOnCP(profitOnCp)
                         .productId(obj.getId()).userId(extractUsername()).discountPercentage(obj.getDiscountPercentage()).quantity(obj.getQuantity()).tax(tax).subTotal(subTotal).total(total)
                         .build();
 
                 ProductSalesEntity prodSalesResponse = prodSalesRepo.save(productSalesEntity);
+
+
+
 
                 if (prodSalesResponse.getId() != null) {
                     prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername());
@@ -399,6 +419,15 @@ public class ShopService {
                 }
 
             });
+
+            billResponse.setTotalProfitOnCP(totalProfitOnCP[0]);
+            Runnable rn = () ->
+            {
+                billRepo.save(billResponse);
+            };
+            rn.run();
+
+
             String paymentMethod = "CASH";
             if (request.getPaymentMethod() != null) {
                 paymentMethod = request.getPaymentMethod();
@@ -437,6 +466,7 @@ public class ShopService {
               salesCacheService.evictUserSales(extractUsername());
                 salesCacheService.evictUserProducts(extractUsername());
                 salesCacheService.evictUserPayments(extractUsername());
+                salesCacheService.evictUserCustomers(extractUsername());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block
@@ -892,17 +922,27 @@ public class ShopService {
     }
 
     @Transactional
-    @CacheEvict(value = "customers", key = "#root.target.extractUsername()")
     public void deleteCustomer(Integer id) {
         shopRepo.updateStatus(id, "IN-ACTIVE", extractUsername());
+        try {
+            salesCacheService.evictUserCustomers(extractUsername());
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
     }
 
     public byte[] generateInvoicePdf(String orderId) throws Exception {
         System.out.println(orderId);
         InvoiceDetails order = getOrderDetails(orderId);
+        LocalDate orderedDate = LocalDate.parse(order.getOrderedDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+// Format to new pattern
+        String formattedDate = orderedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
         byte[] response = pdfutil.generateInvoice(order.getCustomerName(), order.getCustomerEmail(),
-                order.getCustomerPhone(), order.getInvoiceId(), order.getItems(), order.getOrderedDate(), order.getTotalAmount(), order.isPaid(), order.getGstRate());
+                order.getCustomerPhone(), order.getInvoiceId(), order.getItems(), formattedDate, order.getTotalAmount(), order.isPaid(), order.getGstRate());
 
         return response;
     }
@@ -1031,7 +1071,7 @@ public class ShopService {
             double percentage = 0.08 + (0.20 - 0.08) * random.nextDouble();
 
             Long count = ((Number) row[1]).longValue();
-            Long estimatedProfit = (long) (count * percentage);
+            Long estimatedProfit = ((Number) row[1]).longValue();
             profits.add(estimatedProfit);
         }
         response.setCustomers(customers);
