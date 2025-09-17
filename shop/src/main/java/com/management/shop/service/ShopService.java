@@ -805,7 +805,7 @@ public class ShopService {
 
             ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), extractUsername());
 
-            var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal())
+            var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
                     .quantity(obj.getQuantity()).build();
             return orderItems;
         }).collect(Collectors.toList());
@@ -815,6 +815,8 @@ public class ShopService {
                 .totalAmount(billDetails.getTotalAmount()).customerName(customerEntity.getName()).paid(paid).build();
         return response;
     }
+
+
 
     public byte[] generateReport(ReportRequest request) {
 

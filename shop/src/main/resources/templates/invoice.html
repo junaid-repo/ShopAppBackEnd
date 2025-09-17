@@ -184,25 +184,27 @@
         <tr>
             <th>Item</th>
             <th>Qty</th>
-            <th>Price (₹)</th>
-            <th>Total (₹)</th>
+            <th>Price ()</th>
+            <th>Gst ()</th>
+            <th>Total ()</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="product : ${products}">
             <td th:text="${product.productName}"></td>
             <td th:text="${product.quantity}"></td>
+            <td th:text="${product.unitPrice - product.gst}"></td>
+            <td th:text="${product.gst}"></td>
             <td th:text="${product.unitPrice}"></td>
-            <td th:text="${product.unitPrice * product.quantity}"></td>
         </tr>
         </tbody>
     </table>
 
     <!-- GRAND TOTAL -->
     <div class="total-section">
-        <h4>Total without GST: ₹<span th:text="${totalAmount}"></span></h4>
-        <h3>GST Amount: ₹<span th:text="${gstRate}"></span></h3>
-        <h3>Grand Total: ₹<span th:text="${grandTotal}"></span></h3>
+        <h4>Sub Total: <span th:text="${totalAmount}"></span></h4>
+        <h4>GST: <span th:text="${gstRate}"></span></h4>
+        <h3>Grand Total: <span th:text="${grandTotal}"></span></h3>
     </div>
 
     <!-- FOOTER -->

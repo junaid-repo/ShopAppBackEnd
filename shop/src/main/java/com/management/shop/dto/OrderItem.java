@@ -13,4 +13,5 @@ public class OrderItem {
 	   private String productName;
 	    private int quantity;
 	    private double unitPrice;
+        private double gst;
 }
