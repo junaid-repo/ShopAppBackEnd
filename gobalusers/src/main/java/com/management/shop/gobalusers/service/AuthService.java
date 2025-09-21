@@ -1,6 +1,7 @@
 package com.management.shop.gobalusers.service;
 
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.mailjet.client.MailjetResponse;
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
@@ -12,14 +13,22 @@ import com.management.shop.gobalusers.repository.UserInfoRepository;
 import com.management.shop.gobalusers.repository.UserProfilePicRepo;
 import com.management.shop.gobalusers.util.AccountEmailTemplate;
 import com.management.shop.gobalusers.util.OTPSender;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -31,7 +40,8 @@ public class AuthService {
     @Autowired
     private UserInfoRepository userinfoRepo;
 
-
+    @Autowired
+    private GoogleTokenVerifierService googleVerifier;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -45,6 +55,13 @@ public class AuthService {
     @Autowired
     private AccountEmailTemplate emailTemplateUtil;
 
+    @Autowired
+    private final AuthenticationManager authenticationManager;
+
+    @Autowired
+    private Environment environment;
+
+    private final JwtService jwtService;
 
     @Autowired
     private OTPSender otpSender;
@@ -53,6 +70,13 @@ public class AuthService {
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
+
+    public AuthService(AuthenticationManager authenticationManager,
+
+                          JwtService jwtService) {
+        this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
+    }
 
     public String addUser(UserInfo userInfo) {
         userInfo.setRoles("USER");
@@ -86,6 +110,7 @@ public class AuthService {
 
         var userInfo = UserInfo.builder().email(regRequest.getEmail()).isActive(false).name(regRequest.getFullName())
                 .password(regRequest.getPassword()).phoneNumber(regRequest.getPhone())
+                .source("email")
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
 
         userInfo.setRoles("USER");
@@ -303,5 +328,138 @@ public class AuthService {
             return Map.of("retryLeft", String.valueOf(5-res.getRetries()));
         }
         return Map.of("retryLeft", "0");
+    }
+
+    public GoogleAuthResponse googleLogin(GoogleLoginRequest request, HttpServletResponse httpServletResponse) throws Exception {
+        GoogleAuthResponse response = new GoogleAuthResponse();
+       try {
+           GoogleIdToken.Payload payload = googleVerifier.verify(request.getIdToken());
+           String email = payload.getEmail();
+            String profilePicLink=(String) payload.get("picture");
+           String sub = payload.getSubject(); // Google's user ID
+           String name = (String) payload.get("name");
+           System.out.println("google email ->" + email);
+           System.out.println("google name ->" + name);
+           String jwtToken=null;
+           List<UserInfo> res = userinfoRepo.validateUser(email, "na", true);
+            try{
+           if (res.size() > 0) {
+               var authRequest = AuthRequest.builder().username(res.get(0).getUsername()).build();
+
+               jwtToken=    authAndsetCookies(authRequest, httpServletResponse);
+           } else {
+               var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
+                       .phoneNumber("0000000000")
+                       .source("google")
+                       .profilePiclink(profilePicLink)
+                       .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+
+               userInfo.setRoles("USER");
+               //userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
+               UserInfo userRes = userinfoRepo.save(userInfo);
+               if (userRes.getId() > 0) {
+                   String username = userRes.getName().replace(" ", "").toLowerCase() + String.valueOf(userRes.getId());
+                   userInfo.setUsername(username);
+                   userinfoRepo.save(userInfo);
+                   var authRequest = AuthRequest.builder().username(username).build();
+                   jwtToken=    authAndsetCookies(authRequest, httpServletResponse);
+               }
+
+
+           }
+           if(jwtToken!=null){
+               response.setMessage("Login successful");
+               response.setSuccess(Boolean.TRUE);
+               response.setToken(jwtToken);
+           }
+           else {
+               response.setMessage("Login unsuccessful");
+               response.setSuccess(Boolean.FALSE);
+               response.setToken(null);
+           }
+           return response;
+
+       }
+           catch (Exception e){
+               response.setMessage(e.getMessage());
+               response.setSuccess(Boolean.FALSE);
+               response.setToken(null);
+           }
+       }
+       catch (Exception e){
+           response.setMessage(e.getMessage());
+           response.setSuccess(Boolean.FALSE);
+           response.setToken(null);
+        }
+
+        return response;
+    }
+
+    public String authAndsetCookies(AuthRequest authRequest, HttpServletResponse response){
+
+      String userSource=  userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
+
+        boolean isUserActive = checkUserStatus(authRequest.getUsername());
+      if(!userSource.equals("google")) {
+          Authentication authentication = authenticationManager.authenticate(
+                  new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
+          System.out.println("The authentication object is --> " + authentication);
+          if (authentication.isAuthenticated() && isUserActive) {
+              String token = jwtService.generateToken(authRequest.getUsername());
+
+              Cookie cookie = new Cookie("jwt", token);
+              if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                  cookie.setHttpOnly(true);       // ✅ Prevent JS access
+                  cookie.setSecure(true);         // ✅ Required for HTTPS
+                  cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
+                  cookie.setMaxAge(3600);         // ✅ 1 hour
+                  cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
+// Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
+
+                  response.addHeader("Set-Cookie",
+                          "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
+              } else {
+                  cookie.setHttpOnly(true);      // Prevent JS access
+                  cookie.setSecure(true);       // Don't require HTTPS in dev
+                  cookie.setPath("/");           // Available on all paths
+                  cookie.setMaxAge(3600);        // 1 hour
+                  cookie.setDomain("localhost"); // Or remove for simpler case
+
+                  response.addCookie(cookie);
+              }
+              // System.out.println("The generated token --> "+token);
+              return token;
+          }
+      }
+       else if ( isUserActive && userSource.equals("google")) {
+            String token = jwtService.generateToken(authRequest.getUsername());
+
+            Cookie cookie = new Cookie("jwt", token);
+            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                cookie.setHttpOnly(true);       // ✅ Prevent JS access
+                cookie.setSecure(true);         // ✅ Required for HTTPS
+                cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
+                cookie.setMaxAge(3600);         // ✅ 1 hour
+                cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
+// Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
+
+                response.addHeader("Set-Cookie",
+                        "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
+            } else {
+                cookie.setHttpOnly(true);      // Prevent JS access
+                cookie.setSecure(false);       // ✅ In dev, must be false (unless using HTTPS with localhost)
+                cookie.setPath("/");           // Available on all paths
+                cookie.setMaxAge(3600);
+                cookie.setDomain("localhost");// 1 hour
+// Do NOT set cookie.setDomain(...)
+
+                response.addCookie(cookie);
+            }
+            // System.out.println("The generated token --> "+token);
+            return token;
+        }else {
+            throw new UsernameNotFoundException("invalid user request !");
+        }
+       return null;
     }
 }

@@ -27,6 +27,8 @@ public class UserInfo {
     private String roles;
     private String username;
     private Boolean isActive;
+    private String source;
+    private String profilePiclink;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -27,4 +27,7 @@ public class ShopDetailsEntity {
 	private String addresss;
 	private String gstNumber;
     private String userId;
+    private String shopName;
+    private String shopEmail;
+    private String shopPhone;
 }

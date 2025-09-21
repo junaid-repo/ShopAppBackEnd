@@ -9,7 +9,10 @@ import java.util.List;
 import java.util.Map;
 
 import com.management.shop.dto.*;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -42,6 +45,9 @@ public class ShopController {
 
     @Autowired
     ShopService serv;
+
+    @Autowired
+    private Environment environment;
 
 
     @PostMapping("api/shop/user/updatepassword")
@@ -358,7 +364,7 @@ public class ShopController {
     }
 
     @GetMapping("api/shop/user/get/userprofile/{username}")
-    public ResponseEntity<UpdateUserDTO> updateUserProfile(
+    public ResponseEntity<UpdateUserDTO> getUserProfile(
             @PathVariable String username) throws IOException {
 
         UpdateUserDTO response = serv.getUserProfile(username);
@@ -439,6 +445,41 @@ public class ShopController {
         System.out.println("Entered analytic getOrderDetails with payload-->" + saleId);
 
         InvoiceDetails response = serv.getOrderDetails(saleId);
+
+
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("api/user/logout")
+    public ResponseEntity<Map<String, Object>> logoutUser(
+            HttpServletResponse httpResponse) {
+
+        System.out.println("Inside the logout method");
+
+        Map<String, Object> response = new HashMap<>();
+
+        Cookie cookie = new Cookie("jwt", null);
+        if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+            cookie.setHttpOnly(true);       // ✅ Prevent JS access
+            cookie.setSecure(true);         // ✅ Required for HTTPS
+            cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
+            cookie.setMaxAge(0);         // ✅ 1 hour
+            cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
+// Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
+
+            httpResponse.addHeader("Set-Cookie",
+                    "jwt=" + null + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
+        } else {
+            cookie.setHttpOnly(true);      // Prevent JS access
+            cookie.setSecure(false);       // ✅ In dev, must be false (unless using HTTPS with localhost)
+            cookie.setPath("/");           // Available on all paths
+            cookie.setMaxAge(0);
+            cookie.setDomain("localhost");// 1 hour
+// Do NOT set cookie.setDomain(...)
+
+            httpResponse.addCookie(cookie);
+        }
+        response.put("status", Boolean.TRUE);
+
 
 
         return ResponseEntity.ok(response);

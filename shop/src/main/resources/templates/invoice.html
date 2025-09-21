@@ -2,6 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1B6Wc1pO9xxl1+9fVf7u5QxCgH9E+2kZ8B3YfU5F3Fd0N6dZMbZ1zjJgO5an9dQw0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -12,74 +13,50 @@
         }
 
         .invoice-container {
-            max-width: 850px;  /* slightly wider */
+            max-width: 850px;
             margin: 20px auto;
             background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             padding: 30px;
-            overflow-x: auto; /* avoids clipping on smaller screens */
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            flex-wrap: wrap;   /* fixes overflow */
             border-bottom: 2px solid #eee;
             padding-bottom: 15px;
         }
 
-        .shop-info {
-            flex: 1;
-            min-width: 250px;
-        }
-
-        .shop-name {
-            font-size: 26px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .shop-address {
+        .shop-info { flex: 1; }
+        .shop-name { font-size: 26px; font-weight: bold; color: #2c3e50; padding-bottom: 10px; }
+        .shop-address, .shop-email, .shop-phone {
             font-size: 14px;
             color: #666;
+            padding-bottom: 4px; /* Added for better line spacing */
         }
 
-        .barcode {
-            flex-shrink: 0;
-            margin-top: 10px;
-            text-align: right;
+        /* --- NEW: Icon Styling --- */
+        .shop-info .icon {
+            color: #2c3e50;      /* Dark color to match the shop name */
+            margin-right: 8px;   /* Space between icon and text */
+            width: 15px;         /* Helps align the icons neatly */
+            text-align: center;
         }
 
-        .barcode img {
-            max-width: 180px;
-            height: auto;
-        }
+        .invoice-details { margin-top: 20px; }
+        .invoice-details div { font-size: 14px; color: #444; }
 
-        .invoice-details {
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap; /* fix overflow */
-            gap: 20px;
-        }
-
-        .invoice-details div {
-            font-size: 14px;
-            color: #444;
-            min-width: 200px;
-        }
-
-        .customer-details {
+        .customer-details-container {
             margin-top: 20px;
             padding: 15px;
             background: #f4f6f9;
             border-left: 4px solid #2c3e50;
-            border-radius: 6px;
+            border-radius: 20px;
         }
 
-        .customer-details h4 {
+        .customer-details-container h4 {
             margin: 0 0 10px 0;
             font-size: 16px;
             color: #2c3e50;
@@ -87,9 +64,9 @@
 
         table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             margin: 30px 0;
-            table-layout: auto;
         }
 
         table th {
@@ -98,30 +75,27 @@
             padding: 12px;
             text-align: center;
             font-size: 14px;
+            border: 1px solid #2c3e50;
         }
+
+        table thead th:first-child { border-top-left-radius: 20px; }
+        table thead th:last-child { border-top-right-radius: 20px; }
+        table tbody tr:last-child td:first-child { border-bottom-left-radius: 20px; }
+        table tbody tr:last-child td:last-child { border-bottom-right-radius: 20px; }
 
         table td {
             padding: 10px;
             border: 1px solid #ddd;
             text-align: center;
             font-size: 13px;
-            word-wrap: break-word;
         }
 
-        table tr:nth-child(even) {
-            background: #f9f9f9;
-        }
+        table tr:nth-child(even) { background: #f9f9f9; }
 
-        .total-section {
-            margin-top: 20px;
-            text-align: right;
-        }
-
-        .total-section h3 {
-            margin: 0;
-            font-size: 18px;
-            color: #2c3e50;
-        }
+        .total-section { margin-top: 20px; text-align: right; }
+        .gst-number { margin-top: 50px; font-weight: bold; }
+        .total-section h3 { margin: 0; font-size: 18px; color: #2c3e50; }
+        .gst-div { margin-top: 20px; font-size: 15px }
 
         .footer {
             margin-top: 40px;
@@ -135,58 +109,68 @@
 </head>
 <body>
 <div class="invoice-container">
-    <!-- HEADER -->
     <div class="header">
         <div class="shop-info">
             <div class="shop-name" th:text="${shopName}">My Shop</div>
-            <div class="shop-address" th:text="${shopAddress}">123 Main Street, Bangalore</div>
+
+            <div class="shop-address">
+                <i class="fa-solid fa-location-dot icon"></i><span th:text="${shopAddress}">123 Main Street, Bangalore</span>
+            </div>
+            <div class="shop-email">
+                <i class="fa-solid fa-envelope icon"></i><span th:text="${shopEmail}">shop@example.com</span>
+            </div>
+            <div class="shop-phone">
+                <i class="fa-solid fa-phone icon"></i><span th:text="${shopPhone}">+91 12345 67890</span>
+            </div>
+
+            <div class="gst-div">
+                <b>GSTIN: </b> <span class="gst-number" th:text="${gstNumber}">GstNumber</span>
+            </div>
         </div>
-    <!--     <div class="barcode">
-                <img th:src="'data:image/png;base64,' + ${barcodeBase64}" alt="Invoice Barcode"/>
-                <p th:text="'Invoice #: ' + ${invoiceNumber}"></p>
-        </div> -->
     </div>
 
-    <!-- INVOICE DETAILS -->
     <div class="invoice-details">
-        <div>
-            <b>Invoice ID:</b> <span th:text="${invoiceId}"></span><br/>
-            <b>Date:</b> <span th:text="${orderedDate}"></span>
-        </div>
-    </div>
+        <table style="width: 100%; margin:0; border:none;">
+            <tr style="background: transparent;">
+                <!-- Invoice ID + Date -->
+                <td style="vertical-align: top; padding: 0 20px 0 0; border:none; text-align: left;">
+                    <b>Invoice ID:</b> <span th:text="${invoiceId}"></span><br/>
+                    <b>Date:</b> <span th:text="${orderedDate}"></span>
+                </td>
 
-    <!-- CUSTOMER DETAILS + BARCODE -->
-    <!-- CUSTOMER DETAILS + BARCODE -->
-    <div class="customer-details" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-top: 20px;">
+                <!-- Barcode beside it -->
+                <td style="width: 220px; vertical-align: middle; text-align: right; border:none; padding: 0;">
+                    <img th:src="'data:image/png;base64,' + ${barcodeBase64}"
+                         alt="Invoice Barcode"
+                         style="width: 270px; height: 40px; margin-right: 10px"/>
 
-        <!-- Customer Info -->
-        <div style="flex: 1;">
-            <h4>Customer Details</h4>
-            <b>Name:</b> <span th:text="${customerName}"></span><br/>
-            <b>Email:</b> <span th:text="${customerEmail}"></span><br/>
-            <b>Phone:</b> <span th:text="${customerPhone}"></span>
-        </div>
-
-
-    </div>
-
-    <!-- Barcode inside customer-details -->
-    <div style="text-align: right;">
-        <img th:src="'data:image/png;base64,' + ${barcodeBase64}" alt="Invoice Barcode" style="width: 250px; margin-top: 18px; height: 40px;"/>
-        <p style="font-size: 12px; margin-top: 5px;"> <span th:text="${invoiceId}"></span></p>
+                </td>
+            </tr>
+        </table>
     </div>
 
 
+    <div class="customer-details-container">
+        <table style="width: 100%; margin:0; border:none;">
+            <tr style="background: transparent;">
+                <td style="vertical-align: top; padding: 0 20px 0 0; border:none; text-align: left;">
+                    <h4>Customer Details</h4>
+                    <b>Name:</b> <span th:text="${customerName}"></span><br/>
+                    <b>Email:</b> <span th:text="${customerEmail}"></span><br/>
+                    <b>Phone:</b> <span th:text="${customerPhone}"></span>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    <!-- PRODUCT TABLE -->
     <table>
         <thead>
         <tr>
             <th>Item</th>
             <th>Qty</th>
-            <th>Price ()</th>
-            <th>Gst ()</th>
-            <th>Total ()</th>
+            <th>Price</th>
+            <th>GST</th>
+            <th>Total</th>
         </tr>
         </thead>
         <tbody>
@@ -200,14 +184,12 @@
         </tbody>
     </table>
 
-    <!-- GRAND TOTAL -->
     <div class="total-section">
         <h4>Sub Total: <span th:text="${totalAmount}"></span></h4>
         <h4>GST: <span th:text="${gstRate}"></span></h4>
         <h3>Grand Total: <span th:text="${grandTotal}"></span></h3>
     </div>
 
-    <!-- FOOTER -->
     <div class="footer">
         Thank you for shopping with us!<br/>
         This is a computer-generated invoice, no signature required.

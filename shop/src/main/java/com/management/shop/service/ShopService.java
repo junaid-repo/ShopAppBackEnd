@@ -4,6 +4,9 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -252,12 +255,18 @@ public class ShopService {
 
             productEntity = ProductEntity.builder().id(request.getSelectedProductId()).name(request.getName())
                     .category(request.getCategory()).status(status).userId(extractUsername()).stock(request.getStock()).active(true)
-                    .taxPercent(request.getTax()).price(request.getPrice()).costPrice(request.getCostPrice()).build();
+                    .taxPercent(request.getTax()).price(request.getPrice()).costPrice(request.getCostPrice())
+                    .updatedDate(LocalDateTime.now())
+                    .updatedBy(extractUsername())
+                    .build();
 
         } else {
 
             productEntity = ProductEntity.builder().name(request.getName()).userId(extractUsername()).category(request.getCategory()).active(true)
                     .status(status).stock(request.getStock()).taxPercent(request.getTax()).costPrice(request.getCostPrice()).price(request.getPrice())
+                    .createdDate(LocalDateTime.now())
+                    .updatedDate(LocalDateTime.now())
+                    .updatedBy(extractUsername())
                     .build();
 
         }
@@ -467,6 +476,7 @@ public class ShopService {
                 salesCacheService.evictUserProducts(extractUsername());
                 salesCacheService.evictUserPayments(extractUsername());
                 salesCacheService.evictUserCustomers(extractUsername());
+                salesCacheService.evictUserDasbhoard(extractUsername());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block
@@ -519,6 +529,7 @@ public class ShopService {
         return new PageImpl<>(dtoList, pageable, billingPage.getTotalElements());
     }
 
+    @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
     public List<SalesResponseDTO> getLastNSales(int count) {
 
 
@@ -560,6 +571,7 @@ public class ShopService {
                         sale.getTotalAmount(), sale.getRemarks(), salesPaymentRepo.findPaymentDetails(sale.getId(), extractUsername()).getStatus()));
     }
 
+    @Cacheable(value = "dashboard", keyGenerator = "userScopedKeyGenerator")
     public DasbboardResponseDTO getDashBoardDetails(String range) {
         System.out.println("selected day range" + range);
         List<BillingEntity> billList = new ArrayList<>();
@@ -803,6 +815,7 @@ public class ShopService {
 
         List<OrderItem> items = prodSales.stream().map(obj -> {
 
+            System.out.println("The productId is "+obj.getProductId());
             ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), extractUsername());
 
             var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
@@ -883,6 +896,9 @@ public class ShopService {
             shopDetails.setOwnerName(request.getShopOwner());
             shopDetails.setGstNumber(request.getGstNumber());
             shopDetails.setName(request.getName());
+            shopDetails.setShopEmail(request.getShopEmail());
+            shopDetails.setShopPhone(request.getShopPhone());
+            shopDetails.setShopName(request.getShopName());
             shopDetailsRepo.save(shopDetails);
         } else {
             ShopDetailsEntity shopDetailsNew = new ShopDetailsEntity();
@@ -891,6 +907,9 @@ public class ShopService {
             shopDetailsNew.setOwnerName(request.getShopOwner());
             shopDetailsNew.setName(request.getName());
             shopDetailsNew.setGstNumber(request.getGstNumber());
+            shopDetailsNew.setShopEmail(request.getShopEmail());
+            shopDetailsNew.setShopPhone(request.getShopPhone());
+            shopDetailsNew.setShopName(request.getShopName());
             shopDetailsRepo.save(shopDetailsNew);
         }
 
@@ -940,11 +959,25 @@ public class ShopService {
         System.out.println(orderId);
         InvoiceDetails order = getOrderDetails(orderId);
         LocalDate orderedDate = LocalDate.parse(order.getOrderedDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        UpdateUserDTO userProfile= getUserProfile(extractUsername());
+        String shopEmail="";
+        String gstNumber="";
+        String shopAddress="";
+        String shopPhone="";
+        String shopName="";
+        if(userProfile!=null){
+             gstNumber = userProfile.getGstNumber() != null ? userProfile.getGstNumber() : "sample gst number";
+             shopEmail=userProfile.getShopEmail()!=null?userProfile.getShopEmail() : "sample shop email";
+             shopPhone= userProfile.getShopPhone() != null?userProfile.getShopPhone() : "sample shop phone";
+            shopAddress= userProfile.getShopLocation()!=null?userProfile.getShopLocation() : "sample shop address";
+            shopName=userProfile.getShopName()!=null?userProfile.getShopName() : "sample shop name";
+        }
 
 // Format to new pattern
         String formattedDate = orderedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+
         byte[] response = pdfutil.generateInvoice(order.getCustomerName(), order.getCustomerEmail(),
-                order.getCustomerPhone(), order.getInvoiceId(), order.getItems(), formattedDate, order.getTotalAmount(), order.isPaid(), order.getGstRate());
+                order.getCustomerPhone(), order.getInvoiceId(), order.getItems(), formattedDate, order.getTotalAmount(), order.isPaid(), order.getGstRate(), shopName ,shopAddress, shopEmail, shopPhone,gstNumber );
 
         return response;
     }
@@ -961,7 +994,11 @@ public class ShopService {
 
           var   response = UpdateUserDTO.builder().address(shopDetails.getAddresss()).email(userinfo.getEmail())
                     .gstNumber(shopDetails.getGstNumber()).name(userinfo.getName()).phone(userinfo.getPhoneNumber())
+                  .shopEmail(shopDetails.getShopEmail())
+                  .shopPhone(shopDetails.getShopPhone())
+                  .shopName(shopDetails.getShopName())
                     .shopLocation(shopDetails.getAddresss()).shopOwner(shopDetails.getOwnerName()).username(username)
+                  .userSource(userinfo.getSource())
                     .build();
           return response;
         }
@@ -969,6 +1006,7 @@ public class ShopService {
         var     response = UpdateUserDTO.builder().address("").email(userinfo.getEmail())
                     .gstNumber("").name(userinfo.getName()).phone(userinfo.getPhoneNumber())
                     .shopLocation("").shopOwner("").username(username)
+                    .userSource(userinfo.getSource())
                     .build();
         return response;
         }
@@ -981,13 +1019,49 @@ public class ShopService {
 
         System.out.println("entered getProfilePic with request  username " + username);
 
-        UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+        UserInfo res = userinfoRepo.findByUsername(username).get();
 
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(picRes.getProfilePic())
-                .build();
+
         byte[] content = null;
-        try (ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(getObjectRequest)) {
-            content = s3Object.readAllBytes();
+        if (!res.getSource().equals("google")) {
+            try {
+                UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+
+                GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(picRes.getProfilePic())
+                        .build();
+                ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(getObjectRequest);
+                content = s3Object.readAllBytes();
+            } catch (IOException e) {
+                e.printStackTrace();
+                content = null; // Or handle error appropriately
+            }
+        } else {
+            if (res.getProfilePiclink() != null) {
+                String imageUrl = res.getProfilePiclink(); // Replace with your actual URL
+                try {
+                    URL url = new URL(imageUrl);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+
+                    try {
+                        InputStream inputStream = connection.getInputStream();
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+                        byte[] data = new byte[4096];
+                        int bytesRead;
+                        while ((bytesRead = inputStream.read(data, 0, data.length)) != -1) {
+                            buffer.write(data, 0, bytesRead);
+                        }
+                        content = buffer.toByteArray();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        content = null; // Or handle error appropriately
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    content = null; // Or handle error appropriately
+                }
+            }
         }
 
         return content;

@@ -22,7 +22,7 @@ public class PDFInvoiceUtil {
 			this.templateEngine = templateEngine;
 		}
 	
-		public byte[] generateInvoice(String customerName, String customerEmail, String customerPhone, String invoiceId, List<OrderItem> products, String orderedDate, double totalAmount, boolean paid, double gstRate)
+		public byte[] generateInvoice(String customerName, String customerEmail, String customerPhone, String invoiceId, List<OrderItem> products, String orderedDate, double totalAmount, boolean paid, double gstRate, String shopName, String shopAddress, String shopEmail, String shopPhone, String gstNumber)
 				throws Exception {
 			Context context = new Context();
             double grandTotal = totalAmount;
@@ -33,8 +33,11 @@ public class PDFInvoiceUtil {
             String barcodeBase64 = BarcodeGenerator.generateBarcodeBase64(invoiceId);
 
 
-            context.setVariable("shopName", "Friends Mobile Store");
-			context.setVariable("shopAddress", "Bariatu Ranchi");
+            context.setVariable("shopName", shopName);
+            context.setVariable("gstNumber", gstNumber);
+			context.setVariable("shopAddress", shopAddress);
+            context.setVariable("shopEmail", shopEmail);
+            context.setVariable("shopPhone", shopPhone);
 			context.setVariable("invoiceId", invoiceId);
 			context.setVariable("products", products);
 			context.setVariable("grandTotal", grandTotal);

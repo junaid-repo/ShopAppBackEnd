@@ -53,6 +53,14 @@ public class AuthController {
 
     }
 
+    @PostMapping("auth/new/google/user")
+    public ResponseEntity<GoogleAuthResponse> addNewGoogleUser(@RequestBody GoogleLoginRequest request, HttpServletResponse httpResponse) throws Exception {
+
+        GoogleAuthResponse response=     serv.googleLogin(request, httpResponse);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
 
     @PostMapping("/auth/validate-contact")
     public ValidateContactResponse validateContact(@RequestBody ValidateContactRequest userInfo) {
@@ -99,39 +107,9 @@ public class AuthController {
 
     @PostMapping("/auth/authenticate")
     public String authenticateAndGetToken(@RequestBody AuthRequest authRequest, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
 
-        boolean isUserActive = serv.checkUserStatus(authRequest.getUsername());
-        System.out.println("The authentication object is --> " + authentication);
-        if (authentication.isAuthenticated() && isUserActive) {
-            String token = jwtService.generateToken(authRequest.getUsername());
-
-            Cookie cookie = new Cookie("jwt", token);
-            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
-                cookie.setHttpOnly(true);       // ✅ Prevent JS access
-                cookie.setSecure(true);         // ✅ Required for HTTPS
-                cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
-                cookie.setMaxAge(3600);         // ✅ 1 hour
-                cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
-// Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
-
-                response.addHeader("Set-Cookie",
-                        "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
-            } else {
-                cookie.setHttpOnly(true);      // Prevent JS access
-                cookie.setSecure(true);       // Don't require HTTPS in dev
-                cookie.setPath("/");           // Available on all paths
-                cookie.setMaxAge(3600);        // 1 hour
-                cookie.setDomain("localhost"); // Or remove for simpler case
-
-                response.addCookie(cookie);
-            }
-            // System.out.println("The generated token --> "+token);
-            return token;
-        } else {
-            throw new UsernameNotFoundException("invalid user request !");
-        }
+        String token =serv.authAndsetCookies(authRequest, response);
+       return token;
 
     }
 }

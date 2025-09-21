@@ -43,4 +43,12 @@ public class SalesCacheService {
                     .removeIf(k -> k.toString().startsWith("products::" + username + "::"));
         }
     }
+    public void evictUserDasbhoard(String username) {
+        org.springframework.cache.Cache springCache = cacheManager.getCache("dashboard");
+        if (springCache != null) {
+            Cache<Object, Object> nativeCache = (Cache<Object, Object>) springCache.getNativeCache();
+            nativeCache.asMap().keySet()
+                    .removeIf(k -> k.toString().startsWith("dashboard::" + username + "::"));
+        }
+    }
 }

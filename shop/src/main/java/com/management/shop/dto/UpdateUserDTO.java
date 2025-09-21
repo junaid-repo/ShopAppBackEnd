@@ -23,6 +23,10 @@ public class UpdateUserDTO {
     private String shopOwner;
     private String shopLocation;
     private String gstNumber;
+    private String shopName;
+    private String shopEmail;
+    private String shopPhone;
+    private String userSource;
 	/*
 	 * 
 	 * private byte[] profilePic;
