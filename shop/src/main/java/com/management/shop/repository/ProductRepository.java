@@ -75,4 +75,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
             @Param("search") String search,
             Pageable pageable
     );
+
+    @Query(value="SELECT * FROM shop_product p WHERE p.stock <= :stock AND p.user_id = :username", nativeQuery = true)
+    List<ProductEntity> findByStock(int stock, String username);
 }

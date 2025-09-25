@@ -18,13 +18,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.management.shop.dto.*;
+import com.management.shop.entity.*;
+import com.management.shop.repository.*;
 import com.management.shop.util.*;
-import jakarta.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,26 +44,6 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
-import com.management.shop.entity.BillingEntity;
-import com.management.shop.entity.CustomerEntity;
-import com.management.shop.entity.PaymentEntity;
-import com.management.shop.entity.ProductEntity;
-import com.management.shop.entity.ProductSalesEntity;
-import com.management.shop.entity.RegisterUserOTPEntity;
-import com.management.shop.entity.Report;
-import com.management.shop.entity.ShopDetailsEntity;
-import com.management.shop.entity.UserInfo;
-import com.management.shop.entity.UserProfilePicEntity;
-import com.management.shop.repository.BillingRepository;
-import com.management.shop.repository.ProductRepository;
-import com.management.shop.repository.ProductSalesRepository;
-import com.management.shop.repository.RegisterUserRepo;
-import com.management.shop.repository.ReportDetailsRepo;
-import com.management.shop.repository.SalesPaymentRepository;
-import com.management.shop.repository.ShopDetailsRepo;
-import com.management.shop.repository.ShopRepository;
-import com.management.shop.repository.UserInfoRepository;
-import com.management.shop.repository.UserProfilePicRepo;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -133,6 +113,9 @@ public class ShopService {
 
     @Autowired
     SalesCacheService salesCacheService;
+
+    @Autowired
+    private NotificationsRepo notiRepo;
 
     private final Random random = new Random();
 
@@ -1037,7 +1020,7 @@ public class ShopService {
             }
         } else {
             if (res.getProfilePiclink() != null) {
-                String imageUrl = res.getProfilePiclink(); // Replace with your actual URL
+                    String imageUrl = res.getProfilePiclink(); // Replace with your actual URL
                 try {
                     URL url = new URL(imageUrl);
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -1172,5 +1155,84 @@ public class ShopService {
     }
 
 
+    public NotificationDTO getAllNotifications(int page, int limit, String sort, String domain, String seen, String s) {
 
+
+        NotificationDTO response = new NotificationDTO();
+        List<ShopNotifications> notifications = new ArrayList<>();
+
+
+        String sortField = "updated_date";
+
+        // Map API field name to DB field
+        if ("createdAt".equalsIgnoreCase(sortField)) {
+            sortField = "created_date";
+        }
+
+        Sort.Direction direction = "asc".equalsIgnoreCase(sort) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        // ✅ Use mapped field name here
+        Sort sortOrder = Sort.by(direction, sortField);
+
+        Pageable pageable = PageRequest.of(page - 1, limit, sortOrder);
+
+        String username = extractUsername();
+        Page<MessageEntity> notificationsList=null;
+
+        if(seen!=null && !seen.isEmpty() && !seen.equals("all")) {
+
+            Boolean isRead=false;
+            if(seen.equals("seen"))
+                isRead=true;
+            else
+                isRead=false;
+
+            if(seen.equals("flagged")) {
+               Boolean isFlagged=true;
+                notificationsList = notiRepo.findAllNotificationsByFlaggedStatus(extractUsername(), domain, isFlagged, Boolean.FALSE, pageable);
+            }
+            else
+             notificationsList = notiRepo.findAllNotificationsByReadStatus(extractUsername(), domain, isRead, Boolean.FALSE,  pageable);
+
+        }
+        else
+             notificationsList = notiRepo.findAllNotifications(extractUsername(), domain, Boolean.FALSE, pageable);
+
+        for (MessageEntity obj : notificationsList) {
+            notifications.add(ShopNotifications.builder().createdAt(obj.getCreatedDate()).title(obj.getTitle()).id(String.valueOf(obj.getId())).subject(obj.getSubject()).message(obj.getDetails()).seen(obj.getIsRead()).domain(obj.getDomain()).searchKey(obj.getSearchKey()).isFlagged(obj.getIsFlagged()).build());
+        }
+        return NotificationDTO.builder().count(notifications.size()).notifications(notifications).build();
+
+    }
+
+    @Transactional
+    public void updateNotificationStatus(NotificationStatusUpdateRequest request) {
+
+        request.getNotificationIds().stream().forEach(notificationId -> {
+
+            notiRepo.updateNotificationStatus(notificationId, extractUsername(), Boolean.TRUE);
+
+        });
+    }
+
+    @Transactional
+    public Map<String, Object> flagNotifications(Integer notificationId, Boolean flag) {
+
+        notiRepo.updateNotificationFlaggedStatus(notificationId, extractUsername(), flag);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", notificationId);
+        response.put("flagged", Boolean.TRUE);
+        return response;
+    }
+    @Transactional
+    public Map<String, Object> deleteNotifications(Integer notificationId) {
+
+        notiRepo.updateNotificationDeleteStatus(notificationId, extractUsername(), Boolean.TRUE);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", notificationId);
+        response.put("deleted", Boolean.TRUE);
+        return response;
+    }
 }

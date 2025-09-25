@@ -3,6 +3,7 @@ package com.management.shop.controller;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -482,6 +483,72 @@ public class ShopController {
 
 
 
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("api/shop/notifications/unseen")
+    public ResponseEntity<Map<String, Object>> getUnseenNotifications() {
+
+        //List<NotificationDTO> response = serv.getUnseenNotifications();
+
+
+        NotificationDTO response = serv.getAllNotifications(1, 5, "desc", "all", "unseen", "desc");
+
+
+        Map<String, Object> response2 = new HashMap<>();
+        response2.put("notifications", response.getNotifications());
+        response2.put("count", response.getNotifications().size());
+
+
+        System.out.println(response);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response2);
+
+    }
+
+    @GetMapping("api/shop/notifications/all")
+    public ResponseEntity<Map<String, Object>> getAllNotifications(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "all") String domain,
+            @RequestParam(defaultValue = "all") String seen,
+            @RequestParam(defaultValue = "desc") String sort) {
+
+        NotificationDTO response = serv.getAllNotifications(page, limit, sort, domain, seen, sort);
+
+
+        Map<String, Object> response2 = new HashMap<>();
+        response2.put("notifications", response.getNotifications());
+        response2.put("totalPages", response.getCount());
+
+
+        System.out.println(response);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response2);
+
+    }
+
+    @PostMapping("/api/shop/notifications/update-status")
+    public ResponseEntity<String> updateNotificationStatus(@RequestBody NotificationStatusUpdateRequest request) {
+        serv.updateNotificationStatus(request);
+        return ResponseEntity.ok("Notification status updated successfully");
+    }
+    @PostMapping("/api/shop/notifications/flag/{notificationId}")
+    public ResponseEntity<Map<String, Object>> flagNotifications(
+            @PathVariable Integer notificationId,
+    @RequestBody Map<String, Boolean> requestBody)
+    {
+
+        Boolean flagged= requestBody.get("flagged");
+       System.out.println(flagged);
+        Map<String, Object> response= serv.flagNotifications(notificationId,flagged);
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/api/shop/notifications/delete/{notificationId}")
+    public ResponseEntity<Map<String, Object>> deleteNotifications(
+            @PathVariable Integer notificationId)
+    {
+        Map<String, Object> response= serv.deleteNotifications(notificationId);
         return ResponseEntity.ok(response);
     }
 

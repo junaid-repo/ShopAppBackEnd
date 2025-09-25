@@ -340,6 +340,7 @@ public class AuthService {
            String name = (String) payload.get("name");
            System.out.println("google email ->" + email);
            System.out.println("google name ->" + name);
+           System.out.println("google profilePicLink ->" + profilePicLink);
            String jwtToken=null;
            List<UserInfo> res = userinfoRepo.validateUser(email, "na", true);
             try{
