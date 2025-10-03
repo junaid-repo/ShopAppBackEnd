@@ -10,9 +10,16 @@ import java.util.List;
 import java.util.Map;
 
 import com.management.shop.dto.*;
+import com.razorpay.Order;
+import com.razorpay.RazorpayClient;
+import com.razorpay.RazorpayException;
+import com.razorpay.Utils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
@@ -42,6 +49,7 @@ import com.management.shop.service.JwtService;
 import com.management.shop.service.ShopService;
 
 @RestController
+@Slf4j
 public class ShopController {
 
     @Autowired
@@ -49,6 +57,11 @@ public class ShopController {
 
     @Autowired
     private Environment environment;
+
+    @Value("${razorpay.key.secret}")
+    private String keySecret;
+    @Value("${razorpay.key.id}")
+    private String keyId;
 
 
     @PostMapping("api/shop/user/updatepassword")
@@ -202,6 +215,37 @@ public class ShopController {
             // Call the updated service method
             Page<ProductEntity> productPage = serv.getAllProducts(search, page, limit, sort, dir);
 
+            log.info("Fetched {} products for page {} with limit {}", productPage.getNumberOfElements(), page, limit);
+
+            // Build the response map to match the frontend's expected structure
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", productPage.getContent());
+            response.put("totalPages", productPage.getTotalPages());
+            response.put("totalCount", productPage.getTotalElements());
+            response.put("currentPage", productPage.getNumber() + 1); // Send back the current page
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            // Basic error handling
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+    @GetMapping("api/shop/get/forBilling/withCache/productsList")
+    public ResponseEntity<Map<String, Object>> getBillingProductsList(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String dir
+    ) {
+        try {
+            System.out.println("entered getProductsList");
+            // Call the updated service method
+            Page<ProductEntity> productPage = serv.getAllProductsForBilling(search, page, limit, sort, dir);
+
+            log.info("Fetched {} products for page {} with limit {}", productPage.getNumberOfElements(), page, limit);
+
             // Build the response map to match the frontend's expected structure
             Map<String, Object> response = new HashMap<>();
             response.put("data", productPage.getContent());
@@ -217,6 +261,23 @@ public class ShopController {
         }
     }
 
+    @GetMapping("/api/shop/get/sales/withPages")
+    ResponseEntity<Page<SalesResponseDTO>> getSalesListWithPagination(@RequestParam int page,
+                                                                      @RequestParam int size,
+                                                                      @RequestParam(defaultValue = "createdAt") String sort,
+                                                                      @RequestParam(defaultValue = "desc") String dir) {
+
+        System.out.println("the page param is -->" + page);
+        System.out.println("the size param is -->" + size);
+        System.out.println("the sort param is -->" + sort);
+        System.out.println("the dir param is -->" + dir);
+
+        Page<SalesResponseDTO> response = serv.getAllSalesWithPagination(page, size, sort, dir);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+
     @PostMapping("api/shop/do/billing")
     ResponseEntity<BillingResponse> doBilling(@RequestBody BillingRequest request) throws Exception {
 
@@ -228,10 +289,13 @@ public class ShopController {
     }
 
     @GetMapping("api/shop/get/sales")
-    ResponseEntity<Page<SalesResponseDTO>> getSalesList(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, @RequestParam String search) {
+    ResponseEntity<Page<SalesResponseDTO>> getSalesList(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
+                                                        @RequestParam(defaultValue = "createdAt") String sort,
+                                                        @RequestParam(defaultValue = "desc") String dir,
+                                                        @RequestParam String search) {
 
         System.out.println("the search param is -->" + search);
-        Page<SalesResponseDTO> response = serv.getAllSales(page, size, search);
+        Page<SalesResponseDTO> response = serv.getAllSales(page, size, sort, dir, search);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
@@ -246,16 +310,18 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+    @GetMapping("api/shop/get/top/sales/{range}")
+    ResponseEntity<List<SalesResponseDTO>> getLastTopSales(@RequestParam(defaultValue = "3") int count, @PathVariable String range) {
 
-    @GetMapping("/api/shop/get/sales/withPages")
-    ResponseEntity<Page<SalesResponseDTO>> getSalesListWithPagination(@RequestParam int page,
-                                                                      @RequestParam int size) {
+      System.out.println("Entered getLastTopSales with the range param is -->" + range);
+        List<SalesResponseDTO> response = serv.getTopNSales(count, range);
 
-        Page<SalesResponseDTO> response = serv.getAllSalesWithPagination(page, size);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+
+
 
     @GetMapping("api/shop/get/dashboardDetails/{range}")
     ResponseEntity<DasbboardResponseDTO> getDashBoardDetails(@PathVariable String range) {
@@ -299,7 +365,7 @@ public class ShopController {
         return map;
     }
 
-    @GetMapping("api/shop/get/old/invoice/{orderReferenceNumber}")
+  /*  @GetMapping("api/shop/get/old/invoice/{orderReferenceNumber}")
     public ResponseEntity<byte[]> downloadStyledInvoice(@PathVariable String orderReferenceNumber) {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -309,7 +375,7 @@ public class ShopController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=invoice-" + orderReferenceNumber + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF).body(baos.toByteArray());
-    }
+    }*/
 
     @PostMapping("api/shop/report")
     ResponseEntity<byte[]> generateReport(@RequestBody ReportRequest request) {
@@ -436,7 +502,7 @@ public class ShopController {
                 .build();
 
 
-        return ResponseEntity.ok(response2);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("api/shop/get/order/{saleId}")
@@ -551,5 +617,98 @@ public class ShopController {
         Map<String, Object> response= serv.deleteNotifications(notificationId);
         return ResponseEntity.ok(response);
     }
+    @GetMapping("/api/shop/availablePaymentMethod")
+    public ResponseEntity<Map<String, Boolean>> getPaymentMethods() {
+
+        Map<String, Boolean> response=serv.getAvailablePaymentMethods();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/api/razorpay/create-order")
+    public String createOrder(@RequestBody CreateOrderRequest request) throws RazorpayException {
+        System.out.println("Inside the createOrder method for card payment");
+        RazorpayClient razorpayClient = new RazorpayClient(keyId, keySecret);
+        System.out.println("Razorpay client created with keyId: " + keyId);
+        System.out.println("Razorpay client created with keySecret: " + keySecret);
+
+        JSONObject orderRequest = new JSONObject();
+        orderRequest.put("amount", request.getAmount()); // amount in the smallest currency unit (e.g., paise)
+        orderRequest.put("currency", request.getCurrency());
+        orderRequest.put("receipt", "receipt_order_" + System.currentTimeMillis());
+
+        Order order = razorpayClient.orders.create(orderRequest);
+
+        return order.toString();
+    }
+
+    @PostMapping("/api/razorpay/verify-payment")
+    // 2. Use the new combined request DTO
+    public ResponseEntity<?> verifyPayment(@RequestBody VerifyAndBillRequest request) {
+        System.out.println("Inside the verifyPayment method for card payment");
+
+        try {
+            JSONObject options = new JSONObject();
+            options.put("razorpay_order_id", request.razorpay_order_id);
+            options.put("razorpay_payment_id", request.razorpay_payment_id);
+            options.put("razorpay_signature", request.razorpay_signature);
+
+            boolean isValid = Utils.verifyPaymentSignature(options, this.keySecret);
+
+            if (isValid) {
+                // 3. If signature is valid, call your billing service!
+                System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_payment_id());
+                System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_order_id());
+                System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_signature());
+
+                // This replaces the direct call to /api/shop/do/billing
+                BillingResponse billingResponse = serv.doPayment(request.billingDetails);
+
+                if(billingResponse!=null && request.getRazorpay_payment_id()!=null){
+                    serv.updatePaymentReferenceNumber(request.getRazorpay_payment_id(), billingResponse.getInvoiceNumber());
+                }
+
+                // Return the response from your billing service
+                return ResponseEntity.ok(billingResponse);
+            } else {
+                return ResponseEntity.status(400).body("Invalid payment signature.");
+            }
+        } catch (Exception e) {
+            // Your service's doPayment method might throw an exception
+            return ResponseEntity.status(500).body("Error during billing: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("api/shop/get/analytics/weekly-sales/{range}")
+    public ResponseEntity<List<WeeklySales>> getWeeklyAnalytics(@PathVariable String range) {
+
+        System.out.println("Entered getWeeklyAnalytics controller with payload-->");
+
+        List<WeeklySales> response = serv.getWeeklyAnalytics(range);
+
+
+
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("api/shop/update/goals")
+    public ResponseEntity<String> updateSalesEstimates(@RequestBody GoalRequest goalRequest) {
+
+        System.out.println("Entered updateSalesEstimates controller with payload-->"+goalRequest);
+
+        String response = serv.updateEstimatedGoals(goalRequest);
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("api/shop/get/dashboard/goals/{timeRange}")
+    public ResponseEntity<GoalData> getGoalData(@PathVariable String timeRange) {
+
+        System.out.println("Entered getGoalData controller with payload-->"+timeRange);
+
+        GoalData goalData = serv.getTimeRangeGoalData(timeRange);
+        return ResponseEntity.ok(goalData);
+    }
+
+
 
 }

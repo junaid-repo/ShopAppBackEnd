@@ -38,4 +38,14 @@ public interface NotificationsRepo extends JpaRepository<MessageEntity,Integer> 
     @Modifying
     @Query (value="update shop_message set is_deleted = ?3 where user_id  =?2 and id=?1",nativeQuery = true)
     void updateNotificationDeleteStatus(Integer id, String userId,  Boolean isDeleted);
+
+    @Transactional
+    @Modifying
+    @Query(value = "DELETE FROM shop_message WHERE is_flagged = 0 AND created_date < NOW() - INTERVAL 36 HOUR", nativeQuery = true)
+    void deleteAllConditional();
+
+    @Transactional
+    @Modifying
+    @Query(value = "DELETE FROM shop_message WHERE is_deleted = 0 AND created_date < NOW() - INTERVAL 24 HOUR", nativeQuery = true)
+    void deleteDeletedMessages();
 }

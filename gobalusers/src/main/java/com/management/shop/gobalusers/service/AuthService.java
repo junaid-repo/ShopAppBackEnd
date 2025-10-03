@@ -8,8 +8,10 @@ import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.management.shop.gobalusers.dto.*;
 import com.management.shop.gobalusers.entity.RegisterUserOTPEntity;
 import com.management.shop.gobalusers.entity.UserInfo;
-import com.management.shop.gobalusers.repository.RegisterUserRepo;
+import com.management.shop.gobalusers.entity.UserPaymentModes;
 import com.management.shop.gobalusers.repository.UserInfoRepository;
+import com.management.shop.gobalusers.repository.UserOtpRepo;
+import com.management.shop.gobalusers.repository.UserPaymentModesRepo;
 import com.management.shop.gobalusers.repository.UserProfilePicRepo;
 import com.management.shop.gobalusers.util.AccountEmailTemplate;
 import com.management.shop.gobalusers.util.OTPSender;
@@ -50,7 +52,7 @@ public class AuthService {
     private UserProfilePicRepo userProfilePicRepo;
 
     @Autowired
-    private RegisterUserRepo newUserRepo;
+    private UserOtpRepo otpRepo;
 
     @Autowired
     private AccountEmailTemplate emailTemplateUtil;
@@ -65,6 +67,9 @@ public class AuthService {
 
     @Autowired
     private OTPSender otpSender;
+
+    @Autowired
+    private UserPaymentModesRepo paymentModesRepo;
 
     private final Random random = new Random();
 
@@ -101,11 +106,11 @@ public class AuthService {
 
         ValidateContactResponse validateContactResponse=    validateContact(ValidateContactRequest.builder().phone(regRequest.getPhone()).email(regRequest.getEmail()).build());
 
-      /*  if(validateContactResponse!=null){
+        if(validateContactResponse!=null){
             if(!validateContactResponse.isStatus()){
                 return RegisterResponse.builder().message("Email/Phone already registered").success(false).build();
             }
-        }*/
+        }
 
 
         var userInfo = UserInfo.builder().email(regRequest.getEmail()).isActive(false).name(regRequest.getFullName())
@@ -127,9 +132,9 @@ public class AuthService {
                 Random random = new Random();
                 int number = 100000 + random.nextInt(900000);
 
-                RegisterUserOTPEntity res2 = newUserRepo.getByUsername(userInfo.getUsername());
+                RegisterUserOTPEntity res2 = otpRepo.getByUsername(userInfo.getUsername());
                 if (res2 != null) {
-                    newUserRepo.updateOldOTP(res.getId(), "stale");
+                    otpRepo.updateOldOTP(res.getId(), "stale");
                 }
                 MailjetResponse mailResponse = null;
 
@@ -145,7 +150,7 @@ public class AuthService {
                 if (mailResponse.getStatus() == 200) {
                     var regsiterUserTemp = RegisterUserOTPEntity.builder().username(res.getUsername())
                             .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").retries(0).build();
-                    newUserRepo.save(regsiterUserTemp);
+                    otpRepo.save(regsiterUserTemp);
                     return RegisterResponse.builder().message("User created successfully. Please verify the OTP sent to your email to activate your account.").success(true).username(res.getUsername()).build();
                 } else {
                     log.error("Failed to send OTP email to " + regRequest.getEmail() + ". Mailjet response status: " + mailResponse.getStatus());
@@ -185,9 +190,9 @@ public class AuthService {
             var otpVerifyReq = OtpVerifyRequest.builder().otp(String.valueOf(otp)).username(res.get(0).getUsername()).build();
 
 
-            RegisterUserOTPEntity res2 = newUserRepo.getByUsername(res.get(0).getUsername());
+            RegisterUserOTPEntity res2 = otpRepo.getByUsername(res.get(0).getUsername());
             if (res2 != null) {
-                newUserRepo.removeOldOTP(res.get(0).getUsername());
+                otpRepo.removeOldOTP(res.get(0).getUsername());
             }
 
             String htmlContent=emailTemplateUtil.generateForgetPasswordHtml(res.get(0).getUsername(), res.get(0).getName(), String.valueOf(otp), String.valueOf(20));
@@ -202,7 +207,7 @@ public class AuthService {
 
             var regsiterUserTemp = RegisterUserOTPEntity.builder().username(res.get(0).getUsername())
                     .createdDate(LocalDateTime.now()).otp(String.valueOf(otp)).status("fresh").retries(0).build();
-            newUserRepo.save(regsiterUserTemp);
+            otpRepo.save(regsiterUserTemp);
 
 
             return ValidateContactResponse.builder().status(true).message("OTP sent to your email Id").build();
@@ -214,13 +219,13 @@ public class AuthService {
     @Transactional
     public OtpVerifyResponse reEnterOtp(OtpVerifyRequest otpVerifyReq) {
 
-        RegisterUserOTPEntity res = newUserRepo.getByUsername(otpVerifyReq.getUsername());
+        RegisterUserOTPEntity res = otpRepo.getByUsername(otpVerifyReq.getUsername());
 
         UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).get();
 
         if (res != null) {
 
-            newUserRepo.updateOldOTP(res.getId(), "stale");
+            otpRepo.updateOldOTP(res.getId(), "stale");
             Random random = new Random();
             int number = 100000 + random.nextInt(900000);
 
@@ -235,8 +240,8 @@ public class AuthService {
 
             var regsiterUserTemp = RegisterUserOTPEntity.builder().username(res.getUsername())
                     .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").retries(res.getRetries() + 1).build();
-            newUserRepo.save(regsiterUserTemp);
-            newUserRepo.removeOldOTPById(res.getId());
+            otpRepo.save(regsiterUserTemp);
+            otpRepo.removeOldOTPById(res.getId());
 
         }
 
@@ -246,12 +251,15 @@ public class AuthService {
 
     @Transactional
     public OtpVerifyResponse verifyOTP(OtpVerifyRequest otpInfo) {
-        RegisterUserOTPEntity res = newUserRepo.getByUsername(otpInfo.getUsername());
+        RegisterUserOTPEntity res = otpRepo.getByUsername(otpInfo.getUsername());
 
         if (res.getOtp().equals(otpInfo.getOtp())) {
 
             userinfoRepo.updateUserStatus(res.getUsername());
             UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).get();
+
+            paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
+
             String htmlContent=emailTemplateUtil.registerUserSucess(userInfo.getName(), userInfo.getUsername());
 
             try {
@@ -261,6 +269,8 @@ public class AuthService {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
+
+
 
 
             var response = OtpVerifyResponse.builder().success(true)
@@ -282,7 +292,7 @@ public class AuthService {
         List<UserInfo> userInfo = userinfoRepo.validateUser(updatePassRequest.getEmailId(), updatePassRequest.getUserId(), true);
 
         if (userInfo.size() > 0) {
-            RegisterUserOTPEntity otpedUser = newUserRepo.getLatestOtp(userInfo.get(0).getUsername());
+            RegisterUserOTPEntity otpedUser = otpRepo.getLatestOtp(userInfo.get(0).getUsername());
 
             if (otpedUser != null) {
                 if (otpedUser.getOtp().equals(updatePassRequest.getOtp())) {
@@ -293,6 +303,7 @@ public class AuthService {
 
                     return ValidateContactResponse.builder().status(true).message("Your password has been updated successfully").build();
                 } else {
+
                     return ValidateContactResponse.builder().status(false).message("Your otp doesn't matched please re-enter").build();
 
                 }
@@ -322,7 +333,7 @@ public class AuthService {
 
 
     public Map<String, String> fetchRetries(String username) {
-        RegisterUserOTPEntity res = newUserRepo.getByUsername(username);
+        RegisterUserOTPEntity res = otpRepo.getByUsername(username);
 
         if (res != null) {
             return Map.of("retryLeft", String.valueOf(5-res.getRetries()));
@@ -347,7 +358,7 @@ public class AuthService {
            if (res.size() > 0) {
                var authRequest = AuthRequest.builder().username(res.get(0).getUsername()).build();
 
-               jwtToken=    authAndsetCookies(authRequest, httpServletResponse);
+               jwtToken=    authAndsetCookiesGoogle(authRequest, httpServletResponse);
            } else {
                var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
                        .phoneNumber("0000000000")
@@ -362,8 +373,10 @@ public class AuthService {
                    String username = userRes.getName().replace(" ", "").toLowerCase() + String.valueOf(userRes.getId());
                    userInfo.setUsername(username);
                    userinfoRepo.save(userInfo);
+                   paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
+
                    var authRequest = AuthRequest.builder().username(username).build();
-                   jwtToken=    authAndsetCookies(authRequest, httpServletResponse);
+                   jwtToken=    authAndsetCookiesGoogle(authRequest, httpServletResponse);
                }
 
 
@@ -396,43 +409,13 @@ public class AuthService {
         return response;
     }
 
-    public String authAndsetCookies(AuthRequest authRequest, HttpServletResponse response){
+    public String authAndsetCookiesGoogle(AuthRequest authRequest, HttpServletResponse response){
 
-      String userSource=  userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
+        String userSource=  userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
 
         boolean isUserActive = checkUserStatus(authRequest.getUsername());
-      if(!userSource.equals("google")) {
-          Authentication authentication = authenticationManager.authenticate(
-                  new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
-          System.out.println("The authentication object is --> " + authentication);
-          if (authentication.isAuthenticated() && isUserActive) {
-              String token = jwtService.generateToken(authRequest.getUsername());
 
-              Cookie cookie = new Cookie("jwt", token);
-              if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
-                  cookie.setHttpOnly(true);       // ✅ Prevent JS access
-                  cookie.setSecure(true);         // ✅ Required for HTTPS
-                  cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
-                  cookie.setMaxAge(3600);         // ✅ 1 hour
-                  cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
-// Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
-
-                  response.addHeader("Set-Cookie",
-                          "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
-              } else {
-                  cookie.setHttpOnly(true);      // Prevent JS access
-                  cookie.setSecure(true);       // Don't require HTTPS in dev
-                  cookie.setPath("/");           // Available on all paths
-                  cookie.setMaxAge(3600);        // 1 hour
-                  cookie.setDomain("localhost"); // Or remove for simpler case
-
-                  response.addCookie(cookie);
-              }
-              // System.out.println("The generated token --> "+token);
-              return token;
-          }
-      }
-       else if ( isUserActive && userSource.equals("google")) {
+         if ( isUserActive && userSource.equals("google")) {
             String token = jwtService.generateToken(authRequest.getUsername());
 
             Cookie cookie = new Cookie("jwt", token);
@@ -459,6 +442,51 @@ public class AuthService {
             // System.out.println("The generated token --> "+token);
             return token;
         }else {
+            throw new UsernameNotFoundException("invalid user request !");
+        }
+
+    }
+
+    public String authAndsetCookies(AuthRequest authRequest, HttpServletResponse response){
+
+      String userSource=  userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
+
+        boolean isUserActive = checkUserStatus(authRequest.getUsername());
+      if(userSource.equals("email")||authRequest.getUsername().equals("junaid1")) {
+          Authentication authentication = authenticationManager.authenticate(
+                  new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
+          System.out.println("The authentication object is --> " + authentication);
+          if (authentication.isAuthenticated() && isUserActive) {
+              String token = jwtService.generateToken(authRequest.getUsername());
+
+              Cookie cookie = new Cookie("jwt", token);
+              if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                  cookie.setHttpOnly(true);       // ✅ Prevent JS access
+                  cookie.setSecure(true);         // ✅ Required for HTTPS
+                  cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
+                  cookie.setMaxAge(3600);         // ✅ 1 hour
+                  cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
+// Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
+
+                  response.addHeader("Set-Cookie",
+                          "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
+              } else {
+                  cookie.setHttpOnly(true);      // Prevent JS access
+                  cookie.setSecure(true);       // Don't require HTTPS in dev
+                  cookie.setPath("/");           // Available on all paths
+                  cookie.setMaxAge(3600);        // 1 hour
+                  cookie.setDomain("localhost"); // Or remove for simpler case
+
+                  response.addCookie(cookie);
+              }
+               System.out.println("The generated token --> "+token);
+              return token;
+          }
+      }
+      else if(userSource.equals("google")){
+          return "Please login using google login";
+      }
+   else {
             throw new UsernameNotFoundException("invalid user request !");
         }
        return null;

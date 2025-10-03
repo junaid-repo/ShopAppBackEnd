@@ -27,6 +27,7 @@ public class ProductSalesEntity {
 	private Integer tax;
 	private Integer subTotal;
 	private Integer total;
+    private String productDetails;
     private Double discountPercentage;
     private Double profitOnCP;
     private String userId;

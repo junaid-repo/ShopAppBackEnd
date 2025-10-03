@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -58,6 +59,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 public class ShopService {
 
     @Autowired
+    private Environment environment;
+
+    @Autowired
     private UserInfoRepository userinfoRepo;
 
     @Autowired
@@ -89,6 +93,12 @@ public class ShopService {
 
     @Autowired
     private RegisterUserRepo newUserRepo;
+
+    @Autowired
+    private UserPaymentModesRepo paymentModesRepo;
+
+    @Autowired
+    private EstimatedGoalRepository estimatedGoalsRepo;
 
     @Autowired
     CSVUpload util;
@@ -162,6 +172,7 @@ public class ShopService {
         if (ent.getId() != null) {
             try {
                 salesCacheService.evictUserCustomers(extractUsername());
+                salesCacheService.evictsUserAnalytics(extractUsername());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block
@@ -201,6 +212,7 @@ public class ShopService {
 
             try {
                 salesCacheService.evictUserCustomers(extractUsername());
+                salesCacheService.evictsUserAnalytics(extractUsername());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block
@@ -321,6 +333,12 @@ public class ShopService {
             if ("createdAt".equalsIgnoreCase(sortField)) {
                 sortField = "created_date";
             }
+            if ("tax".equalsIgnoreCase(sortField)) {
+                sortField = "tax_percent";
+            }
+            if ("costPrice".equalsIgnoreCase(sortField)) {
+                sortField = "cost_price";
+            }
 
             Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
@@ -332,6 +350,36 @@ public class ShopService {
             String username = extractUsername();
 
             return prodRepo.findAllActiveProductsWithPagination(Boolean.TRUE, username, search, pageable);
+        }
+
+    }
+    @Cacheable(value = "products", keyGenerator = "userScopedKeyGenerator")
+    public Page<ProductEntity> getAllProductsForBilling(String search, int page, int limit, String sort, String dir) {
+        // Create Sort object based on direction and sort field
+        {
+            String sortField = sort;
+
+            // Map API field name to DB field
+            if ("createdAt".equalsIgnoreCase(sortField)) {
+                sortField = "created_date";
+            }
+            if ("tax".equalsIgnoreCase(sortField)) {
+                sortField = "tax_percent";
+            }
+            if ("costPrice".equalsIgnoreCase(sortField)) {
+                sortField = "cost_price";
+            }
+
+            Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+            // ✅ Use mapped field name here
+            Sort sortOrder = Sort.by(direction, sortField);
+
+            Pageable pageable = PageRequest.of(page - 1, limit, sortOrder);
+
+            String username = extractUsername();
+
+            return prodRepo.findAllActiveProductsWithPaginationForBilling(Boolean.TRUE, username, search, pageable);
         }
 
     }
@@ -397,7 +445,7 @@ public class ShopService {
                 totalProfitOnCP[0] = totalProfitOnCP[0] +Math.round(profitOnCp);
                 var productSalesEntity = ProductSalesEntity.builder().billingId(billResponse.getId())
                         .profitOnCP(profitOnCp)
-                        .productId(obj.getId()).userId(extractUsername()).discountPercentage(obj.getDiscountPercentage()).quantity(obj.getQuantity()).tax(tax).subTotal(subTotal).total(total)
+                        .productId(obj.getId()).productDetails(obj.getDetails()).userId(extractUsername()).discountPercentage(obj.getDiscountPercentage()).quantity(obj.getQuantity()).tax(tax).subTotal(subTotal).total(total)
                         .build();
 
                 ProductSalesEntity prodSalesResponse = prodSalesRepo.save(productSalesEntity);
@@ -445,10 +493,12 @@ public class ShopService {
             try {
                 String htmlContent = emailTemplate.generateOrderHtml(order);
 
-                CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
-                        billResponse.getInvoiceNumber(), order.getCustomerName(),
-                        generateInvoicePdf(billResponse.getInvoiceNumber()), htmlContent);
-                System.out.println(futureResult);
+                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                    CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
+                            billResponse.getInvoiceNumber(), order.getCustomerName(),
+                            generateInvoicePdf(billResponse.getInvoiceNumber()), htmlContent);
+                    System.out.println(futureResult);
+                }
 
             } catch (MailjetException | MailjetSocketTimeoutException e) {
                 // TODO Auto-generated catch block
@@ -460,6 +510,8 @@ public class ShopService {
                 salesCacheService.evictUserPayments(extractUsername());
                 salesCacheService.evictUserCustomers(extractUsername());
                 salesCacheService.evictUserDasbhoard(extractUsername());
+                salesCacheService.evictsUserGoals(extractUsername());
+                salesCacheService.evictsUserAnalytics(extractUsername());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block
@@ -474,10 +526,31 @@ public class ShopService {
     }
 
     @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
-    public Page<SalesResponseDTO> getAllSales(int page, int size, String searchTerm) {
+    public Page<SalesResponseDTO> getAllSales(int page, int size, String sort, String dir, String searchTerm) {
         String username = extractUsername();
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("created_date").descending());
+        String sortField = sort;
+
+        // Map API field name to DB field
+        if ("date".equalsIgnoreCase(sortField)) {
+            sortField = "created_date";
+        }
+        if ("id".equalsIgnoreCase(sortField)) {
+            sortField = "invoice_number";
+        }
+        if ("totalAmount".equalsIgnoreCase(sortField)) {
+            sortField = "total_amount";
+        }
+        if ("customer".equalsIgnoreCase(sortField)) {
+            sortField = "customer_id";
+        }
+
+        Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Sort sortOrder = Sort.by(direction, sortField);
+
+        // Follow same paging convention as getAllProducts (1-based page param)
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size, sortOrder);
 
         Page<BillingEntity> billingPage=null;
 
@@ -543,15 +616,50 @@ public class ShopService {
     }
 
 
-    @Cacheable(value = "sales", key = "#root.target.extractUsername()")
-    public Page<SalesResponseDTO> getAllSalesWithPagination(Integer page, Integer size) {
+    @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
+    public Page<SalesResponseDTO> getAllSalesWithPagination(Integer page, Integer size, String sort, String dir) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
+        String sortField = sort;
 
-        return billRepo.findAll(pageable)
-                .map(sale -> new SalesResponseDTO(sale.getInvoiceNumber(),
-                        shopRepo.findByIdAndUserId(sale.getCustomerId(), extractUsername()).getName(), String.valueOf(sale.getCreatedDate()),
-                        sale.getTotalAmount(), sale.getRemarks(), salesPaymentRepo.findPaymentDetails(sale.getId(), extractUsername()).getStatus()));
+        // Map API field name to DB field
+        if ("createdAt".equalsIgnoreCase(sortField)) {
+            sortField = "created_date";
+        }
+        if ("total".equalsIgnoreCase(sortField)) {
+            sortField = "total_amount";
+        }
+        if ("invoiceNumber".equalsIgnoreCase(sortField) || "invoice".equalsIgnoreCase(sortField)) {
+            sortField = "invoice_number";
+        }
+
+        Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Sort sortOrder = Sort.by(direction, sortField);
+
+        // Follow same paging convention as getAllProducts (1-based page param)
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size, sortOrder);
+
+        String username = extractUsername();
+
+        Page<BillingEntity> billingPage = billRepo.findAllByUserId(username, pageable);
+
+        List<SalesResponseDTO> dtoList = billingPage.getContent().stream()
+                .map(obj -> {
+                    String customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), username).getName();
+                    String paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
+
+                    return SalesResponseDTO.builder()
+                            .customer(customerName)
+                            .remarks(obj.getRemarks())
+                            .date(obj.getCreatedDate().toString())
+                            .id(obj.getInvoiceNumber())
+                            .total(obj.getTotalAmount())
+                            .status(paymentStatus)
+                            .build();
+                })
+                .toList();
+
+        return new PageImpl<>(dtoList, pageable, billingPage.getTotalElements());
     }
 
     @Cacheable(value = "dashboard", keyGenerator = "userScopedKeyGenerator")
@@ -654,127 +762,6 @@ public class ShopService {
         return null;
     }
 
-    public ByteArrayOutputStream generateOrderInvoice(String orderId) {
-
-        InvoiceDetails order = getOrderDetails(orderId);
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4, 40, 40, 50, 50);
-        PdfWriter.getInstance(document, baos);
-        document.open();
-
-        // Colors
-        Color indigo = new Color(63, 81, 181);
-        Color headerText = Color.WHITE;
-        Color altRow = new Color(240, 240, 240);
-        Color accentBlue = new Color(33, 150, 243);
-        Color muted = Color.GRAY;
-
-        // Fonts
-        Font titleFont = new Font(Font.HELVETICA, 20, Font.BOLD);
-        Font headerFont = new Font(Font.HELVETICA, 14, Font.BOLD, headerText);
-        Font bodyFont = new Font(Font.HELVETICA, 12);
-        Font totalFont = new Font(Font.HELVETICA, 14, Font.BOLD, accentBlue);
-        Font footerFont = new Font(Font.HELVETICA, 10, Font.ITALIC, muted);
-        Font badgePaid = new Font(Font.HELVETICA, 14, Font.BOLD, Color.GREEN);
-        Font badgeUnpaid = new Font(Font.HELVETICA, 14, Font.BOLD, Color.RED);
-
-        // Logo
-        try {
-            Image logo = Image.getInstance(this.getClass().getResource("/static/logo.png"));
-            logo.scaleAbsolute(60, 60);
-            logo.setAlignment(Image.ALIGN_LEFT);
-            document.add(logo);
-        } catch (Exception ignored) {
-        }
-
-        // Title + Payment Status Badge
-        Paragraph title = new Paragraph(new Phrase("INVOICE", titleFont));
-        title.setAlignment(Element.ALIGN_CENTER);
-        document.add(title);
-
-        String statusText = order.isPaid() ? "PAID" : "UNPAID";
-        Font statusFont = order.isPaid() ? badgePaid : badgeUnpaid;
-        Paragraph status = new Paragraph(new Phrase(statusText, statusFont));
-        status.setAlignment(Element.ALIGN_CENTER);
-        document.add(status);
-
-        document.add(new Paragraph(" ")); // spacer
-
-        NumberFormat inr = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
-        document.add(new Paragraph(new Phrase("Order ID: " + order.getInvoiceId(), bodyFont)));
-        document.add(new Paragraph(new Phrase("Date: " + LocalDate.now(), bodyFont)));
-        document.add(new Paragraph(new Phrase("Customer: " + order.getCustomerName(), bodyFont)));
-        /*
-         * if (order.getCustomerAddress() != null) { document.add(new Paragraph(new
-         * Phrase("Address: " + order.getCustomerAddress(), bodyFont))); }
-         */
-        document.add(new Paragraph(" "));
-
-        // Items table
-        PdfPTable table = new PdfPTable(4);
-        table.setWidthPercentage(100);
-        table.setSpacingBefore(10f);
-        table.setWidths(new float[]{5f, 1.5f, 2f, 2f});
-
-        Stream.of("Item", "Qty", "Price", "Total").forEach(col -> {
-            PdfPCell cell = new PdfPCell(new Phrase(col, headerFont));
-            cell.setBackgroundColor(indigo);
-            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cell.setPadding(8);
-            cell.setBorderColor(indigo.darker());
-            table.addCell(cell);
-        });
-
-        int rowIndex = 0;
-        for (OrderItem item : order.getItems()) {
-            Color bg = (rowIndex % 2 == 0) ? Color.WHITE : altRow;
-            PdfPCell c1 = new PdfPCell(new Phrase(item.getProductName(), bodyFont));
-            PdfPCell c2 = new PdfPCell(new Phrase(String.valueOf(item.getQuantity()), bodyFont));
-            PdfPCell c3 = new PdfPCell(new Phrase(inr.format(item.getUnitPrice()), bodyFont));
-            PdfPCell c4 = new PdfPCell(new Phrase(inr.format(item.getQuantity() * item.getUnitPrice()), bodyFont));
-
-            for (PdfPCell c : Arrays.asList(c1, c2, c3, c4)) {
-                c.setBackgroundColor(bg);
-                c.setHorizontalAlignment(Element.ALIGN_CENTER);
-                c.setPadding(6);
-                c.setBorderColor(indigo.darker());
-            }
-            table.addCell(c1);
-            table.addCell(c2);
-            table.addCell(c3);
-            table.addCell(c4);
-            rowIndex++;
-        }
-
-        document.add(table);
-
-        // GST & Discount rows
-        double gstRate = 0.18; // 18%
-        double discountRate = 0.10; // 10%
-        double gstAmount = order.getTotalAmount() * gstRate;
-        double discountAmount = order.getTotalAmount() * discountRate;
-        double finalTotal = order.getTotalAmount() + gstAmount - discountAmount;
-
-        document.add(new Paragraph(new Phrase("GST (18%): " + inr.format(gstAmount), bodyFont)));
-        document.add(new Paragraph(new Phrase("Discount (10%): -" + inr.format(discountAmount), bodyFont)));
-
-        // Final total highlighted
-        Paragraph total = new Paragraph(new Phrase("Grand Total: " + inr.format(finalTotal), totalFont));
-        total.setAlignment(Element.ALIGN_RIGHT);
-        document.add(total);
-
-        document.add(new Paragraph(" "));
-
-        // Footer
-        Paragraph footer = new Paragraph(new Phrase("Thank you for your business!", footerFont));
-        footer.setAlignment(Element.ALIGN_CENTER);
-        document.add(footer);
-
-        document.close();
-
-        return baos;
-    }
 
 
     public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
@@ -802,6 +789,7 @@ public class ShopService {
             ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), extractUsername());
 
             var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
+                    .details(obj.getProductDetails())
                     .quantity(obj.getQuantity()).build();
             return orderItems;
         }).collect(Collectors.toList());
@@ -930,7 +918,7 @@ public class ShopService {
         shopRepo.updateStatus(id, "IN-ACTIVE", extractUsername());
         try {
             salesCacheService.evictUserCustomers(extractUsername());
-
+            salesCacheService.evictsUserAnalytics(extractUsername());
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -1065,7 +1053,7 @@ public class ShopService {
         }
 
     }
-
+    @Cacheable(value = "analytics", keyGenerator = "userScopedKeyGenerator")
     public AnalyticsResponse getAnalytics(AnalyticsRequest request) {
 
         AnalyticsResponse response = new AnalyticsResponse();
@@ -1128,10 +1116,10 @@ public class ShopService {
 
         for (Object[] row : resultsSales) {
             double percentage = 0.08 + (0.20 - 0.08) * random.nextDouble();
-
+            System.out.println("The profits on cp are "+((Number) row[2]).longValue());
             Long count = ((Number) row[1]).longValue();
             Long estimatedProfit = ((Number) row[1]).longValue();
-            profits.add(estimatedProfit);
+            profits.add(((Number) row[2]).longValue());
         }
         response.setCustomers(customers);
         response.setLabels(labels);
@@ -1155,6 +1143,7 @@ public class ShopService {
     }
 
 
+    @Cacheable(value = "notifications", keyGenerator = "userScopedKeyGenerator")
     public NotificationDTO getAllNotifications(int page, int limit, String sort, String domain, String seen, String s) {
 
 
@@ -1233,6 +1222,226 @@ public class ShopService {
         Map<String, Object> response = new HashMap<>();
         response.put("id", notificationId);
         response.put("deleted", Boolean.TRUE);
+        return response;
+    }
+
+    public Map<String, Boolean> getAvailablePaymentMethods() {
+       UserPaymentModes paymentModes= paymentModesRepo.getUserPaymentModes(extractUsername());
+        Map<String, Boolean> response= new HashMap<>();
+        System.out.println("The paymentModes are "+paymentModes);
+       if(paymentModes!=null){
+           if(paymentModes.getCard())
+               response.put("card", true);
+           else
+               response.put("card", false);
+
+           if(paymentModes.getCash())
+               response.put("cash", true);
+           else
+               response.put("cash", false);
+
+           if(paymentModes.getUpi())
+               response.put("upi", true);
+           else
+               response.put("upi", false);
+       }
+       System.out.println("the getAvailablePaymentMethods response is "+response);
+        return response;
+    }
+
+    @Transactional
+    public void updatePaymentReferenceNumber(String paymentRef, String orderRef){
+
+        salesPaymentRepo.updatePaymentReferenceNumber(paymentRef, orderRef, extractUsername());
+
+    }
+
+    @Cacheable(value = "dashboard", keyGenerator = "userScopedKeyGenerator")
+    public List<WeeklySales> getWeeklyAnalytics(String range) {
+
+
+        String userId=extractUsername();
+
+        List<WeeklySales> response= new ArrayList<>();
+
+        List<String> labels = new ArrayList<>();
+        List<Long> sales = new ArrayList<>();
+        List<Long> stocks = new ArrayList<>();
+        List<Integer> taxes = new ArrayList<>();
+        List<Integer> customers = new ArrayList<>();
+        List<Integer> onlinePaymentCounts = new ArrayList<>();
+        List<Long> profits = new ArrayList<>();
+        // Parse to LocalDate
+        LocalDateTime startDate = LocalDateTime.now().minusDays(7);
+        List<Object[]> resultsSales = new ArrayList<>();
+        LocalDateTime endDate = LocalDateTime.now();
+
+
+        try {
+            if(range.equals("today")){
+                resultsSales = billRepo.getSalesAndStocksToday(endDate, userId);
+            }
+
+
+            if(range.equals("lastWeek")){
+                resultsSales = billRepo.getWeeklySalesAndStocks(endDate, userId);
+            }
+            if(range.equals("lastMonth")){
+
+               resultsSales = billRepo.getSalesAndStocksMonthly(endDate, userId);
+           }
+            if(range.equals("lastYear")){
+               startDate = LocalDateTime.now().minusDays(365);
+               resultsSales = billRepo.getSalesAndStocksYearly(endDate, userId);
+           }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+
+        for (Object[] row : resultsSales) {
+            WeeklySales weeklysales = new WeeklySales();
+            String day = (String) row[0];
+            labels.add(day);
+            Long count = ((Number) row[1]).longValue();
+            Integer stocksCount = ((Number) row[3]).intValue();
+            sales.add(count);
+            weeklysales.setDay(day);
+            weeklysales.setUnitsSold(stocksCount);
+            weeklysales.setTotalSales(count);
+            response.add(weeklysales);
+        }
+
+
+
+
+        return response;
+    }
+    @Cacheable(value = "dashboard", keyGenerator = "userScopedKeyGenerator")
+    public List<SalesResponseDTO> getTopNSales(int count, String range) {
+
+        {
+
+
+            String username = extractUsername();
+
+
+            //List<BillingEntity> billingDetails = billRepo.findNNumberWithUserId(username, count);
+            List<BillingEntity> billingDetails=new ArrayList<>();
+
+            if(range.equals("today")) {
+                billingDetails = billRepo.findTopNSalesForToday(username, count);
+            }
+            if(range.equals("lastWeek")) {
+                billingDetails = billRepo.findTopNSalesForLastWeek(username, count);
+            }
+            if(range.equals("lastMonth")) {
+                billingDetails = billRepo.findTopNSalesForLastMonth(username, count);
+            }
+            if(range.equals("lastYear")) {
+                billingDetails = billRepo.findTopNSalesForLastYear(username, count);
+            }
+
+            List<SalesResponseDTO> dtoList = billingDetails.stream()
+                    .map(obj -> {
+                        String customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), username).getName();
+                        String paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
+
+                        return SalesResponseDTO.builder()
+                                .customer(customerName)
+                                .remarks(obj.getRemarks())
+                                .date(obj.getCreatedDate().toString())
+                                .id(obj.getInvoiceNumber())
+                                .total(obj.getTotalAmount())
+                                .status(paymentStatus)
+                                .build();
+                    })
+                    .toList();
+
+            return dtoList;
+
+        }
+
+
+    }
+
+    public String updateEstimatedGoals(GoalRequest request) {
+
+        EstimatedGoalsEntity existingGoals = estimatedGoalsRepo.findByUserId(extractUsername());
+        if (existingGoals != null) {
+            existingGoals.setId(existingGoals.getId());
+            existingGoals.setUserId(extractUsername());
+            existingGoals.setSales(request.getEstimatedSales());
+            existingGoals.setFromDate(request.getFromDate().atStartOfDay());
+            existingGoals.setToDate(request.getToDate().atTime(LocalTime.MAX));
+            existingGoals.setUpdatedBy(extractUsername());
+            existingGoals.setUpdatedDate(LocalDateTime.now());
+            estimatedGoalsRepo.save(existingGoals);
+            salesCacheService.evictsUserGoals(extractUsername());
+        } else {
+            EstimatedGoalsEntity newGoals= EstimatedGoalsEntity.builder()
+                    .sales(request.getEstimatedSales())
+                    .userId(extractUsername())
+                    .fromDate(request.getFromDate().atStartOfDay())
+                    .toDate(request.getToDate().atTime(LocalTime.MAX))
+                    .createdBy(extractUsername())
+                    .createdDate(LocalDateTime.now())
+                    .updatedDate(LocalDateTime.now())
+                    .updatedBy(extractUsername())
+                    .build();
+            estimatedGoalsRepo.save(newGoals);
+            salesCacheService.evictsUserGoals(extractUsername());
+        }
+
+        return "Success";
+    }
+
+
+
+    @Cacheable(value = "goals", keyGenerator = "userScopedKeyGenerator")
+    public GoalData getTimeRangeGoalData(String range) {
+
+        EstimatedGoalsEntity existingGoals = estimatedGoalsRepo.findByUserId(extractUsername());
+        System.out.println("The existing goals are "+existingGoals);
+        String username = extractUsername();
+        List<BillingEntity> billingDetails = new ArrayList<>();
+        if (range.equals("today")) {
+            billingDetails = billRepo.findSalesNDays(username, LocalDateTime.now().minusDays(1), LocalDateTime.now());
+        }
+        if (range.equals("lastWeek")) {
+            billingDetails = billRepo.findSalesNDays(username, LocalDateTime.now().minusDays(8), LocalDateTime.now());
+        }
+        if (range.equals("lastMonth")) {
+            billingDetails = billRepo.findSalesNDays(username, LocalDateTime.now().minusDays(31), LocalDateTime.now());
+        }
+        if (range.equals("lastYear")) {
+            billingDetails = billRepo.findSalesNDays(username, LocalDateTime.now().minusDays(366), LocalDateTime.now());
+        }
+        final Double[] actualSalesList = {0d};
+        billingDetails.stream().forEach(obj -> {
+
+            actualSalesList[0] = actualSalesList[0] + obj.getTotalAmount().doubleValue();
+
+        });
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy");
+
+        String fromDateStr = existingGoals != null && existingGoals.getFromDate() != null
+                ? existingGoals.getFromDate().format(formatter)
+                : null;
+
+        String toDateStr = existingGoals != null && existingGoals.getToDate() != null
+                ? existingGoals.getToDate().format(formatter)
+                : null;
+
+        var response = GoalData.builder()
+                .actualSales(actualSalesList[0])
+                .estimatedSales(existingGoals != null ? existingGoals.getSales() : 0d)
+                .fromDate(fromDateStr)
+                .toDate(toDateStr)
+                .build();
+        System.out.println("response for the goals-->"+response);
+
         return response;
     }
 }

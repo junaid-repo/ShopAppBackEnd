@@ -64,7 +64,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
      * @return A Page of ProductEntity matching the criteria.
      */
     @Query(
-            value = "SELECT * FROM shop_product p WHERE p.active = :isActive AND p.user_id = :username AND " +
+            value = "SELECT * FROM shop_product p WHERE p.active = :isActive AND p.user_id = :username AND" +
                     "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                     "LOWER(p.category) LIKE LOWER(CONCAT('%', :search, '%')))",
             nativeQuery = true
@@ -75,7 +75,22 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
             @Param("search") String search,
             Pageable pageable
     );
+    @Query(
+            value = "SELECT * FROM shop_product p WHERE p.active = :isActive AND p.user_id = :username AND stock > 0 AND" +
+                    "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                    "LOWER(p.category) LIKE LOWER(CONCAT('%', :search, '%')))",
+            nativeQuery = true
+    )
+    Page<ProductEntity> findAllActiveProductsWithPaginationForBilling(
+            @Param("isActive") Boolean isActive,
+            @Param("username") String username,
+            @Param("search") String search,
+            Pageable pageable
+    );
 
     @Query(value="SELECT * FROM shop_product p WHERE p.stock <= :stock AND p.user_id = :username", nativeQuery = true)
     List<ProductEntity> findByStock(int stock, String username);
+
+    @Query(value = "select * from shop_product where active=?1 and user_id=?2", nativeQuery = true)
+    List<ProductEntity> getAllProductForReport(Boolean isActive, String userId);
 }

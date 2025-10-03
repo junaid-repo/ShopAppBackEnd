@@ -19,4 +19,5 @@ public class ProductBillDTO {
     private Double discountPercentage;
 	private Integer stock;
 	private Integer quantity;
+    private String details;
 }

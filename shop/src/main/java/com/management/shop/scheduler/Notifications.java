@@ -67,4 +67,11 @@ public class Notifications {
         });
 
     }
+    @Scheduled(cron = "${scheduler.messageRemover.cron}")
+    public void removeOldMessages() {
+        log.info("Removing old messages older than 1 days");
+        notiRepo.deleteAllConditional();
+        notiRepo.deleteDeletedMessages();
+
+    }
 }

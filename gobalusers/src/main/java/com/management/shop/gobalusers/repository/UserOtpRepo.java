@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-public interface RegisterUserRepo extends JpaRepository<RegisterUserOTPEntity, Integer>{
+public interface UserOtpRepo extends JpaRepository<RegisterUserOTPEntity, Integer>{
 
 	RegisterUserOTPEntity getByUsername(String storedUser);
 

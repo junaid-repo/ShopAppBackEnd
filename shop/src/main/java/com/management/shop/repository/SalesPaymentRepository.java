@@ -3,7 +3,9 @@ package com.management.shop.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,4 +24,8 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
 	List<Object[]> getMonthlyPaymentCounts(@Param("fromDate") LocalDateTime fromDate,
 			@Param("toDate") LocalDateTime toDate, @Param("userId") String userId);
 
+    @Modifying
+    @Transactional
+    @Query(value = "update billing_payments bp, billing_details bd  set bp.payment_reference_number=?1 where bp.billing_id = bd.id and bp.user_id=?3 and bd.invoice_number =?2", nativeQuery = true)
+    void updatePaymentReferenceNumber(String paymentRef, String orderRef, String s);
 }

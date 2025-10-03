@@ -143,7 +143,7 @@
                     <img th:src="'data:image/png;base64,' + ${barcodeBase64}"
                          alt="Invoice Barcode"
                          style="width: 270px; height: 40px; margin-right: 10px"/>
-
+                        <span th:text="${invoiceId}"  style="width: 270px; height: 40px; margin-right: 20px"></span><br/>
                 </td>
             </tr>
         </table>
@@ -167,6 +167,7 @@
         <thead>
         <tr>
             <th>Item</th>
+            <th>Product Details</th>
             <th>Qty</th>
             <th>Price</th>
             <th>GST</th>
@@ -176,8 +177,10 @@
         <tbody>
         <tr th:each="product : ${products}">
             <td th:text="${product.productName}"></td>
+            <td th:text="${product.details}" style="text-align: left;"></td>
             <td th:text="${product.quantity}"></td>
             <td th:text="${product.unitPrice - product.gst}"></td>
+
             <td th:text="${product.gst}"></td>
             <td th:text="${product.unitPrice}"></td>
         </tr>

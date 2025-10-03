@@ -4,8 +4,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import com.management.shop.dto.ProductSalesReport;
+import com.management.shop.dto.ProductSalesReportView;
+import com.management.shop.entity.ProductEntity;
+import com.management.shop.repository.*;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -20,10 +25,6 @@ import com.management.shop.dto.PaymentDetails;
 import com.management.shop.dto.SalesResponseDTO;
 import com.management.shop.entity.BillingEntity;
 import com.management.shop.entity.CustomerEntity;
-import com.management.shop.repository.BillingRepository;
-import com.management.shop.repository.ProductRepository;
-import com.management.shop.repository.SalesPaymentRepository;
-import com.management.shop.repository.ShopRepository;
 
 
 @Component
@@ -37,6 +38,9 @@ public class ReportsGenerate {
 	
 	@Autowired
 	private SalesPaymentRepository salesPaymentRepo;
+
+    @Autowired
+    ProductSalesRepository prodSalesRepo;
 	
 	@Autowired
 	private ProductRepository prodRepo;
@@ -75,6 +79,22 @@ public class ReportsGenerate {
 				e.printStackTrace();
 			}
 		}
+        if (reportType.equals("Product Sales Report")) {
+            try {
+                fileBytes=generateProductSalesReport(fromDate, toDate, userId);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        if (reportType.equals("Products Report")) {
+            try {
+                fileBytes=generateProductsReport(fromDate, toDate, userId);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
 
 		return fileBytes;
 	}
@@ -311,4 +331,124 @@ public class ReportsGenerate {
 		
 	}
 	}
+    private byte[] generateProductSalesReport(LocalDateTime fromDate, LocalDateTime toDate, String userId) throws IOException {
+
+        List<ProductSalesReport> response=new ArrayList<>();
+        List<ProductSalesReportView> intermediateResponse=new ArrayList<>();
+        try {
+            intermediateResponse = prodSalesRepo.findSalesReportNative(fromDate, toDate, userId);
+
+        }
+        catch (Exception ex) {
+            System.out.println(ex.getMessage());
+        }
+
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("ProductSales");
+
+            // Header style
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Header row
+            String[] columns = {"Product Name", "Category", "Units", "Amount", "GST", "Profit on CP", "Invoice Number", "Date"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Data rows
+            int rowIdx = 1;
+            double totalSaleId = 0;
+            double totalAmount = 0;
+
+            for (ProductSalesReportView payment : intermediateResponse) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(payment.getProductName() != null ? payment.getProductName() : "");
+                row.createCell(1).setCellValue(payment.getCategory() != null ? payment.getCategory() : "");
+                row.createCell(2).setCellValue(payment.getTotalSold() != null ? payment.getTotalSold() : 0);
+                row.createCell(3).setCellValue(payment.getTotal() != null ? payment.getTotal() : 0.0);
+                row.createCell(4).setCellValue(payment.getTax() != null ? payment.getTax() : 0.0);
+                row.createCell(5).setCellValue(payment.getProfitOnCp() != null ? payment.getProfitOnCp() : 0.0);
+                row.createCell(6).setCellValue(payment.getInvoiceNumber() != null ? payment.getInvoiceNumber() : "");
+                row.createCell(7).setCellValue( (String.valueOf(payment.getInvoiceDate()) != null ? String.valueOf(payment.getInvoiceDate()) : ""));
+
+
+
+            }
+
+            // Totals row
+            Row totalRow = sheet.createRow(rowIdx);
+            CellStyle totalStyle = workbook.createCellStyle();
+            Font boldFont = workbook.createFont();
+            boldFont.setBold(true);
+            totalStyle.setFont(boldFont);
+
+
+
+            // Autosize columns
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        }
+
+    }
+
+    private byte[] generateProductsReport(LocalDateTime fromDate, LocalDateTime toDate, String userId) throws IOException {
+
+        List<ProductEntity> productList=prodRepo.getAllProductForReport(Boolean.TRUE, userId);
+
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Products");
+
+            // Create header style
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Header row
+            Row headerRow = sheet.createRow(0);
+            String[] columns = {"Name", "Category", "Cost Price", "Price", "GST%", "Stock", "Status"};
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Data rows
+            int rowIdx = 1;
+            for (ProductEntity product : productList) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(product.getName());
+                row.createCell(1).setCellValue(product.getCategory());
+                row.createCell(2).setCellValue(product.getCostPrice());
+                row.createCell(3).setCellValue(product.getPrice());
+                row.createCell(4).setCellValue(product.getTaxPercent());
+                row.createCell(5).setCellValue(product.getStock());
+                row.createCell(6).setCellValue(product.getStatus());
+            }
+
+            // Autosize columns
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        }
+
+
+    }
 }

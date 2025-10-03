@@ -5,14 +5,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class OrderItem {
-	   private String productName;
-	    private int quantity;
-	    private double unitPrice;
-        private String details;
-        private double gst;
+public class GoalRequest {
+
+    private Double estimatedSales;
+    private LocalDate fromDate;
+    private LocalDate toDate;
+
 }

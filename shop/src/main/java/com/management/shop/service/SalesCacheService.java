@@ -51,4 +51,20 @@ public class SalesCacheService {
                     .removeIf(k -> k.toString().startsWith("dashboard::" + username + "::"));
         }
     }
+    public void evictsUserGoals(String username) {
+        org.springframework.cache.Cache springCache = cacheManager.getCache("goals");
+        if (springCache != null) {
+            Cache<Object, Object> nativeCache = (Cache<Object, Object>) springCache.getNativeCache();
+            nativeCache.asMap().keySet()
+                    .removeIf(k -> k.toString().startsWith("goals::" + username + "::"));
+        }
+    }
+    public void evictsUserAnalytics(String username) {
+        org.springframework.cache.Cache springCache = cacheManager.getCache("analytics");
+        if (springCache != null) {
+            Cache<Object, Object> nativeCache = (Cache<Object, Object>) springCache.getNativeCache();
+            nativeCache.asMap().keySet()
+                    .removeIf(k -> k.toString().startsWith("analytics::" + username + "::"));
+        }
+    }
 }

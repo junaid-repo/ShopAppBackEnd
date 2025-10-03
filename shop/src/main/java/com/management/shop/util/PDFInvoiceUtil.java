@@ -69,13 +69,16 @@ public class PDFInvoiceUtil {
 	        private int quantity;
 	        private double price;
             private double gst;
-	        public Product(String name, int qty, double price, double gst) {
+            private String details;
+	        public Product(String name, int qty, double price, double gst, String details) {
 	            this.name = name; this.quantity = qty; this.price = price;
                 this.gst = gst;
+                this.details=details;
 	        }
 	        public String getName() { return name; }
 	        public int getQuantity() { return quantity; }
 	        public double getPrice() { return price; }
+            public String getDetails(){return details;}
 	    }
 }
 
