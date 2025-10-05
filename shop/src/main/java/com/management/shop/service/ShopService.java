@@ -512,6 +512,8 @@ public class ShopService {
                 salesCacheService.evictUserDasbhoard(extractUsername());
                 salesCacheService.evictsUserGoals(extractUsername());
                 salesCacheService.evictsUserAnalytics(extractUsername());
+                salesCacheService.evictsTopSelling(extractUsername());
+                salesCacheService.evictsTopOrders(extractUsername());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block
@@ -1443,5 +1445,122 @@ public class ShopService {
         System.out.println("response for the goals-->"+response);
 
         return response;
+    }
+
+    @Cacheable(value = "topSellings", keyGenerator = "userScopedKeyGenerator")
+    public List<TopProductDto> getTopProducts(int count, String timeRange, String factor) {
+      LocalDateTime  endDate=LocalDateTime.now();
+      LocalDateTime startDate=LocalDateTime.now();
+
+        List<ProductPerformanceProjection> topProducts = new ArrayList<>();
+        List<TopProductDto> response=new ArrayList<>();
+        if(timeRange.equals("lastWeek")){
+            startDate=LocalDateTime.now().minusDays(7);
+        }
+        if(timeRange.equals("lastMonth")){
+            startDate=LocalDateTime.now().minusMonths(1);
+        }
+        if(timeRange.equals("lastYear")){
+            startDate=LocalDateTime.now().minusYears(1);
+        }
+        if(timeRange.equals("today")){
+            startDate=LocalDateTime.now();
+        }
+
+
+        if(factor.equals("mostSelling")) {
+            topProducts=   prodSalesRepo.findMostSellingProducts(extractUsername(), startDate, endDate, count);
+        }
+        if(factor.equals("topGrossing")) {
+            topProducts=  prodSalesRepo.findTopGrossingProducts(extractUsername(), startDate, endDate, count);
+        }
+
+        if(topProducts.size()>0) {
+            response= topProducts.stream().map(obj -> {
+                return TopProductDto.builder().category(obj.getCategory()).currentStock(obj.getCurrentStock())
+                        .productName(obj.getProductName()).amount(obj.getRevenue()).count(obj.getUnitsSold()).build();
+            }).collect(Collectors.toList());
+        }
+
+
+        System.out.println("The top products are "+response);
+
+
+
+        return response;
+    }
+
+    @Cacheable(value = "topOrders", keyGenerator = "userScopedKeyGenerator")
+    public List<TopOrdersDto> getTopOrders(int count, String timeRange) {
+        LocalDateTime  endDate=LocalDateTime.now();
+        LocalDateTime startDate=LocalDateTime.now();
+
+        List<ProductPerformanceProjection> topProducts = new ArrayList<>();
+        List<TopOrdersDto> response=new ArrayList<>();
+        if(timeRange.equals("lastWeek")){
+            startDate=LocalDateTime.now().minusDays(7);
+        }
+        if(timeRange.equals("lastMonth")){
+            startDate=LocalDateTime.now().minusMonths(1);
+        }
+        if(timeRange.equals("lastYear")){
+            startDate=LocalDateTime.now().minusYears(1);
+        }
+        if(timeRange.equals("today")){
+            startDate=LocalDateTime.now();
+        }
+
+        List<BillingEntity> billList= billRepo.findTopNSalesForGivenRange(extractUsername(), startDate, endDate, count);
+
+        if(billList.size()>0) {
+            response= billList.stream().map(obj -> {
+                String customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), extractUsername()).getName();
+                String paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), extractUsername()).getStatus();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+              String date=  obj.getCreatedDate().format(formatter);
+
+                return TopOrdersDto.builder()
+                        .customer(customerName)
+                        .orderId(obj.getInvoiceNumber())
+                        .total(obj.getTotalAmount())
+                        .date(date)
+                        .build();
+            }).collect(Collectors.toList());
+        }
+
+
+        return response;
+    }
+
+    @Cacheable(value = "paymentBreakdowns", keyGenerator = "userScopedKeyGenerator")
+    public Map<String, Double> getPaymentBreakdown(String timeRange) {
+
+        LocalDateTime  endDate=LocalDateTime.now();
+        LocalDateTime startDate=LocalDateTime.now();
+
+        List<ProductPerformanceProjection> topProducts = new ArrayList<>();
+        List<TopOrdersDto> response=new ArrayList<>();
+        if(timeRange.equals("lastWeek")){
+            startDate=LocalDateTime.now().minusDays(7);
+        }
+        if(timeRange.equals("lastMonth")){
+            startDate=LocalDateTime.now().minusMonths(1);
+        }
+        if(timeRange.equals("lastYear")){
+            startDate=LocalDateTime.now().minusYears(1);
+        }
+        if(timeRange.equals("today")){
+            startDate=LocalDateTime.now();
+        }
+        List<Map<String, Object>> rawData= salesPaymentRepo.getPaymentBreakdown(extractUsername(), startDate, endDate);
+
+        Map<String, Double> result = new HashMap<>();
+        for (Map<String, Object> row : rawData) {
+            String method = (String) row.get("paymentMethod");
+            Number count = (Number) row.get("count");
+            result.put(method.toLowerCase(), count.doubleValue());
+        }
+
+        return result;
     }
 }

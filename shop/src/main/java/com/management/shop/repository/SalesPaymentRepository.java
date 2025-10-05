@@ -2,6 +2,7 @@ package com.management.shop.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -28,4 +29,18 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
     @Transactional
     @Query(value = "update billing_payments bp, billing_details bd  set bp.payment_reference_number=?1 where bp.billing_id = bd.id and bp.user_id=?3 and bd.invoice_number =?2", nativeQuery = true)
     void updatePaymentReferenceNumber(String paymentRef, String orderRef, String s);
+
+
+    @Query("""
+        SELECT bp.paymentMethod AS paymentMethod, COUNT(bp) AS count
+        FROM PaymentEntity bp
+        WHERE bp.userId = :userId
+          AND bp.createdDate BETWEEN :startDate AND :endDate
+        GROUP BY bp.paymentMethod
+    """)
+    List<Map<String, Object>> getPaymentBreakdown(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
 }

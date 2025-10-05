@@ -408,4 +408,21 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     );
 
 
-}
+
+    @Query(
+            value = """
+            SELECT *
+            FROM billing_details
+            WHERE user_id = :userId
+              AND created_date BETWEEN :startDate AND :endDate
+            ORDER BY total_amount DESC
+            LIMIT :count
+            """,
+            nativeQuery = true
+    )
+    List<BillingEntity> findTopNSalesForGivenRange(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("count") int count
+    );}

@@ -708,7 +708,45 @@ public class ShopController {
         GoalData goalData = serv.getTimeRangeGoalData(timeRange);
         return ResponseEntity.ok(goalData);
     }
+    @GetMapping("api/shop/get/top/products")
+    public ResponseEntity<List<TopProductDto>> getTopProducts(
+            @RequestParam(name = "count", defaultValue = "3") int count,
+            @RequestParam("timeRange") String timeRange,
+            @RequestParam("factor") String factor) {
+
+        System.out.println("Entered getTopProducts controller with count: " + count +
+                ", timeRange: " + timeRange + ", factor: " + factor);
+        // Call the service to get the data
+        List<TopProductDto> topProducts = serv.getTopProducts(count, timeRange, factor);
+
+        // Return the data with a 200 OK status
+        return ResponseEntity.ok(topProducts);
+    }
+    @GetMapping("api/shop/get/top/orders")
+    public ResponseEntity<List<TopOrdersDto>> getTopOrders(
+            @RequestParam(name = "count", defaultValue = "3") int count,
+            @RequestParam("timeRange") String timeRange) {
+
+        System.out.println("Entered getTopProducts controller with count: " + count +
+                ", timeRange: " + timeRange);
+        // Call the service to get the data
+        List<TopOrdersDto> topOrders = serv.getTopOrders(count, timeRange);
+
+        // Return the data with a 200 OK status
+        return ResponseEntity.ok(topOrders);
+    }
+
+    @GetMapping("api/shop/get/payments/breakdown/{timeRange}")
+    public ResponseEntity<Map<String, Double>> getPaymentBreakdown(@PathVariable String timeRange) {
 
 
+        System.out.println("Entered getPaymentBreakdown controller "+
+                ", timeRange: " + timeRange);
+        // Call the service to get the data
+       Map<String, Double> response = serv.getPaymentBreakdown(timeRange);
+
+        // Return the data with a 200 OK status
+        return ResponseEntity.ok(response);
+    }
 
 }

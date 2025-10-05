@@ -3,6 +3,7 @@ package com.management.shop.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.management.shop.dto.ProductPerformanceProjection;
 import com.management.shop.dto.ProductSalesReport;
 import com.management.shop.dto.ProductSalesReportView;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -37,5 +38,52 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             @Param("toDate") LocalDateTime toDate,
             @Param("userId") String userId);
 
+
+    @Query(value = """
+            SELECT
+                sp.name as productName,
+                sp.category as category,
+                SUM(ps.quantity) as unitsSold,
+                SUM(ps.total) as revenue,
+                sp.stock as currentStock
+            FROM product_sales ps
+            JOIN shop_product sp ON ps.product_id = sp.id
+            JOIN billing_details bd ON ps.billing_id = bd.id
+            WHERE ps.user_id = :userId
+              AND bd.created_date BETWEEN :startDate AND :endDate
+            GROUP BY sp.id, sp.name, sp.category, sp.stock
+            ORDER BY unitsSold DESC
+            LIMIT :count
+            """, nativeQuery = true)
+    List<ProductPerformanceProjection> findMostSellingProducts(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("count") int count);
+
+    /**
+     * Finds the top grossing products based on the total revenue generated.
+     */
+    @Query(value = """
+            SELECT
+                sp.name as productName,
+                sp.category as category,
+                SUM(ps.quantity) as unitsSold,
+                SUM(ps.total) as revenue,
+                sp.stock as currentStock
+            FROM product_sales ps
+            JOIN shop_product sp ON ps.product_id = sp.id
+            JOIN billing_details bd ON ps.billing_id = bd.id
+            WHERE ps.user_id = :userId
+              AND bd.created_date BETWEEN :startDate AND :endDate
+            GROUP BY sp.id, sp.name, sp.category, sp.stock
+            ORDER BY revenue DESC
+            LIMIT :count
+            """, nativeQuery = true)
+    List<ProductPerformanceProjection> findTopGrossingProducts(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("count") int count);
 
 }

@@ -56,7 +56,7 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
     CustomerEntity findByIdAndUserId(Integer id, String userId);
 
     @Query(
-            value = "SELECT * FROM shop_customer p WHERE p.user_id = :username AND " +
+            value = "SELECT * FROM shop_customer p WHERE p.user_id = :username AND status = 'ACTIVE' AND " +
                     "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                     "LOWER(p.phone) LIKE LOWER(CONCAT('%', :search, '%')))",
             nativeQuery = true

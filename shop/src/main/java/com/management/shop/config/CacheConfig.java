@@ -1,5 +1,6 @@
 
 package com.management.shop.config;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -15,7 +16,7 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("customers", "orders", "sales", "payments", "products", "dashboard", "goals", "analytics", "notifications");
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager("customers", "orders", "sales", "payments", "products", "dashboard", "goals", "analytics", "notifications", "topSellings", "topOrders", "paymentBreakdowns");
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(10, TimeUnit.MINUTES)
                 .maximumSize(1000));

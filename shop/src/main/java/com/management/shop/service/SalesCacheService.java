@@ -67,4 +67,28 @@ public class SalesCacheService {
                     .removeIf(k -> k.toString().startsWith("analytics::" + username + "::"));
         }
     }
+    public void evictsTopSelling(String username) {
+        org.springframework.cache.Cache springCache = cacheManager.getCache("topSellings");
+        if (springCache != null) {
+            Cache<Object, Object> nativeCache = (Cache<Object, Object>) springCache.getNativeCache();
+            nativeCache.asMap().keySet()
+                    .removeIf(k -> k.toString().startsWith("topSellings::" + username + "::"));
+        }
+    }
+    public void evictsTopOrders(String username) {
+        org.springframework.cache.Cache springCache = cacheManager.getCache("topOrders");
+        if (springCache != null) {
+            Cache<Object, Object> nativeCache = (Cache<Object, Object>) springCache.getNativeCache();
+            nativeCache.asMap().keySet()
+                    .removeIf(k -> k.toString().startsWith("topOrders::" + username + "::"));
+        }
+    }
+    public void evictsPaymentBreakdowns(String username) {
+        org.springframework.cache.Cache springCache = cacheManager.getCache("paymentBreakdowns");
+        if (springCache != null) {
+            Cache<Object, Object> nativeCache = (Cache<Object, Object>) springCache.getNativeCache();
+            nativeCache.asMap().keySet()
+                    .removeIf(k -> k.toString().startsWith("paymentBreakdowns::" + username + "::"));
+        }
+    }
 }
