@@ -25,6 +25,9 @@ public class CustomerEntity {
 	private String phone;
 	private Integer totalSpent;
 	private String status;
+    private String state;
+    private String city;
 	private LocalDateTime createdDate;
     private String userId;
+    private LocalDateTime updatedDate;
 }

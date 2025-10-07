@@ -43,4 +43,11 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+    @Query(value = "SELECT *   "
+            + "FROM billing_payments bp " + "WHERE   "
+            + " bp.created_date BETWEEN :fromDate AND :toDate and user_id=:userId "
+            + "ORDER BY MONTH(bp.created_date)", nativeQuery = true)
+    List<PaymentEntity> getPaymentList(@Param("fromDate") LocalDateTime fromDate,
+                                           @Param("toDate") LocalDateTime toDate, @Param("userId") String userId);
 }

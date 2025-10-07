@@ -44,7 +44,6 @@ public class Notifications {
 
 
         outOfStockProducts.stream().forEach(product -> {
-            log.info("The out of stock product is --> {}", product.getName());
 
             MessageEntity     messageEntity= MessageEntity.builder().createdDate(LocalDateTime.now()).domain("products")
                     .title("Out of Stock Alert " + product.getName())
@@ -69,7 +68,7 @@ public class Notifications {
     }
     @Scheduled(cron = "${scheduler.messageRemover.cron}")
     public void removeOldMessages() {
-        log.info("Removing old messages older than 1 days");
+
         notiRepo.deleteAllConditional();
         notiRepo.deleteDeletedMessages();
 

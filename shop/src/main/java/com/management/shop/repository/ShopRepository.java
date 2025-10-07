@@ -29,7 +29,7 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
 
 	@Modifying
 	@Transactional
-	@Query(value = "UPDATE shop_customer  SET status = ?2 WHERE id = ?1  and user_id = ?3", nativeQuery = true)
+	@Query(value = "UPDATE shop_customer  SET status = ?2, updated_date = NOW() WHERE id = ?1  and user_id = ?3", nativeQuery = true)
 	void updateStatus(Integer id, String status, String userId);
 
 	@Query(value = "SELECT   * FROM    shop_customer WHERE    status=?1 and user_id=?2 order by total_spent desc", nativeQuery = true)

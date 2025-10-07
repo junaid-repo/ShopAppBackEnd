@@ -15,5 +15,6 @@ public class DasbboardResponseDTO {
     private Integer taxCollected;
     private Integer totalUnitsSold;
     private Integer outOfStockCount;
+    private Integer countOfSales;
 
 }

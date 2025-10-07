@@ -66,7 +66,7 @@ public class ShopController {
 
     @PostMapping("api/shop/user/updatepassword")
     public String addUpdatePassword(@RequestBody UserInfo userInfo) {
-        System.out.println(userInfo.toString());
+        System.out.println("inside addUpdatePassword with details "+userInfo.toString());
         return serv.updatePassword(userInfo);
     }
     @PostMapping("auth/new/welcome")
@@ -749,4 +749,52 @@ public class ShopController {
         return ResponseEntity.ok(response);
     }
 
+
+
+    // 1️⃣ Upload Shop Logo
+    @PutMapping("api/shop/user/edit/details/shopLogo")
+    public ResponseEntity<String> updateShopLogo(@RequestParam("shopLogo") MultipartFile shopLogo) throws IOException {
+        String response=    serv.updateShopLogo(shopLogo);
+        return ResponseEntity.ok("Shop logo updated successfully");
+    }
+
+    // 2️⃣ Update Basic Details
+    @PutMapping("api/shop/user/edit/details/basic")
+    public ResponseEntity<String> updateBasicDetails(@RequestBody ShopBasicDetailsRequest request) {
+       String response= serv.updateBasicDetails(request);
+        return ResponseEntity.ok("Basic details updated successfully");
+    }
+
+    // 3️⃣ Update Finance Details
+    @PutMapping("api/shop/user/edit/details/finance")
+    public ResponseEntity<String> updateFinanceDetails(@RequestBody ShopFinanceDetailsRequest request) {
+        String response=  serv.updateFinanceDetails(request);
+        return ResponseEntity.ok("Finance details updated successfully");
+    }
+
+    // 4️⃣ Update Other Details
+    @PutMapping("api/shop/user/edit/details/others")
+    public ResponseEntity<String> updateOtherDetails(@RequestBody ShopInvoiceTerms request) {
+        System.out.println("Entered updateOtherDetails controller with payload-->"+request);
+        String response=  serv.updateOtherDetails(request);
+        return ResponseEntity.ok("Other details updated successfully");
+    }
+
+
+
+    @GetMapping("api/shop/user/{username}/shop-logo")
+    public ResponseEntity<byte[]> getShopLogo(@PathVariable String username) throws IOException {
+
+        byte[] imageBytes = serv.getShopLogo(username);
+
+        if (imageBytes == null || imageBytes.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // You can detect MIME type if you stored it in DB, or assume JPEG/PNG
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_JPEG);
+
+        return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
+    }
 }

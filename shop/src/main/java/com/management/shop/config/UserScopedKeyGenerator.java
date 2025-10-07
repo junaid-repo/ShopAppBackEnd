@@ -29,14 +29,13 @@ public class UserScopedKeyGenerator implements KeyGenerator {
 
         for (Object param : params) {
             if (param != null) {
-                System.out.println("The params are --> " + param.toString());
+
                 joiner.add(param.toString());
             } else {
                 System.out.println("The params are --> null");
                 joiner.add("null");
             }
         }
-        System.out.println("Generated cache key for user " + username + ": " + (cachePrefix + "::" + username + "::" + method.getName() + "::" + joiner.toString()));
 
         // sales::username::methodName::params
         return cachePrefix + "::" + username + "::" + method.getName() + "::" + joiner;
