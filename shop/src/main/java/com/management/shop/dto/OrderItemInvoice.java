@@ -13,6 +13,7 @@ public class OrderItemInvoice {
     private String productName;
     private String hsnCode; // NEW
     private int quantity;
+    private String description;
     private double rate; // Price BEFORE tax
     private double taxAmount; // Total tax for this line item
     private double taxPercentage; // e.g., 18.0

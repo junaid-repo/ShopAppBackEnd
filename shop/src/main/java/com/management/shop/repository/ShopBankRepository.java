@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface ShopBankRepository extends JpaRepository<ShopBankEntity, Integer> {
 
-    @Query(value="select * from shop_banks where shop_finance_id=?1 order by updated_at desc limit 1", nativeQuery=true)
-    ShopBankEntity findByShopFinanceId(Integer id);
+    @Query(value="select * from shop_banks where user_id=?1 order by updated_at desc limit 1", nativeQuery=true)
+    ShopBankEntity findByShopFinanceId(String username);
 }

@@ -23,4 +23,5 @@ public class InvoiceDetails {
 	    private String customerEmail;
 	    private String customerPhone;
         private String orderedDate;
+        private Integer customerId;
 }

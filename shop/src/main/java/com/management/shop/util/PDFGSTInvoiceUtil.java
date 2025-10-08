@@ -37,14 +37,18 @@ public class PDFGSTInvoiceUtil {
         double currentBalance = grandTotal + safeGetDoubleFromPrimitive(data.getPreviousBalance()) - safeGetDoubleFromPrimitive(data.getReceivedAmount());
 
         String grandTotalInWords = NumberToWordsConverter.convert((long) Math.round(grandTotal));
-        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(data.getUpiId()), 200, 200);
+       // upi://pay?pa=<VPA>&pn=<PayeeName>&mc=<MerchantCode>&tid=<TxnId>&tr=<RefId>&tn=<Note>&am=<Amount>&cu=INR
+
+        String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+"5000"+"&cu=INR";
+
+        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 200, 200);
 
         // --- Convert products to Map for template to avoid missing-getter errors ---
         List<Map<String, Object>> productsForTemplate = new ArrayList<>();
         for (OrderItemInvoice p : rawProducts) {
             Map<String, Object> m = new HashMap<>();
             m.put("productName", nullSafeString(safeGetString(p, "getProductName", "getName")));
-            m.put("description", nullSafeString(safeGetString(p, "getDescription", "getDesc", "getSerial", "getImei")));
+            m.put("description", p.getDescription());
             m.put("hsnCode", nullSafeString(safeGetString(p, "getHsnCode", "getHsn")));
             m.put("quantity", safeGetDouble(p, "getQuantity", "getQty"));
             m.put("rate", safeGetDouble(p, "getRate", "getPrice"));
@@ -52,12 +56,12 @@ public class PDFGSTInvoiceUtil {
             m.put("totalAmount", safeGetDouble(p, "getTotalAmount", "getAmount", "getTotal"));
 
             // GST breakdown on product (if present)
-            m.put("igstAmount", safeGetDouble(p, "getIgstAmount", "getIGSTAmount"));
-            m.put("igstPercentage", safeGetDouble(p, "getIgstPercentage", "getIGSTPercentage"));
-            m.put("cgstAmount", safeGetDouble(p, "getCgstAmount", "getCGSTAmount"));
-            m.put("cgstPercentage", safeGetDouble(p, "getCgstPercentage", "getCGSTPercentage"));
-            m.put("sgstAmount", safeGetDouble(p, "getSgstAmount", "getSGSTAmount"));
-            m.put("sgstPercentage", safeGetDouble(p, "getSgstPercentage", "getSGSTPercentage"));
+            m.put("igstAmount", p.getIgst());
+            m.put("igstPercentage", p.getIgstPercentage());
+            m.put("cgstAmount", p.getCgst());
+            m.put("cgstPercentage", p.getCgstPercentage());
+            m.put("sgstAmount", p.getSgst());
+            m.put("sgstPercentage", p.getSgstPercentage());
 
             productsForTemplate.add(m);
         }
@@ -118,7 +122,7 @@ public class PDFGSTInvoiceUtil {
         // Footer
         context.setVariable("termsAndConditions", data.getTermsAndConditions() != null ? data.getTermsAndConditions() : Collections.emptyList());
 
-
+        System.out.println("The full data to render invoice "+context);
         // --- Generate PDF using openhtmltopdf ---
         String htmlContent = templateEngine.process("gstinvoice", context);
 

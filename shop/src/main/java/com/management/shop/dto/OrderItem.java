@@ -21,4 +21,5 @@ public class OrderItem {
     private Integer sgstPercentage;
     private Integer igst;
     private Integer igstPercentage;
+    private String hsn;
 }

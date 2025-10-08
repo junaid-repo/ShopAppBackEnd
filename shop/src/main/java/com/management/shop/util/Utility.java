@@ -7,6 +7,7 @@ import com.management.shop.dto.OrderItemInvoice;
 import com.management.shop.dto.UpdateUserDTO;
 import com.management.shop.entity.*;
 import com.management.shop.repository.*;
+import com.razorpay.Customer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +42,9 @@ public class Utility {
     @Autowired private SalesPaymentRepository salesPaymentRepo;
     @Autowired
     private UserProfilePicRepo userProfilePicRepo;
+
+    @Autowired
+    private ShopRepository custRepo;
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
@@ -109,10 +113,10 @@ public class Utility {
 
                 OrderItemInvoice line = OrderItemInvoice.builder()
                         .productName(toEmpty(it.getProductName()))
-                        .hsnCode("") // Assuming HSN is not available
+                        .hsnCode(it.getHsn()) // Assuming HSN is not available
                         .quantity(qty)
                         .rate(rateBeforeTaxPerUnit)
-                        .taxAmount(taxAmount)
+                        .taxAmount(it.getCgst()+it.getIgst()+it.getSgst())
                         .cgst(it.getCgst())
                         .igst(it.getIgst())
                         .sgst(it.getSgst())
@@ -120,6 +124,7 @@ public class Utility {
                         .igstPercentage(it.getIgstPercentage())
                         .sgstPercentage(it.getSgstPercentage())
                         .taxPercentage(taxPercentage)
+                        .description(it.getDetails())
                         .totalAmount(totalForLine)
                         .build();
                 products.add(line);
@@ -140,6 +145,8 @@ public class Utility {
             });
         }
 
+       CustomerEntity custEntity= custRepo.findByIdAndUserId(order.getCustomerId(), username);
+
         // Using optional to avoid NullPointerException if userProfile is null
         return InvoiceData.builder()
                 .shopName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
@@ -155,14 +162,13 @@ public class Utility {
                 .shopLogoText("SP")
                 .invoiceId(toEmpty(order.getInvoiceId()))
                 .orderedDate(formattedDate)
-                .dueDate("")
+                .dueDate(formattedDate)
 
                 .customerName(toEmpty(order.getCustomerName()))
                 .customerBillingAddress("")
                 .customerShippingAddress("")
                 .customerPhone(toEmpty(order.getCustomerPhone()))
-                .customerState("")
-
+                .customerState(custEntity.getCity()+", "+custEntity.getState())
                 .products(products)
 
                 .receivedAmount(order.isPaid() ? order.getTotalAmount() : 0d)
@@ -195,7 +201,7 @@ public class Utility {
         ShopBankEntity shopBankEntity = null;
         ShopUPIEntity shopUPIEntity = null;
         if (shopFinanceEntity != null) {
-            shopBankEntity = shopBankRepo.findByShopFinanceId(shopFinanceEntity.getId());
+            shopBankEntity = shopBankRepo.findByShopFinanceId(username);
             shopUPIEntity = salesUPIRepo.findByShopFinanceId(shopFinanceEntity.getId());
         }
 
@@ -278,6 +284,7 @@ public class Utility {
                             .igstPercentage(obj.getIgstPercentage())
                             .details(toEmpty(obj.getProductDetails()))
                             .quantity(obj.getQuantity())
+                            .hsn(prodRes.getHsn())
                             .build();
                 }).collect(Collectors.toList());
 
@@ -294,6 +301,7 @@ public class Utility {
                 .gstRate(totalGst)
                 .customerPhone(toEmpty(customerEntity.getPhone()))
                 .customerEmail(toEmpty(customerEntity.getEmail()))
+                .customerId(billDetails.getCustomerId())
                 .orderedDate(createdDateStr)
                 .totalAmount(billDetails.getTotalAmount())
                 .customerName(toEmpty(customerEntity.getName()))

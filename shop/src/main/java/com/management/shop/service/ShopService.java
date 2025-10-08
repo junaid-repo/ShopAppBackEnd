@@ -337,7 +337,7 @@ public class ShopService {
         System.out.println("The updated request" + request.getTax());
         var productEntity = ProductEntity.builder().id(request.getSelectedProductId()).name(request.getName())
                 .active(true).category(request.getCategory()).userId(extractUsername()).status(status).stock(request.getStock())
-                .taxPercent(request.getTax()).price(request.getPrice()).costPrice(request.getCostPrice()).build();
+                .hsn(request.getHsn()).taxPercent(request.getTax()).price(request.getPrice()).costPrice(request.getCostPrice()).build();
 
         ProductEntity ent = prodRepo.save(productEntity);
 
@@ -1119,7 +1119,7 @@ public class ShopService {
         ShopBankEntity shopBankEntity = new ShopBankEntity();
         ShopUPIEntity shopUPIEntity = new ShopUPIEntity();
         if(shopFinanceEntity!=null){
-             shopBankEntity=shopBankRepo.findByShopFinanceId(shopFinanceEntity.getId());
+             shopBankEntity=shopBankRepo.findByShopFinanceId(username);
              shopUPIEntity=salesUPIRepo.findByShopFinanceId(shopFinanceEntity.getId());
         }
 
@@ -1157,7 +1157,7 @@ public class ShopService {
                   .bankAccount(shopBankEntity.getAccountNumber())
                   .bankAddress(shopBankEntity.getBranchName())
                   .bankHolder(shopBankEntity.getAccountHolderName())
-                  .bankName(shopBankEntity.getAccountHolderName())
+                  .bankName(shopBankEntity.getBankName())
                   .bankIfsc(shopBankEntity.getIfscCode())
                   .userSource(userinfo.getSource())
                   .build();

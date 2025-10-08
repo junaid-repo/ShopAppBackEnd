@@ -6,24 +6,23 @@
     <style>
         @page {
             size: A4;
-            margin: 20mm;
+            margin: 5mm; /* page margin */
         }
+
         body {
             font-family: Arial, Helvetica, sans-serif;
             font-size: 14px;
             color: #333;
-            width: 180mm;
-            margin: 0 auto;
+            width: 100%;      /* full page width */
+            margin: 0;
             background: #fff;
         }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+
         .invoice-container {
-            border: 1px solid #e0e0e0;
-            padding: 20px 30px;
+            border: 0;
+            width: 100%;       /* make it fit the body */
+            padding: 15px;     /* uniform padding on all sides */
+            box-sizing: border-box; /* include padding inside width */
         }
         .invoice-header {
             border-bottom: 3px solid #5d3a9b;
@@ -119,6 +118,14 @@
             font-weight: bold;
             border-top: 2px solid #333;
         }
+
+        .items-table th:nth-child(1) { width: 25%; }  /* ITEM column wider */
+        .items-table th:nth-child(2) { width: 10%; }  /* HSN column smaller */
+        .items-table th:nth-child(3) { width: 8%; }   /* QUANTITY smaller */
+        .items-table th:nth-child(4) { width: 15%; }  /* RATE column */
+        .items-table th:nth-child(5) { width: 25%; }  /* TAX column wider */
+        .items-table th:nth-child(6) { width: 17%; }  /* AMOUNT column */
+
         small.desc {
             display: block;
             color: #555;
@@ -134,52 +141,90 @@
             vertical-align: top;
             padding: 10px;
         }
+        .footer-right {
+            vertical-align: top;
+            width: 45%;
+            font-size: 13px;
+        }
         .footer-left h4, .footer-right h4 {
             color: #5d3a9b;
-            margin: 0 0 8px 0;
+            margin: 0 0 14px 0;
             font-size: 14px;
         }
         .footer-left p {
             margin: 0 0 6px 0;
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 1.2;
         }
         .totals-summary {
-            border: 1px solid #e0e0e0;
-            margin-bottom: 10px;
+            margin-bottom: 16px;
+            background-color: #faf8ff;
+            padding: 12px 15px;
+            border-radius: 6px;
         }
         .summary-item {
-            padding: 10px;
-            border-bottom: 1px solid #e0e0e0;
             display: table;
             width: 100%;
+            padding: 10px 0; /* increased vertical spacing */
         }
+        .summary-item span {
+            display: table-cell;
+            vertical-align: middle;
+            padding: 2px 0;
+        }
+        .summary-item span:first-child {
+            text-align: left;
+            color: #444;
+        }
+        .summary-item span:last-child {
+            text-align: right;
+            font-weight: 600;
+            color: #222;
+        }
+
         .summary-item span {
             display: table-cell;
             width: 50%;
         }
-        .summary-item span:last-child {
-            text-align: right;
-        }
+
         .totals-summary .total {
-            background-color: #5d3a9b;
+            background-color: rgba(93, 58, 155, 0.13);
             color: #fff;
             font-weight: bold;
             font-size: 15px;
-        }
-        .balance-info {
-            background-color: #f9f9f9;
-            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 12px 10px;
             margin-top: 10px;
         }
+        /* Balance Info */
+        .balance-info {
+            background-color: #fcfcfc;
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+        }
+        .balance-info .summary-item {
+            padding: 8px 0;
+        }
+        .balance-info .summary-item span:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        /* Amount in Words */
         .amount-in-words {
             margin-top: 15px;
             text-align: right;
-            font-size: 13px;
+            background: #f9f7ff;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 12px;
         }
         .amount-in-words strong {
             display: block;
-            margin-bottom: 5px;
+            color: #5d3a9b;
+            font-size: 13px;
+            margin-bottom: 3px;
         }
         .terms ul {
             padding-left: 20px;
@@ -243,14 +288,14 @@
             <td>
                 <h3>BILL TO</h3>
                 <p><strong th:text="${customerName}"></strong></p>
-                <p th:text="${customerBillingAddress}"></p>
                 <p><strong>Mobile:</strong> <span th:text="${customerPhone}"></span></p>
-                <p><strong>State:</strong> <span th:text="${customerState}"></span></p>
+                <p><strong>Address:</strong> <span th:text="${customerState}"></span></p>
             </td>
             <td>
                 <h3>SHIP TO</h3>
                 <p><strong th:text="${customerName}"></strong></p>
-                <p th:text="${customerShippingAddress}"></p>
+                <p><strong>Mobile:</strong> <span th:text="${customerPhone}"></span></p>
+                <p><strong>Address:</strong> <span th:text="${customerState}"></span></p>
             </td>
         </tr>
     </table>
@@ -259,7 +304,7 @@
         <thead>
         <tr>
             <th>ITEMS</th>
-            <th>HSN</th>
+            <th class="text-right">HSN</th>
             <th class="text-right">QTY.</th>
             <th class="text-right">RATE</th>
             <th class="text-right">TAX</th>
@@ -272,16 +317,17 @@
                 <span th:text="${product['productName']}"></span>
                 <small class="desc" th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}" th:text="${product['description']}"></small>
             </td>
-            <td th:text="${product['hsnCode']}"></td>
+
+            <td class="text-right" th:text="${product['hsnCode']}"></td>
             <td class="text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ' Pcs'"></td>
             <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
             <td class="text-right">
-                <span th:if="${product['igstAmount'] > 0}" th:text="'₹' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
-                <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ₹' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+                <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
                 <br th:if="${product['sgstAmount'] > 0}" />
-                <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ₹' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+                <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
             </td>
-            <td class="text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
         </tr>
         </tbody>
         <tfoot>
@@ -289,8 +335,8 @@
             <td colspan="2">SUBTOTAL</td>
             <td class="text-right" th:text="${#aggregates.sum(products.![quantity])}"></td>
             <td></td>
-            <td class="text-right" th:text="'₹ ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 2, 'POINT')}"></td>
-            <td class="text-right" th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}"></td>
         </tr>
         </tfoot>
     </table>
@@ -322,32 +368,34 @@
                 <div class="totals-summary">
                     <div class="summary-item">
                         <span>TAXABLE AMOUNT</span>
-                        <span th:text="'₹ ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span th:text="' ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
+
                     <div class="summary-item" th:each="gst : ${gstSummary}">
                         <span th:text="${gst['type']} + ' @' + ${gst['percentage']} + '%'"></span>
-                        <span th:text="'₹ ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span th:text="' ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
+
                     <div class="summary-item total">
                         <span>TOTAL AMOUNT</span>
-                        <span th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
                 </div>
 
-                <div class="balance-info">
+                <!--<div class="balance-info">
                     <div class="summary-item">
                         <span>Received Amount</span>
-                        <span th:text="'₹ ' + ${#numbers.formatDecimal(receivedAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span th:text="' ' + ${#numbers.formatDecimal(receivedAmount, 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
                     <div class="summary-item">
                         <span>Previous Balance</span>
-                        <span th:text="'₹ ' + ${#numbers.formatDecimal(previousBalance, 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span th:text="' ' + ${#numbers.formatDecimal(previousBalance, 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
                     <div class="summary-item">
                         <span>Current Balance</span>
-                        <span th:text="'₹ ' + ${#numbers.formatDecimal(currentBalance, 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span th:text="' ' + ${#numbers.formatDecimal(currentBalance, 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
-                </div>
+                </div>-->
 
                 <div class="amount-in-words">
                     <strong>Amount in words</strong>
