@@ -1,17 +1,18 @@
 package com.management.shop.util;
 
+import com.management.shop.dto.InvoiceData;
 import com.management.shop.dto.OrderItemInvoice;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.thymeleaf.TemplateEngine;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import org.xhtmlrenderer.pdf.ITextRenderer;
-import java.util.Base64;
+
 import java.io.ByteArrayOutputStream;
-import java.util.List;
+import java.lang.reflect.Method;
+import java.util.*;
 
+@Component
 public class PDFGSTInvoiceUtil {
-
 
     private final TemplateEngine templateEngine;
 
@@ -19,116 +20,156 @@ public class PDFGSTInvoiceUtil {
         this.templateEngine = templateEngine;
     }
 
-    public byte[] generateGSTInvoice(
-            // Shop Details
-            String shopName, String shopSlogan, String shopLogoText, byte[] shopLogoBytes, String shopAddress,
-            String shopEmail, String shopPhone, String gstNumber, String panNumber,
+    public byte[] generateGSTInvoice(InvoiceData data) throws Exception {
 
-            // Invoice Details
-            String invoiceId, String orderedDate, String dueDate,
+        // --- Core Calculations (null-safe) ---
+        List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
 
-            // Customer Details
-            String customerName, String customerBillingAddress, String customerShippingAddress,
-            String customerPhone, String customerState,
+        double taxableAmount = rawProducts.stream()
+                .mapToDouble(p -> safeGetDouble(p, "getRate", "getPrice") * safeGetDouble(p, "getQuantity", "getQty"))
+                .sum();
 
-            // Items
-            List<OrderItemInvoice> products,
+        double gstAmount = rawProducts.stream()
+                .mapToDouble(p -> safeGetDouble(p, "getTaxAmount", "getTax"))
+                .sum();
 
-            // Financial Details
-            double gstPercentage, // e.g., 18.0 for the whole invoice
-            double receivedAmount, double previousBalance,
+        double grandTotal = taxableAmount + gstAmount;
+        double currentBalance = grandTotal + safeGetDoubleFromPrimitive(data.getPreviousBalance()) - safeGetDoubleFromPrimitive(data.getReceivedAmount());
 
-            // Bank & Payment Details
-            String bankAccountName, String bankAccountNumber, String bankIfscCode,
-            String bankName, String upiId,
+        String grandTotalInWords = NumberToWordsConverter.convert((long) Math.round(grandTotal));
+        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(data.getUpiId()), 200, 200);
 
-            Double igstAmount, Double igstPercentage,
-            Double cgstAmount, Double cgstPercentage,
-            Double sgstAmount, Double sgstPercentage,
+        // --- Convert products to Map for template to avoid missing-getter errors ---
+        List<Map<String, Object>> productsForTemplate = new ArrayList<>();
+        for (OrderItemInvoice p : rawProducts) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("productName", nullSafeString(safeGetString(p, "getProductName", "getName")));
+            m.put("description", nullSafeString(safeGetString(p, "getDescription", "getDesc", "getSerial", "getImei")));
+            m.put("hsnCode", nullSafeString(safeGetString(p, "getHsnCode", "getHsn")));
+            m.put("quantity", safeGetDouble(p, "getQuantity", "getQty"));
+            m.put("rate", safeGetDouble(p, "getRate", "getPrice"));
+            m.put("taxAmount", safeGetDouble(p, "getTaxAmount", "getTax"));
+            m.put("totalAmount", safeGetDouble(p, "getTotalAmount", "getAmount", "getTotal"));
 
-            // Footer
-            List<String> termsAndConditions
-    ) throws Exception {
+            // GST breakdown on product (if present)
+            m.put("igstAmount", safeGetDouble(p, "getIgstAmount", "getIGSTAmount"));
+            m.put("igstPercentage", safeGetDouble(p, "getIgstPercentage", "getIGSTPercentage"));
+            m.put("cgstAmount", safeGetDouble(p, "getCgstAmount", "getCGSTAmount"));
+            m.put("cgstPercentage", safeGetDouble(p, "getCgstPercentage", "getCGSTPercentage"));
+            m.put("sgstAmount", safeGetDouble(p, "getSgstAmount", "getSGSTAmount"));
+            m.put("sgstPercentage", safeGetDouble(p, "getSgstPercentage", "getSGSTPercentage"));
 
-        // --- Calculations ---
-        double taxableAmount = products.stream().mapToDouble(p -> p.getRate() * p.getQuantity()).sum();
-        double gstRate = products.stream().mapToDouble(OrderItemInvoice::getTaxAmount).sum();
-        double grandTotal = taxableAmount + gstRate;
-        double currentBalance = grandTotal + previousBalance - receivedAmount;
+            productsForTemplate.add(m);
+        }
 
-        String grandTotalInWords = NumberToWordsConverter.convert((long) grandTotal);
-        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(upiId, 200, 200);
-
-        // --- Thymeleaf Context ---
+        // --- Prepare Thymeleaf Context ---
         Context context = new Context();
 
-        // NEW: Handle the logo byte stream
-        if (shopLogoBytes != null && shopLogoBytes.length > 0) {
-            String shopLogoBase64 = Base64.getEncoder().encodeToString(shopLogoBytes);
+        // Shop Logo
+        if (data.getShopLogoBytes() != null && data.getShopLogoBytes().length > 0) {
+            String shopLogoBase64 = Base64.getEncoder().encodeToString(data.getShopLogoBytes());
             context.setVariable("shopLogoBase64", shopLogoBase64);
         }
 
         // Shop Details
-        context.setVariable("shopName", shopName);
-        context.setVariable("shopSlogan", shopSlogan);
-        context.setVariable("shopLogoText", shopLogoText);
-        context.setVariable("shopAddress", shopAddress);
-        context.setVariable("shopEmail", shopEmail);
-        context.setVariable("shopPhone", shopPhone);
-        context.setVariable("gstNumber", gstNumber);
-        context.setVariable("panNumber", panNumber);
+        context.setVariable("shopName", nullSafeString(data.getShopName()));
+        context.setVariable("shopSlogan", nullSafeString(data.getShopSlogan()));
+        context.setVariable("shopLogoText", nullSafeString(data.getShopLogoText()));
+        context.setVariable("shopAddress", nullSafeString(data.getShopAddress()));
+        context.setVariable("shopEmail", nullSafeString(data.getShopEmail()));
+        context.setVariable("shopPhone", nullSafeString(data.getShopPhone()));
+        context.setVariable("gstNumber", nullSafeString(data.getGstNumber()));
+        context.setVariable("panNumber", nullSafeString(data.getPanNumber()));
 
         // Invoice Details
-        context.setVariable("invoiceId", invoiceId);
-        context.setVariable("orderedDate", orderedDate);
-        context.setVariable("dueDate", dueDate);
+        context.setVariable("invoiceId", nullSafeString(data.getInvoiceId()));
+        context.setVariable("orderedDate", nullSafeString(data.getOrderedDate()));
+        context.setVariable("dueDate", nullSafeString(data.getDueDate()));
 
         // Customer Details
-        context.setVariable("customerName", customerName);
-        context.setVariable("customerBillingAddress", customerBillingAddress);
-        context.setVariable("customerShippingAddress", customerShippingAddress);
-        context.setVariable("customerPhone", customerPhone);
-        context.setVariable("customerState", customerState);
+        context.setVariable("customerName", nullSafeString(data.getCustomerName()));
+        context.setVariable("customerBillingAddress", nullSafeString(data.getCustomerBillingAddress()));
+        context.setVariable("customerShippingAddress", nullSafeString(data.getCustomerShippingAddress()));
+        context.setVariable("customerPhone", nullSafeString(data.getCustomerPhone()));
+        context.setVariable("customerState", nullSafeString(data.getCustomerState()));
 
-        // Items
-        context.setVariable("products", products);
+        // Products (maps)
+        context.setVariable("products", productsForTemplate);
 
         // Financials
         context.setVariable("taxableAmount", taxableAmount);
-        context.setVariable("gstRate", gstRate);
         context.setVariable("grandTotal", grandTotal);
-        context.setVariable("gstPercentage", gstPercentage);
-        context.setVariable("receivedAmount", receivedAmount);
-        context.setVariable("previousBalance", previousBalance);
+        context.setVariable("receivedAmount", safeGetDoubleFromPrimitive(data.getReceivedAmount()));
+        context.setVariable("previousBalance", safeGetDoubleFromPrimitive(data.getPreviousBalance()));
         context.setVariable("currentBalance", currentBalance);
-        context.setVariable("grandTotalInWords", grandTotalInWords);
-        context.setVariable("igstAmount", igstAmount);
-        context.setVariable("igstPercentage", igstPercentage);
-        context.setVariable("cgstAmount", cgstAmount);
-        context.setVariable("cgstPercentage", cgstPercentage);
-        context.setVariable("sgstAmount", sgstAmount);
-        context.setVariable("sgstPercentage", sgstPercentage);
+        context.setVariable("grandTotalInWords", nullSafeString(grandTotalInWords));
+
+        // GST Summary
+        context.setVariable("gstSummary", data.getGstSummary() != null ? data.getGstSummary() : Collections.emptyList());
 
         // Bank & Payment
-        context.setVariable("bankAccountName", bankAccountName);
-        context.setVariable("bankAccountNumber", bankAccountNumber);
-        context.setVariable("bankIfscCode", bankIfscCode);
-        context.setVariable("bankName", bankName);
-        context.setVariable("upiId", upiId);
-        context.setVariable("qrCodeBase64", qrCodeBase64);
+        context.setVariable("bankAccountName", nullSafeString(data.getBankAccountName()));
+        context.setVariable("bankAccountNumber", nullSafeString(data.getBankAccountNumber()));
+        context.setVariable("bankIfscCode", nullSafeString(data.getBankIfscCode()));
+        context.setVariable("bankName", nullSafeString(data.getBankName()));
+        context.setVariable("upiId", nullSafeString(data.getUpiId()));
+        context.setVariable("qrCodeBase64", nullSafeString(qrCodeBase64));
 
         // Footer
-        context.setVariable("termsAndConditions", termsAndConditions);
+        context.setVariable("termsAndConditions", data.getTermsAndConditions() != null ? data.getTermsAndConditions() : Collections.emptyList());
 
 
-        // --- PDF Generation (No changes here) ---
-        String htmlContent = templateEngine.process("invoice", context);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ITextRenderer renderer = new ITextRenderer();
-        renderer.setDocumentFromString(htmlContent);
-        renderer.layout();
-        renderer.createPDF(baos);
-        return baos.toByteArray();
+        // --- Generate PDF using openhtmltopdf ---
+        String htmlContent = templateEngine.process("gstinvoice", context);
+
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            builder.withHtmlContent(htmlContent, "/"); // The "/" is a base URI for relative paths
+            builder.toStream(baos);
+            builder.run();
+            return baos.toByteArray();
+        }
     }
 
+    // --- Helpers (unchanged from your original) ---
+
+    private String nullSafeString(Object o) {
+        return o == null ? "" : String.valueOf(o);
+    }
+
+    private double safeGetDoubleFromPrimitive(Double d) {
+        return d == null ? 0.0 : d;
+    }
+
+    private String safeGetString(Object bean, String... methodNames) {
+        Object val = safeInvoke(bean, methodNames);
+        return val == null ? "" : String.valueOf(val);
+    }
+
+    private double safeGetDouble(Object bean, String... methodNames) {
+        Object val = safeInvoke(bean, methodNames);
+        if (val == null) return 0.0;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        try {
+            return Double.parseDouble(String.valueOf(val));
+        } catch (Exception ex) {
+            return 0.0;
+        }
+    }
+
+    private Object safeInvoke(Object bean, String... methodNames) {
+        if (bean == null) return null;
+        for (String mName : methodNames) {
+            try {
+                Method m = bean.getClass().getMethod(mName);
+                Object v = m.invoke(bean);
+                if (v != null) return v;
+            } catch (NoSuchMethodException nsme) {
+                // try next possibility
+            } catch (Exception ignored) {
+                // any other problem - ignore and continue
+            }
+        }
+        return null;
+    }
 }

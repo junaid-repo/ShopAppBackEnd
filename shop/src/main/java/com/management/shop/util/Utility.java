@@ -2,54 +2,327 @@ package com.management.shop.util;
 
 import com.management.shop.dto.InvoiceData;
 import com.management.shop.dto.InvoiceDetails;
-import com.management.shop.dto.ShopDetails;
+import com.management.shop.dto.OrderItem;
+import com.management.shop.dto.OrderItemInvoice;
 import com.management.shop.dto.UpdateUserDTO;
-import com.management.shop.service.ShopService;
+import com.management.shop.entity.*;
+import com.management.shop.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
+@Component
 public class Utility {
 
+    //<-- All @Autowired repositories remain the same -->
+    @Autowired private BillingGstRepository billGstRepo;
+    @Autowired private ShopBasicRepository shopBasicRepo;
+    @Autowired private ShopFinanceRepository shopFinanceRepo;
+    @Autowired private ShopBankRepository shopBankRepo;
+    @Autowired private ShopUPIRepository salesUPIRepo;
+    @Autowired private ShopInvoiceTermsRepository shopInvoiceTermsRepo;
+    @Autowired private ShopDetailsRepo shopDetailsRepo;
+    @Autowired private UserInfoRepository userinfoRepo;
+    @Autowired private ShopRepository shopRepo;
+    @Autowired private ProductRepository prodRepo;
+    @Autowired private BillingRepository billRepo;
+    @Autowired private ProductSalesRepository prodSalesRepo;
+    @Autowired private SalesPaymentRepository salesPaymentRepo;
+    @Autowired
+    private UserProfilePicRepo userProfilePicRepo;
 
-    private ShopService shopService;
+    @Value("${aws.s3.bucket-name}")
+    private String bucketName;
 
-    Utility(ShopService shopService) {
-       this.shopService= shopService;
+    @Autowired
+    private S3Client s3Client;
+
+    /**
+     * Helper method to convert a null string to an empty string.
+     */
+    private String toEmpty(String value) {
+        return value == null ? "" : value;
     }
 
-    public  InvoiceData getShopDetails(String username, String orderId) {
-        UpdateUserDTO userProfile= shopService.getUserProfile(username);
+    public String extractUsername() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        // For testing purposes, you might uncomment the line below
+        // username="junaid1";
+        return username;
+    }
 
 
-        System.out.println(orderId);
-        InvoiceDetails order = shopService.getOrderDetails(orderId);
-        LocalDate orderedDate = LocalDate.parse(order.getOrderedDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    public InvoiceData getFullInvoiceDetails(String username, String orderId) {
+        UpdateUserDTO userProfile = getUserProfile(username);
+        InvoiceDetails order = getOrderDetails(orderId);
 
-        String shopEmail="";
-        String gstNumber="";
-        String shopAddress="";
-        String shopPhone="";
-        String shopName="";
-        if(userProfile!=null){
-            gstNumber = userProfile.getGstNumber() != null ? userProfile.getGstNumber() : "sample gst number";
-            shopEmail=userProfile.getShopEmail()!=null?userProfile.getShopEmail() : "sample shop email";
-            shopPhone= userProfile.getShopPhone() != null?userProfile.getShopPhone() : "sample shop phone";
-            shopAddress= userProfile.getShopLocation()!=null?userProfile.getShopLocation() : "sample shop address";
-            shopName=userProfile.getShopName()!=null?userProfile.getShopName() : "sample shop name";
+        // Safely parse the date, defaulting to now() if invalid/null
+        LocalDate orderedDate = LocalDate.now();
+        if (order.getOrderedDate() != null && !order.getOrderedDate().isEmpty()) {
+            try {
+                orderedDate = LocalDate.parse(order.getOrderedDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            } catch (Exception e) {
+                // Log error if needed, but proceed with default date
+            }
         }
-
-// Format to new pattern
         String formattedDate = orderedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
 
+        byte[] shopLogoBytes = null;
+        try {
+            shopLogoBytes=getShopLogo(username);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
+        List<String> terms = new ArrayList<>();
+        // Safely handle terms, even if the string is null
+        if (userProfile != null && userProfile.getTerms1() != null) {
+            Arrays.stream(userProfile.getTerms1().split("##"))
+                    .filter(term -> term != null && !term.trim().isEmpty())
+                    .forEach(term -> terms.add(term.trim()));
+        }
 
+        // Convert order items to invoice line items
+        List<OrderItemInvoice> products = new ArrayList<>();
+        if (order.getItems() != null) {
+            for (OrderItem it : order.getItems()) {
+                if (it == null) continue; // Skip null items in the list
 
-        return null;
+                int qty = it.getQuantity();
+                double totalForLine = it.getUnitPrice(); // Note: in existing code unitPrice is stored as line total
+                double taxAmount = it.getGst(); // total tax for this line
 
+                double rateBeforeTaxPerUnit = (qty > 0) ? (totalForLine - taxAmount) / qty : 0;
+                double taxableBase = rateBeforeTaxPerUnit * Math.max(1, qty);
+                double taxPercentage = (taxableBase > 0) ? (taxAmount / taxableBase) * 100.0 : 0;
+
+                OrderItemInvoice line = OrderItemInvoice.builder()
+                        .productName(toEmpty(it.getProductName()))
+                        .hsnCode("") // Assuming HSN is not available
+                        .quantity(qty)
+                        .rate(rateBeforeTaxPerUnit)
+                        .taxAmount(taxAmount)
+                        .cgst(it.getCgst())
+                        .igst(it.getIgst())
+                        .sgst(it.getSgst())
+                        .cgstPercentage(it.getCgstPercentage())
+                        .igstPercentage(it.getIgstPercentage())
+                        .sgstPercentage(it.getSgstPercentage())
+                        .taxPercentage(taxPercentage)
+                        .totalAmount(totalForLine)
+                        .build();
+                products.add(line);
+            }
+        }
+
+        List<Map<String, Object>> gstSummary = new ArrayList<>();
+        List<BillingGstEntity> billGstList = billGstRepo.findByUserIdAndOrderId(username, orderId);
+        if (billGstList != null) {
+            billGstList.forEach(gstEntry -> {
+                if (gstEntry != null) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("type", toEmpty(gstEntry.getGstType()));
+                    map.put("percentage", gstEntry.getGstPercentage());
+                    map.put("amount", gstEntry.getGstAmount());
+                    gstSummary.add(map);
+                }
+            });
+        }
+
+        // Using optional to avoid NullPointerException if userProfile is null
+        return InvoiceData.builder()
+                .shopName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
+                .shopSlogan(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopSlogan())).orElse(""))
+                .shopLogoBytes(null) // Assuming not implemented
+                .shopLogoText(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
+                .shopAddress(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopLocation())).orElse(""))
+                .shopEmail(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopEmail())).orElse(""))
+                .shopPhone(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopPhone())).orElse(""))
+                .gstNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getGstin())).orElse(""))
+                .panNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getPan())).orElse(""))
+                .shopLogoBytes(shopLogoBytes)
+                .shopLogoText("SP")
+                .invoiceId(toEmpty(order.getInvoiceId()))
+                .orderedDate(formattedDate)
+                .dueDate("")
+
+                .customerName(toEmpty(order.getCustomerName()))
+                .customerBillingAddress("")
+                .customerShippingAddress("")
+                .customerPhone(toEmpty(order.getCustomerPhone()))
+                .customerState("")
+
+                .products(products)
+
+                .receivedAmount(order.isPaid() ? order.getTotalAmount() : 0d)
+                .previousBalance(0d)
+                .gstSummary(gstSummary)
+
+                .bankAccountName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankHolder())).orElse(""))
+                .bankAccountNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankAccount())).orElse(""))
+                .bankIfscCode(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankIfsc())).orElse(""))
+                .bankName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankName())).orElse(""))
+                .upiId(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getUpi())).orElse(""))
+
+                .termsAndConditions(terms)
+                .build();
     }
 
+    public UpdateUserDTO getUserProfile(String username) {
+        username = extractUsername();
 
+        // Use orElse(null) or orElse(new UserInfo()) for safer handling
+        UserInfo userinfo = userinfoRepo.findByUsername(username).orElse(new UserInfo());
+
+        // Fetch optional entities, which will be null if not found
+        ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(username);
+        ShopBasicEntity shopBasicEntity = shopBasicRepo.findByUserId(username);
+        ShopFinanceEntity shopFinanceEntity = shopFinanceRepo.findByUserId(username);
+        ShopInvoiceTermsEnity shopInvoiceTermsEntity = shopInvoiceTermsRepo.findByUserId(username);
+
+        // Fetch nested entities only if the parent exists
+        ShopBankEntity shopBankEntity = null;
+        ShopUPIEntity shopUPIEntity = null;
+        if (shopFinanceEntity != null) {
+            shopBankEntity = shopBankRepo.findByShopFinanceId(shopFinanceEntity.getId());
+            shopUPIEntity = salesUPIRepo.findByShopFinanceId(shopFinanceEntity.getId());
+        }
+
+        // Build the DTO safely using Optional to avoid NPEs
+        return UpdateUserDTO.builder()
+                .username(toEmpty(username))
+                .email(toEmpty(userinfo.getEmail()))
+                .name(toEmpty(userinfo.getName()))
+                .phone(toEmpty(userinfo.getPhoneNumber()))
+                .userSource(toEmpty(userinfo.getSource()))
+
+                .address(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getAddresss())).orElse(""))
+                .gstNumber(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getGstNumber())).orElse(""))
+                .shopLocation(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getAddresss())).orElse(""))
+                .shopOwner(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getOwnerName())).orElse(""))
+                .shopEmail(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getShopEmail())).orElse(""))
+                .shopPhone(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getShopPhone())).orElse(""))
+                .shopName(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getShopName())).orElse(""))
+
+                .shopPincode(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopPincode())).orElse(""))
+                .shopCity(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopCity())).orElse(""))
+                .shopState(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopState())).orElse(""))
+                .shopSlogan(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopSlogan())).orElse(""))
+
+                .pan(Optional.ofNullable(shopFinanceEntity).map(s -> toEmpty(s.getPanNumber())).orElse(""))
+                .gstin(Optional.ofNullable(shopFinanceEntity).map(s -> toEmpty(s.getGstin())).orElse(""))
+
+                .upi(Optional.ofNullable(shopUPIEntity).map(s -> toEmpty(s.getUpiId())).orElse(""))
+
+                .terms1(Optional.ofNullable(shopInvoiceTermsEntity).map(s -> toEmpty(s.getTerm())).orElse(""))
+
+                .bankAccount(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getAccountNumber())).orElse(""))
+                .bankAddress(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getBranchName())).orElse(""))
+                .bankHolder(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getAccountHolderName())).orElse(""))
+                .bankName(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getBankName())).orElse(""))
+                .bankIfsc(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getIfscCode())).orElse(""))
+                .build();
+    }
+
+    public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
+        String username = extractUsername();
+
+        // If the main billing record doesn't exist, return an empty object
+        BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber, username);
+        if (billDetails == null) {
+            return InvoiceDetails.builder().items(Collections.emptyList()).build(); // Return empty details
+        }
+
+        // Use default empty objects if related entities are not found
+        PaymentEntity paymentEntity = salesPaymentRepo.findPaymentDetails(billDetails.getId(), username);
+        if (paymentEntity == null) paymentEntity = new PaymentEntity();
+
+        CustomerEntity customerEntity = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), username);
+        if (customerEntity == null) customerEntity = new CustomerEntity();
+
+        // Check payment status safely
+        boolean paid = "Paid".equalsIgnoreCase(paymentEntity.getStatus());
+
+        List<ProductSalesEntity> prodSales = prodSalesRepo.findByOrderId(billDetails.getId(), username);
+        double totalGst = prodSales.stream()
+                .filter(Objects::nonNull)
+                .mapToDouble(ProductSalesEntity::getTax)
+                .sum();
+
+        List<OrderItem> items = prodSales.stream()
+                .filter(Objects::nonNull)
+                .map(obj -> {
+                    ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), username);
+                    String productName = (prodRes != null) ? toEmpty(prodRes.getName()) : "Unknown Product";
+
+                    return OrderItem.builder()
+                            .productName(productName)
+                            .unitPrice(obj.getTotal())
+                            .gst(obj.getTax())
+                            .sgst(obj.getSgst())
+                            .sgstPercentage(obj.getSgstPercentage())
+                            .cgst(obj.getCgst())
+                            .cgstPercentage(obj.getCgstPercentage())
+                            .igst(obj.getIgst())
+                            .igstPercentage(obj.getIgstPercentage())
+                            .details(toEmpty(obj.getProductDetails()))
+                            .quantity(obj.getQuantity())
+                            .build();
+                }).collect(Collectors.toList());
+
+        String createdDateStr = Optional.ofNullable(billDetails.getCreatedDate())
+                .map(String::valueOf)
+                .map(s -> s.length() >= 10 ? s.substring(0, 10) : "")
+                .orElse("");
+
+        return InvoiceDetails.builder()
+                .discountRate(0)
+                .invoiceId(toEmpty(orderReferenceNumber))
+                .paymentReferenceNumber(toEmpty(paymentEntity.getPaymentReferenceNumber()))
+                .items(items)
+                .gstRate(totalGst)
+                .customerPhone(toEmpty(customerEntity.getPhone()))
+                .customerEmail(toEmpty(customerEntity.getEmail()))
+                .orderedDate(createdDateStr)
+                .totalAmount(billDetails.getTotalAmount())
+                .customerName(toEmpty(customerEntity.getName()))
+                .paid(paid)
+                .build();
+    }
+
+    public byte[] getShopLogo(String username) throws IOException {
+
+        System.out.println("entered getProfilePic with request  username " + username);
+
+        UserInfo res = userinfoRepo.findByUsername(username).get();
+
+
+        byte[] content = null;
+
+        try {
+            UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(picRes.getShopLogo())
+                    .build();
+            ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(getObjectRequest);
+            content = s3Object.readAllBytes();
+        } catch (IOException e) {
+            e.printStackTrace();
+            content = null; // Or handle error appropriately
+        }
+
+
+        return content;
+    }
 }

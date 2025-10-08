@@ -6,7 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,6 +26,7 @@ public class InvoiceData {
     private  String shopPhone;
     private  String gstNumber;
     private  String panNumber;
+
 
     // Invoice Details
     private  String invoiceId;
@@ -43,12 +46,7 @@ public class InvoiceData {
     // Financial Details
     private  double receivedAmount;
     private  double previousBalance;
-    private  Double igstAmount;
-    private  Double igstPercentage;
-    private  Double cgstAmount;
-    private  Double cgstPercentage;
-    private  Double sgstAmount;
-    private  Double sgstPercentage;
+    List<Map<String, Object>> gstSummary = new ArrayList<>();
 
     // Bank & Payment Details
     private  String bankAccountName;

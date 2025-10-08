@@ -10,6 +10,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name="ProductSales")
 @Builder
@@ -24,12 +26,19 @@ public class ProductSalesEntity {
 	private Integer billingId;
 	private Integer productId;
 	private Integer quantity;
-	private Integer tax;
+    private Integer tax;
+	private Integer cgst;
+    private Integer cgstPercentage;
+    private Integer sgst;
+    private Integer sgstPercentage;
+    private Integer igst;
+    private Integer igstPercentage;
 	private Integer subTotal;
 	private Integer total;
     private String productDetails;
     private Double discountPercentage;
     private Double profitOnCP;
+    private LocalDateTime updatedAt;
     private String userId;
 
 }

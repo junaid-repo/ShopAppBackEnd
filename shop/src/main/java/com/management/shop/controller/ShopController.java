@@ -458,7 +458,7 @@ public class ShopController {
     @GetMapping("api/shop/get/invoice/{orderId}")
     public ResponseEntity<byte[]> generateInvoice(@PathVariable String orderId) {
         try {
-            byte[] pdfContents = serv.generateInvoicePdf(orderId);
+            byte[] pdfContents = serv.generateGSTInvoicePdf(orderId);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);

@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import com.management.shop.dto.*;
 import com.management.shop.entity.*;
 import com.management.shop.repository.*;
+import com.management.shop.scheduler.BillingProcess;
 import com.management.shop.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -102,6 +103,9 @@ public class ShopService {
     @Autowired
     private ShopInvoiceTermsRepository shopInvoiceTermsRepo;
 
+    @Autowired
+    private BillingGstRepository billGstRepo;
+
 
     @Autowired
     CSVUpload util;
@@ -111,6 +115,9 @@ public class ShopService {
 
     @Autowired
     PDFInvoiceUtil pdfutil;
+
+    @Autowired
+    PDFGSTInvoiceUtil pdfgstutil;
 
     @Autowired
     EmailSender email;
@@ -129,6 +136,12 @@ public class ShopService {
 
     @Autowired
     private NotificationsRepo notiRepo;
+
+    @Autowired
+    BillingProcess billingProcess;
+
+    @Autowired
+    Utility utils;
 
     private final Random random = new Random();
 
@@ -472,15 +485,29 @@ public class ShopService {
                 Integer subTotal = total- tax;
                 Double profitOnCp= (discountedTotal - prodRes.getCostPrice())*obj.getQuantity();
                 totalProfitOnCP[0] = totalProfitOnCP[0] +Math.round(profitOnCp);
+
+                ProductSalesEntity gstCalc= getBreakDown(request.getSelectedCustomer(), obj,prodRes,extractUsername());
+
                 var productSalesEntity = ProductSalesEntity.builder().billingId(billResponse.getId())
                         .profitOnCP(profitOnCp)
+                        .sgstPercentage(gstCalc.getSgstPercentage())
+                        .sgst(gstCalc.getSgst())
+                        .cgstPercentage(gstCalc.getCgstPercentage())
+                        .cgst(gstCalc.getCgst())
+                        .igstPercentage(gstCalc.getIgstPercentage())
+                        .igst(gstCalc.getIgst())
                         .productId(obj.getId()).productDetails(obj.getDetails()).userId(extractUsername()).discountPercentage(obj.getDiscountPercentage()).quantity(obj.getQuantity()).tax(tax).subTotal(subTotal).total(total)
+                        .updatedAt(LocalDateTime.now())
                         .build();
 
                 ProductSalesEntity prodSalesResponse = prodSalesRepo.save(productSalesEntity);
 
 
-
+                try {
+                    String saveGSTListing= billingProcess.saveGstListing(billResponse.getInvoiceNumber(), extractUsername());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
 
                 if (prodSalesResponse.getId() != null) {
                     prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername());
@@ -489,10 +516,13 @@ public class ShopService {
 
             });
 
+
+
             billResponse.setTotalProfitOnCP(totalProfitOnCP[0]);
             Runnable rn = () ->
             {
                 billRepo.save(billResponse);
+
             };
             rn.run();
 
@@ -555,6 +585,27 @@ public class ShopService {
         }
 
         return BillingResponse.builder().status("FAILURE").build();
+    }
+
+    private ProductSalesEntity getBreakDown(CustomerEntity selectedCustomer, ProductBillDTO obj, ProductEntity prodRes, String username) {
+
+        String customerState=selectedCustomer.getState();
+        String shopState= shopBasicRepo.findByUserId(username).getShopState();
+
+        if(customerState.equals(shopState)){
+            //intra state
+            Integer cgst=(prodRes.getTaxPercent()*obj.getQuantity()*obj.getPrice())/200;
+            Integer sgst=(prodRes.getTaxPercent()*obj.getQuantity()*obj.getPrice())/200;
+            return ProductSalesEntity.builder().cgstPercentage(prodRes.getTaxPercent()/2).cgst(cgst).sgstPercentage(prodRes.getTaxPercent()/2).sgst(sgst).igstPercentage(0).igst(0).build();
+        }
+        else{
+            //inter state
+            Integer igst=(prodRes.getTaxPercent()*obj.getQuantity()*obj.getPrice())/100;
+            return ProductSalesEntity.builder().cgstPercentage(0).cgst(0).sgstPercentage(0).sgst(0).igstPercentage(prodRes.getTaxPercent()).igst(igst).build();
+        }
+
+
+
     }
 
     @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
@@ -801,7 +852,11 @@ public class ShopService {
 
     public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
 
+
+
         BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber, extractUsername());
+
+
 
         PaymentEntity paymentEntity = salesPaymentRepo.findPaymentDetails(billDetails.getId(), extractUsername());
 
@@ -824,6 +879,12 @@ public class ShopService {
             ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), extractUsername());
 
             var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
+                    .sgst(obj.getSgst())
+                    .sgstPercentage(obj.getSgstPercentage())
+                    .cgst(obj.getCgst())
+                    .cgstPercentage(obj.getCgstPercentage())
+                    .igst(obj.getIgst())
+                    .igstPercentage(obj.getIgstPercentage())
                     .details(obj.getProductDetails())
                     .quantity(obj.getQuantity()).build();
             return orderItems;
@@ -1027,6 +1088,19 @@ public class ShopService {
 
         byte[] response = pdfutil.generateInvoice(order.getCustomerName(), order.getCustomerEmail(),
                 order.getCustomerPhone(), order.getInvoiceId(), order.getItems(), formattedDate, order.getTotalAmount(), order.isPaid(), order.getGstRate(), shopName ,shopAddress, shopEmail, shopPhone,gstNumber );
+
+        return response;
+    }
+
+    public byte[] generateGSTInvoicePdf(String orderId) throws Exception {
+        System.out.println(orderId);
+
+
+        InvoiceData invoiceData=utils.getFullInvoiceDetails(extractUsername(), orderId);
+
+        byte[] response =pdfgstutil.generateGSTInvoice(invoiceData);
+        System.out.println("The full invoice Data is "+invoiceData);
+
 
         return response;
     }
