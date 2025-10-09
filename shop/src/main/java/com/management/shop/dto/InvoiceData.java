@@ -46,6 +46,7 @@ public class InvoiceData {
     // Financial Details
     private  double receivedAmount;
     private  double previousBalance;
+    private double grandTotal;
     List<Map<String, Object>> gstSummary = new ArrayList<>();
 
     // Bank & Payment Details

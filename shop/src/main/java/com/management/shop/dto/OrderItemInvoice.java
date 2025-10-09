@@ -18,11 +18,11 @@ public class OrderItemInvoice {
     private double taxAmount; // Total tax for this line item
     private double taxPercentage; // e.g., 18.0
     private double totalAmount;
-    private Integer cgst;
+    private double cgst;
     private Integer cgstPercentage;
-    private Integer sgst;
+    private double sgst;
     private Integer sgstPercentage;
-    private Integer igst;
+    private double igst;
     private Integer igstPercentage;// Total for this line (rate * quantity + tax)
 
 }

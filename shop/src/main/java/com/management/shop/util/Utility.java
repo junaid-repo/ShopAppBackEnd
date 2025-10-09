@@ -173,6 +173,7 @@ public class Utility {
 
                 .receivedAmount(order.isPaid() ? order.getTotalAmount() : 0d)
                 .previousBalance(0d)
+                .grandTotal(order.getTotalAmount())
                 .gstSummary(gstSummary)
 
                 .bankAccountName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankHolder())).orElse(""))

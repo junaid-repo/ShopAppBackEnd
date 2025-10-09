@@ -24,24 +24,30 @@
             padding: 15px;     /* uniform padding on all sides */
             box-sizing: border-box; /* include padding inside width */
         }
+
         .invoice-header {
             border-bottom: 3px solid #5d3a9b;
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
+
         .tag {
             border: 1px solid #333;
             padding: 3px 8px;
             font-size: 12px;
         }
+
         table {
             border-collapse: collapse;
             width: 100%;
-            table-layout: fixed;
+            table-layout: fixed; /* ensures fixed column widths */
         }
+
         th, td {
             vertical-align: top;
             word-wrap: break-word;
+            text-align: left;
+            padding: 5px;
         }
         /* Header Section */
         .header-main td {
@@ -119,13 +125,14 @@
             border-top: 2px solid #333;
         }
 
-        .items-table th:nth-child(1) { width: 25%; }  /* ITEM column wider */
-        .items-table th:nth-child(2) { width: 10%; }  /* HSN column smaller */
-        .items-table th:nth-child(3) { width: 8%; }   /* QUANTITY smaller */
-        .items-table th:nth-child(4) { width: 15%; }  /* RATE column */
-        .items-table th:nth-child(5) { width: 25%; }  /* TAX column wider */
-        .items-table th:nth-child(6) { width: 17%; }  /* AMOUNT column */
-
+        /* Adjusted column widths for items table with new column "Total" */
+        .items-table th:nth-child(1) { width: 20%; }  /* ITEM column */
+        .items-table th:nth-child(2) { width: 8%; }  /* HSN column */
+        .items-table th:nth-child(3) { width: 13%; }  /* RATE column */
+        .items-table th:nth-child(4) { width: 10%; }  /* QUANTITY column */
+        .items-table th:nth-child(5) { width: 13%; }  /* TOTAL column (Rate × Qty) */
+        .items-table th:nth-child(6) { width: 22%; }  /* TAX column */
+        .items-table th:nth-child(7) { width: 14%; }  /* AMOUNT column */
         small.desc {
             display: block;
             color: #555;
@@ -305,10 +312,11 @@
         <tr>
             <th>ITEMS</th>
             <th class="text-right">HSN</th>
-            <th class="text-right">QTY.</th>
             <th class="text-right">RATE</th>
-            <th class="text-right">TAX</th>
+            <th class="text-right">QTY.</th>
             <th class="text-right">AMOUNT</th>
+            <th class="text-right">TAX</th>
+            <th class="text-right">TOTAL</th>
         </tr>
         </thead>
         <tbody>
@@ -319,8 +327,10 @@
             </td>
 
             <td class="text-right" th:text="${product['hsnCode']}"></td>
-            <td class="text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ' Pcs'"></td>
             <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ' Pcs'"></td>
+            <!-- Total = rate * quantity -->
+            <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
             <td class="text-right">
                 <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
                 <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
@@ -332,11 +342,16 @@
         </tbody>
         <tfoot>
         <tr>
-            <td colspan="2">SUBTOTAL</td>
+            <td colspan="3">SUBTOTAL</td>
             <td class="text-right" th:text="${#aggregates.sum(products.![quantity])}"></td>
             <td></td>
-            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 2, 'POINT')}"></td>
-            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right"
+                th:text="' ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 0, 'POINT')}">
+            </td>
+            <td class="text-right"
+                th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">
+            </td>
+
         </tr>
         </tfoot>
     </table>
@@ -376,10 +391,14 @@
                         <span th:text="' ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
 
-                    <div class="summary-item total">
-                        <span>TOTAL AMOUNT</span>
-                        <span th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}"></span>
+                    <div class="summary-item total" style="display: flex; justify-content: space-between; align-items: center;">
+    <span>
+        TOTAL AMOUNT
+        <small style="color: #999; font-size: 0.8em; font-weight: normal; margin-left: 4px;">(rounded off)</small>
+    </span>
+                        <span th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
                     </div>
+
                 </div>
 
                 <!--<div class="balance-info">

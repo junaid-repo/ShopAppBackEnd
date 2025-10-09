@@ -797,4 +797,19 @@ public class ShopController {
 
         return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
     }
+
+    @GetMapping("api/shop/get/forGSTBilling/withCache/productsList")
+    public ResponseEntity<Map<String, Object>> searchProducts(
+            @RequestParam(value = "q", required = false, defaultValue = "") String query,
+            @RequestParam(value = "limit", defaultValue = "5") int limit) {
+
+        // Call the service to perform the business logic
+        List<ProductSearchDto> products = serv.findProductsByQuery(query, limit);
+
+        // Create a response structure that matches what your frontend expects (data.data)
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", products);
+
+        return ResponseEntity.ok(response);
+    }
 }

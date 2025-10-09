@@ -39,7 +39,7 @@ public class PDFGSTInvoiceUtil {
         String grandTotalInWords = NumberToWordsConverter.convert((long) Math.round(grandTotal));
        // upi://pay?pa=<VPA>&pn=<PayeeName>&mc=<MerchantCode>&tid=<TxnId>&tr=<RefId>&tn=<Note>&am=<Amount>&cu=INR
 
-        String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+"5000"+"&cu=INR";
+        String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+data.getGrandTotal()+"&cu=INR";
 
         String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 200, 200);
 

@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.LocalDate;
@@ -481,12 +482,12 @@ public class ShopService {
                 else
                     discountedTotal=(double)obj.getPrice();
 
-                Integer total = obj.getQuantity() * (int)Math.round(discountedTotal);
-                Integer subTotal = total- tax;
+                Double total = (double) (obj.getQuantity() * Math.round(discountedTotal));
+                //Integer subTotal = total- tax;
                 Double profitOnCp= (discountedTotal - prodRes.getCostPrice())*obj.getQuantity();
                 totalProfitOnCP[0] = totalProfitOnCP[0] +Math.round(profitOnCp);
 
-                ProductSalesEntity gstCalc= getBreakDown(request.getSelectedCustomer(), obj,prodRes,extractUsername());
+                ProductSalesEntity gstCalc= getGSTBreakDown(request.getSelectedCustomer(), obj,prodRes,extractUsername());
 
                 var productSalesEntity = ProductSalesEntity.builder().billingId(billResponse.getId())
                         .profitOnCP(profitOnCp)
@@ -496,7 +497,14 @@ public class ShopService {
                         .cgst(gstCalc.getCgst())
                         .igstPercentage(gstCalc.getIgstPercentage())
                         .igst(gstCalc.getIgst())
-                        .productId(obj.getId()).productDetails(obj.getDetails()).userId(extractUsername()).discountPercentage(obj.getDiscountPercentage()).quantity(obj.getQuantity()).tax(tax).subTotal(subTotal).total(total)
+                        .productId(obj.getId())
+                        .productDetails(obj.getDetails())
+                        .userId(extractUsername())
+                        .discountPercentage(obj.getDiscountPercentage())
+                        .quantity(obj.getQuantity())
+                        .tax(gstCalc.getTax())
+                        .subTotal(gstCalc.getSubTotal())
+                        .total(total)
                         .updatedAt(LocalDateTime.now())
                         .build();
 
@@ -587,25 +595,53 @@ public class ShopService {
         return BillingResponse.builder().status("FAILURE").build();
     }
 
-    private ProductSalesEntity getBreakDown(CustomerEntity selectedCustomer, ProductBillDTO obj, ProductEntity prodRes, String username) {
+    private ProductSalesEntity getGSTBreakDown(CustomerEntity selectedCustomer, ProductBillDTO obj, ProductEntity prodRes, String username) {
+        String customerState = selectedCustomer.getState();
+        String shopState = shopBasicRepo.findByUserId(username).getShopState();
 
-        String customerState=selectedCustomer.getState();
-        String shopState= shopBasicRepo.findByUserId(username).getShopState();
+        double taxPercent = prodRes.getTaxPercent(); // e.g., 18
+        double qty = obj.getQuantity();
+        double price = obj.getPrice(); // MRP (tax inclusive)
 
-        if(customerState.equals(shopState)){
-            //intra state
-            Integer cgst=(prodRes.getTaxPercent()*obj.getQuantity()*obj.getPrice())/200;
-            Integer sgst=(prodRes.getTaxPercent()*obj.getQuantity()*obj.getPrice())/200;
-            return ProductSalesEntity.builder().cgstPercentage(prodRes.getTaxPercent()/2).cgst(cgst).sgstPercentage(prodRes.getTaxPercent()/2).sgst(sgst).igstPercentage(0).igst(0).build();
+        // Extract base price (tax exclusive)
+        double basePrice = price / (1 + taxPercent / 100.0);
+        double totalTax = price - basePrice;
+
+        double cgst = 0, sgst = 0, igst = 0;
+        double cgstPercent = 0, sgstPercent = 0, igstPercent = 0;
+
+        if (customerState.equals(shopState)) {
+            // Intra-state: CGST + SGST
+            cgst = totalTax / 2;
+            sgst = totalTax / 2;
+            cgstPercent = taxPercent / 2;
+            sgstPercent = taxPercent / 2;
+        } else {
+            // Inter-state: IGST only
+            igst = totalTax;
+            igstPercent = taxPercent;
         }
-        else{
-            //inter state
-            Integer igst=(prodRes.getTaxPercent()*obj.getQuantity()*obj.getPrice())/100;
-            return ProductSalesEntity.builder().cgstPercentage(0).cgst(0).sgstPercentage(0).sgst(0).igstPercentage(prodRes.getTaxPercent()).igst(igst).build();
-        }
 
+        // Multiply by quantity
+        basePrice *= qty;
+        cgst *= qty;
+        sgst *= qty;
+        igst *= qty;
+        totalTax*= qty;
 
-
+        return ProductSalesEntity.builder()
+                .cgstPercentage((int) Math.round(cgstPercent))
+                .cgst(round2(cgst))
+                .sgstPercentage((int) Math.round(sgstPercent))
+                .sgst(round2(sgst))
+                .igstPercentage((int) Math.round(igstPercent))
+                .igst(round2(igst))
+                .tax(round2(totalTax))
+                .subTotal(round2(basePrice))
+                .build();
+    }
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
@@ -1093,7 +1129,7 @@ public class ShopService {
     }
 
     public byte[] generateGSTInvoicePdf(String orderId) throws Exception {
-        System.out.println(orderId);
+        System.out.println("Generating invoice for orderNumber-->"+ orderId);
 
 
         InvoiceData invoiceData=utils.getFullInvoiceDetails(extractUsername(), orderId);
@@ -1681,12 +1717,84 @@ public class ShopService {
 
     @Cacheable(value = "topOrders", keyGenerator = "userScopedKeyGenerator")
     public List<TopOrdersDto> getTopOrders(int count, String timeRange) {
-        return null;
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = LocalDateTime.now();
+
+        List<ProductPerformanceProjection> topProducts = new ArrayList<>();
+        List<TopOrdersDto> response = new ArrayList<>();
+        if (timeRange.equals("lastWeek")) {
+            startDate = LocalDateTime.now().minusDays(7);
+        }
+        if (timeRange.equals("lastMonth")) {
+            startDate = LocalDateTime.now().minusMonths(1);
+        }
+        if (timeRange.equals("lastYear")) {
+            startDate = LocalDateTime.now().minusYears(1);
+        }
+        if (timeRange.equals("today")) {
+            startDate = LocalDateTime.now();
+        }
+
+        List<BillingEntity> billList = billRepo.findTopNSalesForGivenRange(extractUsername(), startDate, endDate, count);
+
+        if (billList.size() > 0) {
+            response = billList.stream().map(obj -> {
+                String customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), extractUsername()).getName();
+                String paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), extractUsername()).getStatus();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                String date = obj.getCreatedDate().format(formatter);
+
+                return TopOrdersDto.builder()
+                        .customer(customerName)
+                        .orderId(obj.getInvoiceNumber())
+                        .total(obj.getTotalAmount())
+                        .date(date)
+                        .build();
+            }).collect(Collectors.toList());
+        }
+        return response;
     }
+
 
     @Cacheable(value = "paymentBreakdowns", keyGenerator = "userScopedKeyGenerator")
     public Map<String, Double> getPaymentBreakdown(String timeRange) {
-        return null;
+        LocalDateTime  endDate=LocalDateTime.now();
+        LocalDateTime startDate=LocalDateTime.now();
+
+        List<ProductPerformanceProjection> topProducts = new ArrayList<>();
+        List<TopOrdersDto> response=new ArrayList<>();
+        if(timeRange.equals("lastWeek")){
+            startDate=LocalDateTime.now().minusDays(7);
+        }
+        if(timeRange.equals("lastMonth")){
+            startDate=LocalDateTime.now().minusMonths(1);
+        }
+        if(timeRange.equals("lastYear")){
+            startDate=LocalDateTime.now().minusYears(1);
+        }
+        if(timeRange.equals("today")){
+            startDate=LocalDateTime.now();
+        }
+        List<Map<String, Object>> rawData= salesPaymentRepo.getPaymentBreakdown(extractUsername(), startDate, endDate);
+
+
+
+        Map<String, Double> result = new HashMap<>();
+        for (Map<String, Object> row : rawData) {
+            String method = (String) row.get("paymentMethod");
+            Number count = (Number) row.get("count");
+            result.put(method.toLowerCase(), count.doubleValue());
+
+
+
+
+
+
+
+
+        }
+
+        return result;
     }
 
 
@@ -1827,5 +1935,34 @@ public class ShopService {
 
 
         return content;
+    }
+
+    public List<ProductSearchDto> findProductsByQuery(String query, int limit) {
+
+        // Create Sort object based on direction and sort field
+
+        List<ProductSearchDto> response = new ArrayList<>();
+
+        String username = extractUsername();
+
+        List<ProductEntity> productList = prodRepo.findAllActiveProductsForGSTBilling(Boolean.TRUE, username, query, limit);
+
+        productList.stream().forEach(obj -> {
+            var prodSearch = ProductSearchDto.builder()
+                    .id(Long.valueOf(obj.getId()))
+                    .name(obj.getName())
+                    .hsn(obj.getHsn())
+                    .price(BigDecimal.valueOf(obj.getPrice()))
+                    .tax(obj.getTaxPercent())
+                    .stock(obj.getStock())
+                    .build();
+            response.add(prodSearch);
+
+        });
+
+        System.out.println("The result list for the query "+query+" is "+ response);
+
+
+        return response;
     }
 }
