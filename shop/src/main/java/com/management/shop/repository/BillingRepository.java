@@ -203,50 +203,45 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
 
 
     @Query(value = "WITH time_slots AS ( " +
-            "  SELECT '08-10' AS slot_label, 8 AS start_hour UNION ALL " +
-            "  SELECT '10-12', 10 UNION ALL " +
-            "  SELECT '12-14', 12 UNION ALL " +
-            "  SELECT '14-16', 14 UNION ALL " +
-            "  SELECT '16-18', 16 UNION ALL " +
-            "  SELECT '18-20', 18 UNION ALL " +
-            "  SELECT '20-22', 20 " +
+            "  SELECT 0 AS start_hour, '12 AM - 4 AM' AS slot_label UNION ALL " +
+            "  SELECT 4,  '4 AM - 8 AM'  UNION ALL " +
+            "  SELECT 8,  '8 AM - 12 PM' UNION ALL " +
+            "  SELECT 12, '12 PM - 4 PM' UNION ALL " +
+            "  SELECT 16, '4 PM - 8 PM'  UNION ALL " +
+            "  SELECT 20, '8 PM - 12 AM' " +
             "), " +
             "hourly_sales AS ( " +
             "  SELECT " +
             "    CASE " +
-            "      WHEN HOUR(bp.created_date) >= 8 AND HOUR(bp.created_date) < 10 THEN '08-10' " +
-            "      WHEN HOUR(bp.created_date) >= 10 AND HOUR(bp.created_date) < 12 THEN '10-12' " +
-            "      WHEN HOUR(bp.created_date) >= 12 AND HOUR(bp.created_date) < 14 THEN '12-14' " +
-            "      WHEN HOUR(bp.created_date) >= 14 AND HOUR(bp.created_date) < 16 THEN '14-16' " +
-            "      WHEN HOUR(bp.created_date) >= 16 AND HOUR(bp.created_date) < 18 THEN '16-18' " +
-            "      WHEN HOUR(bp.created_date) >= 18 AND HOUR(bp.created_date) < 20 THEN '18-20' " +
-            "      WHEN HOUR(bp.created_date) >= 20 AND HOUR(bp.created_date) < 22 THEN '20-22' " +
-            "    END AS time_slot, " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 0 AND 3 THEN 0 " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 4 AND 7 THEN 4 " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 8 AND 11 THEN 8 " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 12 AND 15 THEN 12 " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 16 AND 19 THEN 16 " +
+            "      ELSE 20 " +
+            "    END AS slot_start_hour, " +
             "    SUM(bd.total_amount) AS hourly_total, " +
             "    SUM(bd.total_profit_oncp) AS hourly_profit " +
             "  FROM billing_payments bp " +
             "  JOIN billing_details bd ON bp.billing_id = bd.id " +
             "  WHERE bp.user_id = :userId AND DATE(bp.created_date) = DATE(:currentDate) " +
-            "    AND HOUR(bp.created_date) >= 8 AND HOUR(bp.created_date) < 22 " +
-            "  GROUP BY time_slot " +
+            "  GROUP BY slot_start_hour " +
             "), " +
             "hourly_stocks AS ( " +
             "  SELECT " +
             "    CASE " +
-            "      WHEN HOUR(bp.created_date) >= 8 AND HOUR(bp.created_date) < 10 THEN '08-10' " +
-            "      WHEN HOUR(bp.created_date) >= 10 AND HOUR(bp.created_date) < 12 THEN '10-12' " +
-            "      WHEN HOUR(bp.created_date) >= 12 AND HOUR(bp.created_date) < 14 THEN '12-14' " +
-            "      WHEN HOUR(bp.created_date) >= 14 AND HOUR(bp.created_date) < 16 THEN '14-16' " +
-            "      WHEN HOUR(bp.created_date) >= 16 AND HOUR(bp.created_date) < 18 THEN '16-18' " +
-            "      WHEN HOUR(bp.created_date) >= 18 AND HOUR(bp.created_date) < 20 THEN '18-20' " +
-            "      WHEN HOUR(bp.created_date) >= 20 AND HOUR(bp.created_date) < 22 THEN '20-22' " +
-            "    END AS time_slot, " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 0 AND 3 THEN 0 " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 4 AND 7 THEN 4 " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 8 AND 11 THEN 8 " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 12 AND 15 THEN 12 " +
+            "      WHEN HOUR(bp.created_date) BETWEEN 16 AND 19 THEN 16 " +
+            "      ELSE 20 " +
+            "    END AS slot_start_hour, " +
             "    SUM(ps.quantity) AS hourly_stocks_sold " +
             "  FROM billing_payments bp " +
             "  JOIN product_sales ps ON bp.id = ps.billing_id " +
             "  WHERE bp.user_id = :userId AND DATE(bp.created_date) = DATE(:currentDate) " +
-            "    AND HOUR(bp.created_date) >= 8 AND HOUR(bp.created_date) < 22 " +
-            "  GROUP BY time_slot " +
+            "  GROUP BY slot_start_hour " +
             ") " +
             "SELECT " +
             "  ts.slot_label AS timeOfDay, " +
@@ -254,8 +249,8 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "  COALESCE(hs.hourly_profit, 0) AS totalProfit, " +
             "  COALESCE(h_stocks.hourly_stocks_sold, 0) AS totalStocksSold " +
             "FROM time_slots ts " +
-            "LEFT JOIN hourly_sales hs ON ts.slot_label = hs.time_slot " +
-            "LEFT JOIN hourly_stocks h_stocks ON ts.slot_label = h_stocks.time_slot " +
+            "LEFT JOIN hourly_sales hs ON ts.start_hour = hs.slot_start_hour " +
+            "LEFT JOIN hourly_stocks h_stocks ON ts.start_hour = h_stocks.slot_start_hour " +
             "ORDER BY ts.start_hour",
             nativeQuery = true)
     List<Object[]> getSalesAndStocksToday(@Param("currentDate") LocalDateTime currentDate,

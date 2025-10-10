@@ -85,8 +85,9 @@ public class Utility {
         byte[] shopLogoBytes = null;
         try {
             shopLogoBytes=getShopLogo(username);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+           System.out.println(e.getMessage());
+            shopLogoBytes=null;
         }
 
         List<String> terms = new ArrayList<>();
@@ -151,7 +152,7 @@ public class Utility {
         return InvoiceData.builder()
                 .shopName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
                 .shopSlogan(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopSlogan())).orElse(""))
-                .shopLogoBytes(null) // Assuming not implemented
+                 // Assuming not implemented
                 .shopLogoText(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
                 .shopAddress(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopLocation())).orElse(""))
                 .shopEmail(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopEmail())).orElse(""))
@@ -159,7 +160,11 @@ public class Utility {
                 .gstNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getGstin())).orElse(""))
                 .panNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getPan())).orElse(""))
                 .shopLogoBytes(shopLogoBytes)
-                .shopLogoText("SP")
+                .shopLogoText(userProfile.getShopName() == null ? "" :
+                        Arrays.stream(userProfile.getShopName().trim().split("\\s+"))
+                                .filter(s -> !s.isEmpty())
+                                .map(s -> s.substring(0, 1).toUpperCase())
+                                .collect(Collectors.joining()))
                 .invoiceId(toEmpty(order.getInvoiceId()))
                 .orderedDate(formattedDate)
                 .dueDate(formattedDate)
@@ -214,32 +219,38 @@ public class Utility {
                 .phone(toEmpty(userinfo.getPhoneNumber()))
                 .userSource(toEmpty(userinfo.getSource()))
 
-                .address(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getAddresss())).orElse(""))
-                .gstNumber(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getGstNumber())).orElse(""))
-                .shopLocation(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getAddresss())).orElse(""))
-                .shopOwner(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getOwnerName())).orElse(""))
-                .shopEmail(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getShopEmail())).orElse(""))
-                .shopPhone(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getShopPhone())).orElse(""))
-                .shopName(Optional.ofNullable(shopDetails).map(s -> toEmpty(s.getShopName())).orElse(""))
-
+                // ✅ Use correct shopBasicEntity safely
+                .address(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getAddress())).orElse(""))
+                .shopAddress(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getAddress())).orElse(""))
+                .shopLocation(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getAddress())).orElse(""))
+                .shopEmail(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopEmail())).orElse(""))
+                .shopPhone(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopPhone())).orElse(""))
+                .shopName(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopName())).orElse(""))
                 .shopPincode(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopPincode())).orElse(""))
                 .shopCity(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopCity())).orElse(""))
                 .shopState(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopState())).orElse(""))
                 .shopSlogan(Optional.ofNullable(shopBasicEntity).map(s -> toEmpty(s.getShopSlogan())).orElse(""))
 
-                .pan(Optional.ofNullable(shopFinanceEntity).map(s -> toEmpty(s.getPanNumber())).orElse(""))
+                // ✅ Finance entity
+                .gstNumber(Optional.ofNullable(shopFinanceEntity).map(s -> toEmpty(s.getGstin())).orElse(""))
                 .gstin(Optional.ofNullable(shopFinanceEntity).map(s -> toEmpty(s.getGstin())).orElse(""))
+                .pan(Optional.ofNullable(shopFinanceEntity).map(s -> toEmpty(s.getPanNumber())).orElse(""))
 
+                // ✅ UPI entity
                 .upi(Optional.ofNullable(shopUPIEntity).map(s -> toEmpty(s.getUpiId())).orElse(""))
 
+                // ✅ Invoice terms
                 .terms1(Optional.ofNullable(shopInvoiceTermsEntity).map(s -> toEmpty(s.getTerm())).orElse(""))
 
+                // ✅ Bank details
                 .bankAccount(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getAccountNumber())).orElse(""))
                 .bankAddress(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getBranchName())).orElse(""))
                 .bankHolder(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getAccountHolderName())).orElse(""))
                 .bankName(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getBankName())).orElse(""))
                 .bankIfsc(Optional.ofNullable(shopBankEntity).map(s -> toEmpty(s.getIfscCode())).orElse(""))
+
                 .build();
+
     }
 
     public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
@@ -310,7 +321,7 @@ public class Utility {
                 .build();
     }
 
-    public byte[] getShopLogo(String username) throws IOException {
+    public byte[] getShopLogo(String username)   {
 
         System.out.println("entered getProfilePic with request  username " + username);
 
@@ -333,5 +344,56 @@ public class Utility {
 
 
         return content;
+    }
+
+    public Map<String, Object> gstBillingSanity() {
+        Map<String, Object> response = new HashMap<>();
+        UpdateUserDTO userDetails=   getUserProfile(extractUsername());
+        List<String> missingDetails = new ArrayList<>();
+        if(userDetails!=null){
+            if(userDetails.getShopState()==null){
+                response.put("success", false);
+                response.put("message", "Please set your State for proper gst calculation");
+                response.put("type", "error");
+
+                return response;
+            }
+            // Check each essential field for null or empty values
+            if (userDetails.getShopName() == null || userDetails.getShopName().trim().isEmpty()) {
+                missingDetails.add("Shop Name");
+            }
+            if (userDetails.getShopAddress() == null || userDetails.getShopAddress().trim().isEmpty()) {
+                missingDetails.add("Shop Address");
+            }
+            if (userDetails.getShopState() == null || userDetails.getShopState().trim().isEmpty()) {
+                missingDetails.add("Shop State");
+            }
+            if (userDetails.getShopPincode() == null || userDetails.getShopPincode().trim().isEmpty()) {
+                missingDetails.add("Shop Pincode");
+            }
+            // Check for GSTIN (assuming gstin and gstNumber are interchangeable)
+            if ((userDetails.getGstin() == null || userDetails.getGstin().trim().isEmpty()) &&
+                    (userDetails.getGstNumber() == null || userDetails.getGstNumber().trim().isEmpty())) {
+                missingDetails.add("GST Number");
+            }
+
+            // If the list of missing details is not empty, construct the warning message
+            if (!missingDetails.isEmpty()) {
+                String missingFields = String.join(", ", missingDetails);
+                String message = "These details are not present: " + missingFields + ". Please add these for proper gst invoice.";
+
+                response.put("success", false);
+                response.put("type", "warning"); // Set type to 'warning' for informational messages
+                response.put("message", message);
+
+                return response;
+            }
+        }
+
+// If all checks pass, return a success response
+        response.put("success", true);
+
+        return response;
+
     }
 }

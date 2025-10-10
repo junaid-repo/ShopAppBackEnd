@@ -431,7 +431,7 @@ public class ShopService {
     public Page<CustomerEntity> getCacheableCustomersList(String search, int page, int size)  {
 
 
-        // Map API field name to DB field
+
 
 
 
@@ -1147,7 +1147,7 @@ public class ShopService {
             username=extractUsername();
 
 
-        ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(username);
+       // ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(username);
 
         ShopBasicEntity shopBasicEntity=shopBasicRepo.findByUserId(username);
 
@@ -1168,20 +1168,21 @@ public class ShopService {
 
 
 
-        if(shopDetails!=null) {
+        if(shopBasicEntity!=null) {
 
           var response = UpdateUserDTO.builder()
                   .username(username)
-                  .address(shopDetails.getAddresss())
+                  .address(shopBasicEntity.getAddress())
                   .email(userinfo.getEmail())
-                  .gstNumber(shopDetails.getGstNumber())
+                  .gstNumber(shopFinanceEntity.getGstin())
                   .name(userinfo.getName())
                   .phone(userinfo.getPhoneNumber())
-                  .shopLocation(shopDetails.getAddresss())
-                  .shopOwner(shopDetails.getOwnerName()).username(username)
-                  .shopEmail(shopDetails.getShopEmail())
-                  .shopPhone(shopDetails.getShopPhone())
-                  .shopName(shopDetails.getShopName())
+                  .shopLocation(shopBasicEntity.getAddress())
+                  .username(username)
+                  .shopAddress(shopBasicEntity.getAddress())
+                  .shopEmail(shopBasicEntity.getShopEmail())
+                  .shopPhone(shopBasicEntity.getShopPhone())
+                  .shopName(shopBasicEntity.getShopName())
                   .shopPincode(shopBasicEntity.getShopPincode())
                   .shopCity(shopBasicEntity.getShopCity())
                   .shopState(shopBasicEntity.getShopState())
@@ -1732,7 +1733,7 @@ public class ShopService {
             startDate = LocalDateTime.now().minusYears(1);
         }
         if (timeRange.equals("today")) {
-            startDate = LocalDateTime.now();
+            startDate = LocalDateTime.now().toLocalDate().atStartOfDay();
         }
 
         List<BillingEntity> billList = billRepo.findTopNSalesForGivenRange(extractUsername(), startDate, endDate, count);
@@ -1773,7 +1774,7 @@ public class ShopService {
             startDate=LocalDateTime.now().minusYears(1);
         }
         if(timeRange.equals("today")){
-            startDate=LocalDateTime.now();
+            startDate=LocalDateTime.now().toLocalDate().atStartOfDay();
         }
         List<Map<String, Object>> rawData= salesPaymentRepo.getPaymentBreakdown(extractUsername(), startDate, endDate);
 
@@ -1834,6 +1835,8 @@ public class ShopService {
     }
 
     public String updateBasicDetails(ShopBasicDetailsRequest request) {
+
+        System.out.println("ShopBasicDetailsRequest with request->"+ request);
         var shopEntity = ShopBasicEntity.builder()
                 .shopName(safe(request.getShopName()))
                 .shopSlogan(safe(request.getShopSlogan()))

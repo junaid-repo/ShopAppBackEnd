@@ -28,6 +28,7 @@ public class UpdateUserDTO {
     private String shopSlogan;
     private String shopEmail;
     private String shopPhone;
+    private String shopAddress;
     private String userSource;
     private String gstin;
     private String pan;

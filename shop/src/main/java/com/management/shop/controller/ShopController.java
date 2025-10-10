@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.management.shop.dto.*;
+import com.management.shop.util.Utility;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
@@ -57,6 +58,9 @@ public class ShopController {
 
     @Autowired
     private Environment environment;
+
+    @Autowired
+    private Utility util;
 
     @Value("${razorpay.key.secret}")
     private String keySecret;
@@ -154,6 +158,15 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body("Success");
 
     }
+    @PutMapping("api/shop/customer/edit/{id}")
+    ResponseEntity<CustomerSuccessDTO> editCustomer(@RequestBody CustomerRequest request) {
+        System.out.println("entered deleteCustomer");
+
+        CustomerSuccessDTO response = serv.saveCustomer(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
 
     @DeleteMapping("api/shop/product/delete/{id}")
     ResponseEntity<String> deleteProduct(@PathVariable Integer id) {
@@ -809,6 +822,21 @@ public class ShopController {
         // Create a response structure that matches what your frontend expects (data.data)
         Map<String, Object> response = new HashMap<>();
         response.put("data", products);
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("api/shop/gstBilling/sanityCheck")
+    public ResponseEntity<Map<String, Object>> getSanityCheck() {
+
+        // Call the service to perform the business logic
+
+
+        // Create a response structure that matches what your frontend expects (data.data)
+        Map<String, Object> response = new HashMap<>();
+
+        response=util.gstBillingSanity();
+
+
 
         return ResponseEntity.ok(response);
     }
