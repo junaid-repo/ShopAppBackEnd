@@ -24,7 +24,7 @@ public class BillingGstEntity {
     private Integer billingId;
     private String gstType; // CGST, SGST, IGST
     private Double gstPercentage;
-    private Integer gstAmount;
+    private Double gstAmount;
     private LocalDateTime updatedDate;
     private String updatedBy;
     private String userId;

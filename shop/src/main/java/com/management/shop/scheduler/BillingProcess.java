@@ -75,7 +75,7 @@ public class BillingProcess {
             gstListing.setBillingId(billingEntity.getId());
             gstListing.setGstType(gstType);
             gstListing.setGstPercentage(gstPercentage);
-            gstListing.setGstAmount(totalAmount.intValue());
+            gstListing.setGstAmount(totalAmount.doubleValue());
             gstListing.setUpdatedDate(LocalDateTime.now());
             gstListing.setUpdatedBy(userId);
             gstListing.setUserId(userId);
