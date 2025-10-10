@@ -128,11 +128,13 @@ public class ShopController {
     public ResponseEntity<Map<String, Object>> getCustomersListCacheable(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(required = false, defaultValue = "") String search) {
+            @RequestParam(required = false, defaultValue = "") String search,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String dir) {
 
         try {
             // Call the updated service method
-            Page<CustomerEntity> customerPage =  serv.getCacheableCustomersList(search, page, limit);
+            Page<CustomerEntity> customerPage =  serv.getCacheableCustomersList(search, page, limit, sort, dir);
 
             // Build the response map to match the frontend's expected structure
             Map<String, Object> response = new HashMap<>();
@@ -497,7 +499,7 @@ public class ShopController {
 
         AnalyticsResponse response = serv.getAnalytics(request);
 
-        AnalyticsResponse response2 =  AnalyticsResponse.builder()
+  /*      AnalyticsResponse response2 =  AnalyticsResponse.builder()
                 .labels(Arrays.asList("Jan", "Feb", "Mar", "Apr", "May", "Jun",
                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
                 .sales(Arrays.asList(1200L, 1500L, 1800L, 2000L, 2200L, 2500L,
@@ -513,7 +515,7 @@ public class ShopController {
                 .onlinePayments(Arrays.asList(30, 40, 55, 60, 70, 85,
                         90, 88, 95, 100, 110, 120))
                 .build();
-
+*/
 
         return ResponseEntity.ok(response);
     }

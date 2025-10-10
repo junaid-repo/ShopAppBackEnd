@@ -428,17 +428,22 @@ public class ShopService {
     }
 
     @Cacheable(value = "customers", keyGenerator = "userScopedKeyGenerator")
-    public Page<CustomerEntity> getCacheableCustomersList(String search, int page, int size)  {
+    public Page<CustomerEntity> getCacheableCustomersList(String search, int page, int size, String sort, String dir)  {
+
+        String    sortField = sort;
+
+        if ("createdAt".equalsIgnoreCase(sortField)) {
+            sortField = "created_date";
+        }
+        if ("createdDate".equalsIgnoreCase(sortField)) {
+            sortField = "created_date";
+        }
+        if ("totalSpent".equalsIgnoreCase(sortField)) {
+            sortField = "total_spent";
+        }
 
 
-
-
-
-
-        String    sortField = "created_date";
-
-
-        Sort.Direction direction = "desc".equalsIgnoreCase("desc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort.Direction direction = dir.equalsIgnoreCase("desc") ? Sort.Direction.ASC : Sort.Direction.DESC;
 
         // ✅ Use mapped field name here
         Sort sortOrder = Sort.by(direction, sortField);
@@ -475,10 +480,14 @@ public class ShopService {
 
                 ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getId(), extractUsername());
                 System.out.println("Product details " + prodRes);
-                Integer tax = (prodRes.getTaxPercent() * obj.getQuantity() * obj.getPrice()) / 100;
+                Double tax = (prodRes.getTaxPercent() * obj.getQuantity() * obj.getPrice()) / 100;
                 Double discountedTotal=0d;
-                if (obj.getDiscountPercentage()!=0)
-                      discountedTotal=obj.getPrice()- (obj.getDiscountPercentage()*obj.getPrice()) / 100;
+
+                    if (obj.getDiscountPercentage() != 0) {
+                        discountedTotal = obj.getPrice() - (obj.getDiscountPercentage() * obj.getPrice()) / 100;
+                        obj.setPrice(discountedTotal);
+                    }
+
                 else
                     discountedTotal=(double)obj.getPrice();
 
@@ -564,7 +573,7 @@ public class ShopService {
                 if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
                     CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
                             billResponse.getInvoiceNumber(), order.getCustomerName(),
-                            generateInvoicePdf(billResponse.getInvoiceNumber()), htmlContent);
+                            generateGSTInvoicePdf(billResponse.getInvoiceNumber()), htmlContent);
                     System.out.println(futureResult);
                 }
 
@@ -1351,10 +1360,10 @@ public class ShopService {
         response.setCustomers(customers);
         response.setLabels(labels);
         response.setProfits(profits);
-        response.setSales(sales);
+        response.setSales(onlinePaymentCounts);
         response.setStocks(stocks);
         response.setTaxes(taxes);
-        response.setOnlinePayments(onlinePaymentCounts);
+        response.setRevenues(sales);
 
         return response;
     }

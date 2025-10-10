@@ -18,7 +18,7 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
 	PaymentEntity findPaymentDetails(Integer id, String userId);
 
 	@Query(value = "SELECT DATE_FORMAT(bp.created_date, '%b') AS month, " + "COUNT(bp.id) AS paymentCount "
-			+ "FROM billing_payments bp " + "WHERE bp.payment_method IN ('CARD', 'UPI') "
+			+ "FROM billing_payments bp " + "WHERE bp.payment_method IN ('CARD', 'UPI', 'CASH') "
 			+ "AND bp.created_date BETWEEN :fromDate AND :toDate and user_id=:userId "
 			+ "GROUP BY MONTH(bp.created_date), DATE_FORMAT(bp.created_date, '%b') "
 			+ "ORDER BY MONTH(bp.created_date)", nativeQuery = true)

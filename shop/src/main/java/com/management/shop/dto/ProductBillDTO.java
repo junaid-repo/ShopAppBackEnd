@@ -15,7 +15,8 @@ public class ProductBillDTO {
 	private String name;
 	private String category;
 	private String status;
-	private Integer price;
+	private Double price;
+    private Double sellingPrice;
     private Double discountPercentage;
 	private Integer stock;
 	private Integer quantity;

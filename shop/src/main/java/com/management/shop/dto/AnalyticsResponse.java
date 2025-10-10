@@ -14,12 +14,12 @@ import lombok.NoArgsConstructor;
 @Data
 public class AnalyticsResponse {
 	private List<String> labels;
-	private List<Long> sales;
+	private List<Long> revenues;
 	private List<Long> stocks;
 	private List<Integer> taxes;
 	private List<Integer> customers;
 	private List<Long> profits;
-	private List<Integer> onlinePayments;
+	private List<Integer> sales;
 
 	
 }
