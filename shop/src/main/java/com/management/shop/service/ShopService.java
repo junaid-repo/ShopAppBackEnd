@@ -1956,6 +1956,7 @@ public class ShopService {
                     .name(obj.getName())
                     .hsn(obj.getHsn())
                     .price(BigDecimal.valueOf(obj.getPrice()))
+                    .costPrice(BigDecimal.valueOf(obj.getCostPrice()))
                     .tax(obj.getTaxPercent())
                     .stock(obj.getStock())
                     .build();

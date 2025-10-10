@@ -158,7 +158,7 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body("Success");
 
     }
-    @PutMapping("api/shop/customer/edit/{id}")
+    @PutMapping("api/shop/update/customer")
     ResponseEntity<CustomerSuccessDTO> editCustomer(@RequestBody CustomerRequest request) {
         System.out.println("entered deleteCustomer");
 
