@@ -163,45 +163,62 @@
             font-size: 13px;
             line-height: 1.2;
         }
+
+        /* The main container for the summary section */
         .totals-summary {
-            margin-bottom: 16px;
-            background-color: #faf8ff;
-            padding: 12px 15px;
-            border-radius: 6px;
+            border: 0.5px solid #e0e0e0;
         }
-        .summary-item {
-            display: table;
-            width: 100%;
-            padding: 10px 0; /* increased vertical spacing */
+
+        /* Each row within the summary */
+        .totals-summary .summary-item {
+            display: table;      /* Treat this div like a table row */
+            width: 100%;         /* Make the "row" take up the full width */
+            padding: 24px 18px;
+            font-size: 0.8rem;
+            border-bottom: 0.5px solid #e0e0e0;
         }
-        .summary-item span {
-            display: table-cell;
+
+
+        .totals-summary .summary-item > span {
+            display: table-cell;  /* Treat each span like a table cell */
             vertical-align: middle;
-            padding: 2px 0;
+            padding: 14px 10px 10px 12px;
         }
-        .summary-item span:first-child {
-            text-align: left;
-            color: #444;
-        }
-        .summary-item span:last-child {
+
+        /* Target the LAST span in each row and align its text to the right */
+        .totals-summary .summary-item > span:last-child {
             text-align: right;
-            font-weight: 600;
-            color: #222;
+            padding: 14px 10px 10px 12px;
         }
 
-        .summary-item span {
-            display: table-cell;
-            width: 50%;
+        /* Remove the line separator from the very last item */
+        .totals-summary .summary-item:last-child {
+            border-bottom: none;
+            padding: 14px 10px 10px 12px;
         }
 
+        /* Keep your font-weight styles */
+        .summary-items-value-total,
+        .summary-items-value-total2 {
+            font-weight: bold;
+            padding: 14px 10px 10px 12px;
+        }
+
+        /* This class is no longer needed for alignment */
+        .summary-items-values {
+            /* Styles can go here if needed, but no margin-left */
+        }
+
+        /* The final "TOTAL AMOUNT" row */
         .totals-summary .total {
-            background-color: rgba(93, 58, 155, 0.13);
+            background-color: #5d3a9b;
             color: #fff;
             font-weight: bold;
-            font-size: 15px;
-            border-radius: 4px;
-            padding: 12px 10px;
-            margin-top: 10px;
+            font-size: 0.9rem;
+            display: flex; /* Flexbox is fine for this specific, styled row */
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 10px 10px 12px;
         }
         /* Balance Info */
         .balance-info {
@@ -222,15 +239,15 @@
         .amount-in-words {
             margin-top: 15px;
             text-align: right;
-            background: #f9f7ff;
+            background: #ffffff;
             border-radius: 4px;
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: 13px;
         }
         .amount-in-words strong {
             display: block;
             color: #5d3a9b;
-            font-size: 13px;
+            font-size: 18px;
             margin-bottom: 3px;
         }
         .terms ul {
@@ -382,39 +399,26 @@
             <td class="footer-right" style="width:45%;">
                 <div class="totals-summary">
                     <div class="summary-item">
-                        <span>TAXABLE AMOUNT</span>
-                        <span th:text="' ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span class="summary-items-value-total2">TAXABLE AMOUNT</span>
+                        <span class="summary-items-value-total" th:text="' ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
 
                     <div class="summary-item" th:each="gst : ${gstSummary}">
                         <span th:text="${gst['type']} + ' @' + ${gst['percentage']} + '%'"></span>
-                        <span th:text="' ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span class="summary-items-values"  th:text="' ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
 
                     <div class="summary-item total" style="display: flex; justify-content: space-between; align-items: center;">
-    <span>
-        TOTAL AMOUNT
-        <small style="color: #999; font-size: 0.8em; font-weight: normal; margin-left: 4px;">(rounded off)</small>
-    </span>
-                        <span th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
+                            <span>
+                                TOTAL AMOUNT
+                                <small style="color: #ffffff; font-size: 0.8em; font-weight: normal; margin-left: 4px;">(rounded off)</small>
+                            </span>
+                                                <span th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
                     </div>
 
                 </div>
 
-                <!--<div class="balance-info">
-                    <div class="summary-item">
-                        <span>Received Amount</span>
-                        <span th:text="' ' + ${#numbers.formatDecimal(receivedAmount, 1, 'COMMA', 2, 'POINT')}"></span>
-                    </div>
-                    <div class="summary-item">
-                        <span>Previous Balance</span>
-                        <span th:text="' ' + ${#numbers.formatDecimal(previousBalance, 1, 'COMMA', 2, 'POINT')}"></span>
-                    </div>
-                    <div class="summary-item">
-                        <span>Current Balance</span>
-                        <span th:text="' ' + ${#numbers.formatDecimal(currentBalance, 1, 'COMMA', 2, 'POINT')}"></span>
-                    </div>
-                </div>-->
+
 
                 <div class="amount-in-words">
                     <strong>Amount in words</strong>
