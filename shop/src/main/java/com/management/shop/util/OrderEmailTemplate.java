@@ -2,120 +2,187 @@ package com.management.shop.util;
 
 import com.management.shop.dto.InvoiceDetails;
 import com.management.shop.dto.OrderItem;
+import com.management.shop.dto.UpdateUserDTO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.text.NumberFormat;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class OrderEmailTemplate {
 
-    public String generateOrderHtml(InvoiceDetails order) {
-        // Build table rows for items
-        StringBuilder itemsHtml = new StringBuilder();
-        for (OrderItem item : order.getItems()) {
+    @Autowired
+    Utility util;
+
+    public Map<String, Object> generateOrderHtml(InvoiceDetails order, String username) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        // --- MODIFICATION: Use NumberFormat for locale-specific currency formatting (Indian style) ---
+        NumberFormat indianCurrencyFormat = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
+        // We will remove the ".00" for the discount percentage
+        NumberFormat percentageFormat = NumberFormat.getNumberInstance();
+        percentageFormat.setMaximumFractionDigits(0);
+
+        UpdateUserDTO shopDetails = util.getUserProfile(username);
+        String shopName = shopDetails.getShopName();
+        String shopEmail = shopDetails.getShopEmail();
+
+        response.put("shopName", shopName);
+        response.put("shopEmail", shopEmail);
+
+
+        // 1. Build the HTML for each item in the order, now using the new currency format
+        String itemsHtml = order.getItems().stream().map(item -> {
             double subtotal = item.getQuantity() * item.getUnitPrice();
-            itemsHtml.append("<tr>")
-                    .append("<td>").append(item.getProductName()).append("</td>")
-                    .append("<td>").append(item.getQuantity()).append("</td>")
-                    .append("<td>₹").append(String.format("%.2f", item.getUnitPrice())).append("</td>")
-                    .append("<td>₹").append(String.format("%.2f", subtotal)).append("</td>")
-                    .append("</tr>");
-        }
+            return "<tr>" +
+                    "<td style=\"padding: 12px 15px; text-align: left; border-bottom: 1px solid #e0e0e0;\">" + item.getProductName() + "<br><span style='font-size: 11px; color: #888;'>Unit Price: " + indianCurrencyFormat.format(item.getUnitPrice()) + "</span></td>" +
+                    "<td style=\"padding: 12px 15px; text-align: center; border-bottom: 1px solid #e0e0e0;\">" + item.getQuantity() + "</td>" +
+                    "<td style=\"padding: 12px 15px; text-align: right; border-bottom: 1px solid #e0e0e0;\">" + indianCurrencyFormat.format(subtotal) + "</td>" +
+                    "</tr>";
+        }).collect(Collectors.joining(""));
 
-        // Calculations
+        // 2. Perform clear calculations for the summary
+        double subtotalBeforeDiscount = order.getItems().stream()
+                .mapToDouble(item -> item.getQuantity() * item.getUnitPrice())
+                .sum();
+        double discountAmount = subtotalBeforeDiscount * (order.getDiscountRate() / 100.0);
         double gstAmount = order.getGstRate();
-        double discountAmount = order.getDiscountRate();
-        double grandTotal = order.getTotalAmount() ;
+        double grandTotal = order.getTotalAmount();
 
+        // 3. Determine payment status and corresponding CSS class for styling
         String paymentStatus = order.isPaid() ? "PAID" : "PENDING";
-        String statusColor = order.isPaid() ? "green" : "red";
+        String statusClass = order.isPaid() ? "status-paid" : "status-pending";
 
-        // HTML template with {{placeholders}}
+        // --- Template remains the same ---
         String htmlTemplate = """
             <!DOCTYPE html>
             <html lang="en">
             <head>
               <meta charset="UTF-8">
-              <title>Order Confirmation</title>
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Order Confirmation</title>
               <style>
-                body { margin:0; padding:0; background-color:#f5f7fa; font-family:Arial,Helvetica,sans-serif; }
-                .email-container { max-width:650px; margin:auto; background:#ffffff; border-radius:8px;
-                                   overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
-                .header { background:linear-gradient(90deg,#2196F3,#1565C0); color:white; text-align:center; padding:20px; }
-                .header h1 { margin:0; font-size:24px; }
-                .content { padding:20px; color:#333333; }
-                .content h2 { font-size:20px; margin-top:0; color:#1565C0; }
-                .details { background:#f9f9f9; border:1px solid #eeeeee; border-radius:6px; padding:15px; margin-bottom:20px; }
-                .details p { margin:6px 0; font-size:14px; }
-                .items { width:100%; border-collapse:collapse; margin-bottom:20px; }
-                .items th, .items td { border:1px solid #dddddd; padding:10px; text-align:left; font-size:14px; }
-                .items th { background:#f0f0f0; }
-                .summary { margin-top:20px; font-size:15px; }
-                .summary p { margin:4px 0; text-align:right; }
-                .summary strong { color:#1565C0; }
-                .total { text-align:right; font-size:18px; font-weight:bold; margin-top:10px; color:#1565C0; }
-                .status { margin-top:15px; font-size:14px; font-weight:bold; color:{{statusColor}}; }
-                .footer { background:#f0f0f0; text-align:center; padding:15px; font-size:12px; color:#666666; }
+                body { margin: 0; padding: 0; background-color: #f7f8fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+                .email-wrapper { width: 100%; background-color: #f7f8fa; padding: 25px 0; }
+                .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+                .header { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: #ffffff; padding: 35px; text-align: center; }
+                .header img { height: 40px; margin-bottom: 15px; }
+                .header h1 { margin: 0; font-size: 26px; font-weight: 600; }
+                .content { padding: 35px; color: #5a6474; line-height: 1.6; font-size: 14px; }
+                .content h2 { font-size: 20px; color: #212529; margin-top: 0; font-weight: 600; }
+                .details-table { width: 100%; margin: 25px 0; border-collapse: collapse; }
+                .details-table td { padding: 6px 0; font-size: 13px; }
+                .items-table { width: 100%; border-collapse: collapse; margin-top: 25px; font-size: 13px; }
+                .items-table th { background-color: #f8f9fa; padding: 12px 15px; text-align: left; color: #3440; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+                .summary-table { width: 100%; max-width: 280px; margin-left: auto; margin-top: 25px; font-size: 14px; }
+                .summary-table td { padding: 9px 0; text-align: right; }
+                .summary-table .label { text-align: left; color: #5a6474; }
+                .grand-total { font-size: 18px; font-weight: bold; color: #5E35B1; }
+                .status-box { padding: 12px; border-radius: 8px; text-align: center; font-weight: 600; margin-top: 25px; font-size: 13px; }
+                .status-paid { background-color: #e6f7f0; color: #1b8751; border: 1px solid #b3e0c8; }
+                .status-pending { background-color: #fff8e1; color: #f59f0b; border: 1px solid #ffecb3; }
+                .footer { background-color: #f8f9fa; padding: 25px; text-align: center; font-size: 12px; color: #868e96; }
+                a { color: #5E35B1; text-decoration: none; font-weight: 600; }
+                @media screen and (max-width: 600px) {
+                    .content { padding: 25px; }
+                    .header { padding: 30px; }
+                    .header h1 { font-size: 24px; }
+                }
               </style>
             </head>
             <body>
-              <div class="email-container">
-                <div class="header"><h1>Order Confirmation</h1></div>
-                <div class="content">
-                  <h2>Hello {{customerName}},</h2>
-                  <p>Thank you for your order! Here are your order details:</p>
-                  <div class="details">
-                    <p><strong>Customer Name:</strong> {{customerName}}</p>
-                    <p><strong>Email:</strong> {{customerEmail}}</p>
-                    <p><strong>Phone:</strong> {{customerPhone}}</p>
-                    <p><strong>Order No.:</strong> {{orderNumber}}</p>
-                    <p><strong>Order Date.:</strong> {{orderDate}}</p>
+              <div class="email-wrapper">
+                <div class="email-container">
+                  <div class="header">
+                    <h1>Thank You For Your Order!</h1>
                   </div>
-                  <table class="items">
-                    <thead>
-                      <tr>
-                        <th>Product</th>
-                        <th>Qty</th>
-                        <th>Unit Price</th>
-                        <th>Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {{orderItems}}
-                    </tbody>
-                  </table>
-                  <div class="summary">
-                    <p>Subtotal: ₹{{subtotal}}</p>
-                    <p>GST amount: ₹{{gstAmount}}</p>
+                  <div class="content">
+                    <h2>Hello {{customerName}},</h2>
+                    <p>Your order has been successful. Here is a summary of your purchase.</p>
                     
+                    <table class="details-table">
+                      <tr>
+                        <td><strong>Order Number:</strong></td>
+                        <td style="text-align: right;">{{orderNumber}}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Order Date:</strong></td>
+                        <td style="text-align: right;">{{orderDate}}</td>
+                      </tr>
+                    </table>
+
+                    <table class="items-table">
+                      <thead>
+                        <tr>
+                          <th style="text-align: left;">Product</th>
+                          <th style="text-align: center;">Qty</th>
+                          <th style="text-align: right;">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{orderItems}}
+                      </tbody>
+                    </table>
+
+                    <table class="summary-table">
+                        <tr>
+                          <td class="label">Subtotal:</td>
+                          <td>{{subtotalBeforeDiscount}}</td>
+                        </tr>
+                        <tr>
+                          <td class="label">Discount ({{discountPercentage}}%):</td>
+                          <td>- {{discountAmount}}</td>
+                        </tr>
+                        <tr>
+                            <td class="label">GST:</td>
+                            <td>+ {{gstAmount}}</td>
+                        </tr>
+                        <tr><td colspan="2" style="padding-top: 10px; padding-bottom: 10px;"><hr style="border: 0; border-top: 1px solid #e9ecef;"></td></tr>
+                        <tr class="grand-total">
+                            <td class="label">Grand Total:</td>
+                            <td>{{grandTotal}}</td>
+                        </tr>
+                    </table>
+
+                    <div class="status-box {{statusClass}}">
+                        Payment Status: {{paymentStatus}}
+                    </div>
                   </div>
-                  <p class="total">Grand Total: ₹{{grandTotal}}</p>
-                  <p class="status">Payment Status: {{paymentStatus}}</p>
-                </div>
-                <div class="footer">
-                  <p>Thank you for shopping with <strong>Friends Mobile</strong>.</p>
-                  <p>If you have any questions, contact us at 
-                     <a href="mailto:help@friendsmobile.store">help@friendsmobile.store</a></p>
+                  <div class="footer">
+                    <p><strong>{{shopName}}</strong></p>
+                    <p>If you have any questions, please contact us at <a href="mailto:{{shopEmail}}">{{shopEmail}}</a></p>
+                  </div>
                 </div>
               </div>
             </body>
             </html>
             """;
 
-        // Replace placeholders
-        return htmlTemplate
+        // --- FIX: Assign the result of the replacements to a new variable ---
+        String finalHtml = htmlTemplate
                 .replace("{{customerName}}", order.getCustomerName())
-                .replace("{{customerEmail}}", order.getCustomerEmail())
-                .replace("{{customerPhone}}", order.getCustomerPhone())
                 .replace("{{orderNumber}}", order.getInvoiceId())
-                .replace("{{orderItems}}", itemsHtml.toString())
-                .replace("{{subtotal}}", String.valueOf( order.getTotalAmount()-order.getGstRate()))
-                //.replace("{{gstRate}}", String.valueOf( "18%"))
-                .replace("{{gstAmount}}", String.valueOf(gstAmount))
-                .replace("{{discountRate}}", String.format("%.0f", order.getDiscountRate() * 100))
-                .replace("{{discountAmount}}", String.format("%.2f", discountAmount))
-                .replace("{{grandTotal}}", String.format("%.2f", grandTotal))
-                .replace("{{paymentStatus}}", paymentStatus)
                 .replace("{{orderDate}}", order.getOrderedDate())
-                .replace("{{statusColor}}", statusColor);
+                .replace("{{orderItems}}", itemsHtml)
+                .replace("{{subtotalBeforeDiscount}}", indianCurrencyFormat.format(subtotalBeforeDiscount-gstAmount))
+                .replace("{{discountPercentage}}", percentageFormat.format(order.getDiscountRate()))
+                .replace("{{discountAmount}}", indianCurrencyFormat.format(discountAmount))
+                .replace("{{gstAmount}}", indianCurrencyFormat.format(gstAmount))
+                .replace("{{grandTotal}}", indianCurrencyFormat.format(grandTotal))
+                .replace("{{paymentStatus}}", paymentStatus)
+                .replace("{{statusClass}}", statusClass)
+                .replace("{{shopName}}", shopName)
+                .replace("{{shopEmail}}", shopEmail);
+
+        // --- FIX: Put the final, processed HTML into the map ---
+        response.put("htmlTemplate", finalHtml);
+
+        return response;
     }
 }
+

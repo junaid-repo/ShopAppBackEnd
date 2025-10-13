@@ -47,7 +47,7 @@ public class EmailSender {
 		System.out.println(response.getData());
 		return CompletableFuture.completedFuture(response.getData().toString());
 	}
-	 public CompletableFuture<String> sendEmail(String emailId, String orderId, String name, byte[] pdfStream, String htmlContent) throws MailjetException, MailjetSocketTimeoutException {
+	 public CompletableFuture<String> sendEmail(String emailId, String orderId, String name, byte[] pdfStream, String htmlContent, String shopName) throws MailjetException, MailjetSocketTimeoutException {
 	        // Assume you have a ByteArrayOutputStream named 'pdfStream'
 	        // This stream would contain the PDF data, for example, from a PDF generator library.
 	       // ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
@@ -58,6 +58,8 @@ public class EmailSender {
 			 * try { pdfStream.write("This is a simulated PDF file content.".getBytes()); }
 			 * catch (IOException e) { e.printStackTrace(); }
 			 */
+
+
 
 	        String base64Content = "";
 			try {
@@ -79,17 +81,17 @@ public class EmailSender {
 	        request = new MailjetRequest(Emailv31.resource)
 	                .property(Emailv31.MESSAGES, new JSONArray()
 	                        .put(new JSONObject()
-	            					.put(Emailv31.Message.FROM, new JSONObject().put("Email", "support@clearbill.store")
-	        								.put("Name", "Clear Bill"))
+	            					.put(Emailv31.Message.FROM, new JSONObject().put("Email", "email@clearbill.store")
+	        								.put("Name", shopName))
 	        						.put(Emailv31.Message.TO,
 	        								new JSONArray().put(
-	        										new JSONObject().put("Email", emailId).put("Clear Bill", "Hello")))
+	        										new JSONObject().put("Email", emailId).put(shopName, "Hello")))
 	        						.put(Emailv31.Message.SUBJECT, "Order has been confirmed with Order Number "+orderId)
 	                                .put(Emailv31.Message.TEXTPART, "Dear Mr."+name+" Welcome to Clear Bill")
 	                                .put(Emailv31.Message.HTMLPART, htmlContent
-	                                		+ "Really happy to serve you.\n"
 	                                		+ "\n"
-	                                		+ "Thanks a lot.")
+	                                		+ "\n"
+	                                		+ "")
 	                                .put(Emailv31.Message.ATTACHMENTS, new JSONArray()
 	                                        .put(new JSONObject()
 	                                                .put("ContentType", "application/pdf")

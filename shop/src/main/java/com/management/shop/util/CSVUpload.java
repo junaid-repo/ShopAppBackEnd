@@ -19,7 +19,7 @@ public class CSVUpload {
 	
 	
 	  private static final List<String> EXPECTED_HEADERS = Arrays.asList(
-	            "selectedProductId", "name", "category", "costPrice", "price", "stock", "tax"
+	            "selectedProductId", "name", "hsn", "category", "costPrice", "price", "stock", "tax"
 	    );
 	  // Regex splits on commas that are not inside quotes: a simple, practical CSV splitter
 	    private static final Pattern CSV_SPLIT = Pattern.compile(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
@@ -47,25 +47,29 @@ public class CSVUpload {
 	                if (line.isEmpty()) continue;
 
 	                String[] tokens = CSV_SPLIT.split(line, -1);
-	                if (tokens.length != 7) {
+	                if (tokens.length != 8) {
 	                    throw new IllegalArgumentException("Invalid column count at line " + lineNumber + " (expected 6)");
 	                }
 
 	                String selectedProductId = unquote(tokens[0]);
 	                String name = unquote(tokens[1]);
-	                String category = unquote(tokens[2]);
-                    Integer costPrice= parseInt(unquote(tokens[3]), "costPrice", lineNumber);
-	                Integer price = parseInt(unquote(tokens[4]), "price", lineNumber);
-	                Integer stock = parseInt(unquote(tokens[5]), "stock", lineNumber);
-	                Integer tax = parseInt(unquote(tokens[6]), "tax", lineNumber);
+                    String hsn =  unquote(tokens[2]);
+	                String category = unquote(tokens[3]);
+                    Integer costPrice= parseInt(unquote(tokens[4]), "costPrice", lineNumber);
+	                Integer price = parseInt(unquote(tokens[5]), "price", lineNumber);
+	                Integer stock = parseInt(unquote(tokens[6]), "stock", lineNumber);
+	                Integer tax = parseInt(unquote(tokens[7]), "tax", lineNumber);
+
 
 	                products.add(ProductRequest.builder().selectedProductId(Integer.parseInt(selectedProductId))
 	                		.name(name)
+                            .hsn(hsn)
                             .costPrice(costPrice)
 	                		.price(price)
 	                		.category(category)
 	                		.stock(stock)
 	                		.tax(tax)
+
 	                		.build());
 	            }
 	        }

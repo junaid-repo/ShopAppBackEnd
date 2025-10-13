@@ -46,6 +46,6 @@ public interface NotificationsRepo extends JpaRepository<MessageEntity,Integer> 
 
     @Transactional
     @Modifying
-    @Query(value = "DELETE FROM shop_message WHERE is_deleted = 0 AND created_date < NOW() - INTERVAL 24 HOUR", nativeQuery = true)
+    @Query(value = "DELETE FROM shop_message WHERE is_deleted = 1 AND created_date < NOW() - INTERVAL 5 HOUR", nativeQuery = true)
     void deleteDeletedMessages();
 }

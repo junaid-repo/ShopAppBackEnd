@@ -191,7 +191,8 @@ public class ShopService {
             ent = shopRepo.save(customerEntity);
         }
 
-
+        salesCacheService.evictUserCustomers(extractUsername());
+        salesCacheService.evictsUserAnalytics(extractUsername());
         if (ent.getId() != null) {
             try {
                 salesCacheService.evictUserCustomers(extractUsername());
@@ -462,6 +463,40 @@ public class ShopService {
         return response;
     }
 
+    public Page<CustomerEntity> getBillingCustomersList(String search, int page, int size, String sort)  {
+
+        String    sortField = sort;
+
+        if ("createdAt".equalsIgnoreCase(sortField)) {
+            sortField = "created_date";
+        }
+        if ("createdDate".equalsIgnoreCase(sortField)) {
+            sortField = "created_date";
+        }
+        if ("totalSpent".equalsIgnoreCase(sortField)) {
+            sortField = "total_spent";
+        }
+
+
+        Sort.Direction direction =  Sort.Direction.DESC;
+
+        // ✅ Use mapped field name here
+        Sort sortOrder = Sort.by(direction, sortField);
+
+        Pageable pageable = PageRequest.of(page - 1, size, sortOrder);
+
+        String username = extractUsername();
+        Page<CustomerEntity> response=null;
+        try{
+            response=   shopRepo.findAllCustomersWithPagination(username, search, pageable);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return response;
+    }
+
     @Transactional
     public BillingResponse doPayment(BillingRequest request) throws Exception {
 
@@ -568,12 +603,12 @@ public class ShopService {
 
             InvoiceDetails order = getOrderDetails(billResponse.getInvoiceNumber());
             try {
-                String htmlContent = emailTemplate.generateOrderHtml(order);
+                Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
 
-                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                     CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
                             billResponse.getInvoiceNumber(), order.getCustomerName(),
-                            generateGSTInvoicePdf(billResponse.getInvoiceNumber()), htmlContent);
+                            generateGSTInvoicePdf(billResponse.getInvoiceNumber()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
                     System.out.println(futureResult);
                 }
 
@@ -1978,4 +2013,5 @@ public class ShopService {
 
         return response;
     }
+
 }

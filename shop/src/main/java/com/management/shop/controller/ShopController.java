@@ -132,9 +132,12 @@ public class ShopController {
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "desc") String dir) {
 
+        System.out.println("Entered into getCustomersListCacheable with search term "+search);
+
         try {
             // Call the updated service method
             Page<CustomerEntity> customerPage =  serv.getCacheableCustomersList(search, page, limit, sort, dir);
+            System.out.println("Exiting from getCustomersListCacheable with result  "+customerPage);
 
             // Build the response map to match the frontend's expected structure
             Map<String, Object> response = new HashMap<>();
@@ -142,7 +145,37 @@ public class ShopController {
             response.put("totalPages", customerPage.getTotalPages());
             response.put("totalCount", customerPage.getTotalElements());
             response.put("currentPage", customerPage.getNumber() + 1); // Send back the current page
+            System.out.println("Exiting from getCustomersListCacheable with result  "+response);
+            return ResponseEntity.ok(response);
 
+        } catch (Exception e) {
+            // Basic error handling
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
+    @GetMapping("/api/shop/get/billing/customersList")
+    public ResponseEntity<Map<String, Object>> getCustomersListBilling(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false, defaultValue = "") String search,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String dir) {
+
+        System.out.println("Entered into getCustomersListCacheable with search term "+search);
+
+        try {
+            // Call the updated service method
+            Page<CustomerEntity> customerPage =  serv.getBillingCustomersList(search, page, limit, sort );
+            System.out.println("Exiting from getCustomersListCacheable with result  "+customerPage);
+
+            // Build the response map to match the frontend's expected structure
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", customerPage.getContent());
+            response.put("totalPages", customerPage.getTotalPages());
+            response.put("totalCount", customerPage.getTotalElements());
+            response.put("currentPage", customerPage.getNumber() + 1); // Send back the current page
+            System.out.println("Exiting from getCustomersListCacheable with result  "+response);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -162,7 +195,7 @@ public class ShopController {
     }
     @PutMapping("api/shop/update/customer")
     ResponseEntity<CustomerSuccessDTO> editCustomer(@RequestBody CustomerRequest request) {
-        System.out.println("entered deleteCustomer");
+        System.out.println("entered editCustomer");
 
         CustomerSuccessDTO response = serv.saveCustomer(request);
 
@@ -842,4 +875,5 @@ public class ShopController {
 
         return ResponseEntity.ok(response);
     }
+
 }
