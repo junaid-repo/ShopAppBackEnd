@@ -27,6 +27,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -62,6 +63,8 @@ public class ShopController {
     @Autowired
     private Utility util;
 
+
+
     @Value("${razorpay.key.secret}")
     private String keySecret;
     @Value("${razorpay.key.id}")
@@ -86,6 +89,15 @@ public class ShopController {
         AuthRequest response=new AuthRequest();
         response.setUsername(servResponse.get("username"));
         return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+    @GetMapping("api/shop/user/profileWithRole")
+    public ResponseEntity<UserProfileDto> userProfileWithRole() {
+
+        UserProfileDto servResponse = serv.getUserProfileWithRoles();
+
+
+        return ResponseEntity.status(HttpStatus.OK).body(servResponse);
 
     }
 

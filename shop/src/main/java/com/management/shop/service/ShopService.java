@@ -1412,6 +1412,21 @@ public class ShopService {
         response.put("username", username);
         return response;
     }
+    public UserProfileDto  getUserProfileWithRoles() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if(username.equals("junaid1")){
+            UserProfileDto response=      UserProfileDto.builder().username("junaid1").email("nadanasime3001@gmail.com").roles(List.of("ADMIN", "USER")).build();
+            System.out.println("getUserProfileWithRoles: " + response);
+         return response;
+        }
+        else{
+            UserProfileDto response=      UserProfileDto.builder().username(username).email("na@na.com").roles(List.of( "USER")).build();
+
+            System.out.println("getUserProfileWithRoles: " + response);
+            return response;
+        }
+
+    }
 
 
     @Cacheable(value = "notifications", keyGenerator = "userScopedKeyGenerator")

@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .cors(cors -> {})             // ✅ enable CORS with default configuration
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
                 )
                 .sessionManagement(session -> session
