@@ -6,6 +6,7 @@ import com.management.shop.entity.TicketsEntity;
 import com.management.shop.service.TicketsSerivce;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,9 @@ public class TicketsController {
     ResponseEntity<SupportTicketResponse> saveSupportTicket(@RequestBody SupportTicketRequest request){
         SupportTicketResponse response=serv.saveSupportTicket(request);
 
+        if(response.getTicketNumber()==null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
         return ResponseEntity.ok(response);
 
     }

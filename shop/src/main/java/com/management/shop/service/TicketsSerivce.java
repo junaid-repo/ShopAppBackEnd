@@ -67,6 +67,24 @@ public class TicketsSerivce {
         entity.setUsername(extractUsername());
 
 
+        List<TicketsEntity> ticketList=supportTicketRepo.getOpenTicketListPerUser("open",extractUsername());
+
+        if(ticketList.size()>2){
+            var response = SupportTicketResponse.builder()
+                    .createdDate(LocalDateTime.now())
+                    .status(request.getStatus())
+                    .topic(request.getTopic())
+                    .summary("You already have "+ticketList.size()+" tickets. You can have maximum of 3 open tickets. Please close the other tickets and try")
+                    .closingRemarks("")
+                    .build();
+
+            System.out.println(response);
+
+            return response;
+        }
+
+
+
 
         TicketsEntity ticketEntity = supportTicketRepo.save(entity);
 

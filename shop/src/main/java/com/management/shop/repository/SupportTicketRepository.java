@@ -22,4 +22,10 @@ public interface SupportTicketRepository extends JpaRepository<TicketsEntity, In
 
     @Query(value="select * from support_tickets where status=?1 order by created_date desc", nativeQuery=true)
     List<TicketsEntity> getOpenTicketList(String status);
+
+
+
+    @Query(value="select * from support_tickets where status=?1 and username=?2 order by created_date desc", nativeQuery=true)
+    List<TicketsEntity> getOpenTicketListPerUser(String status, String username);
+
 }
