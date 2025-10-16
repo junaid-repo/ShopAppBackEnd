@@ -1,19 +1,31 @@
 package com.management.shop.service;
 
 
+import com.mailjet.client.errors.MailjetException;
+import com.mailjet.client.errors.MailjetSocketTimeoutException;
+import com.management.shop.dto.ChatMessage;
 import com.management.shop.dto.SupportTicketRequest;
 import com.management.shop.dto.SupportTicketResponse;
+import com.management.shop.entity.ChatMessageEntity;
 import com.management.shop.entity.TicketsEntity;
+import com.management.shop.repository.ChatMessageRepository;
 import com.management.shop.repository.SupportTicketRepository;
+import com.management.shop.util.EmailSender;
+import com.management.shop.util.OrderEmailTemplate;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +33,18 @@ public class TicketsSerivce {
 
     @Autowired
     SupportTicketRepository supportTicketRepo;
+
+    @Autowired
+    ChatMessageRepository chatRepo;
+
+    @Autowired
+    OrderEmailTemplate emailTemplate;
+
+    @Autowired
+    private Environment environment;
+
+    @Autowired
+    EmailSender email;
 
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -42,6 +66,8 @@ public class TicketsSerivce {
         entity.setCreatedDate(LocalDateTime.now());
         entity.setUsername(extractUsername());
 
+
+
         TicketsEntity ticketEntity = supportTicketRepo.save(entity);
 
         if(ticketEntity!=null) {
@@ -50,7 +76,27 @@ public class TicketsSerivce {
             String ticketNumber = "TKT-" + datePart + "-" + sequentialPart;
             entity.setTicketNumber(ticketNumber);
             supportTicketRepo.save(entity);
+            request.setTicketNumber(entity.getTicketNumber());
+            request.setUsername(entity.getUsername());
         }
+
+        try {
+            String emailContent = emailTemplate.getTicketCreationMailConent(request, extractUsername());
+
+            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+                CompletableFuture<String> futureResult = email.sendEmailForTicketIntimation("nadanasim3001@gmail.com",
+                        request.getTicketNumber(), "Support",
+                        emailContent, "ClearBill");
+                System.out.println(futureResult);
+            }
+
+        } catch (MailjetException | MailjetSocketTimeoutException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
+
 
         var response = SupportTicketResponse.builder().ticketNumber(String.valueOf(ticketEntity.getTicketNumber()))
                 .createdDate(LocalDateTime.now())
@@ -100,7 +146,13 @@ public class TicketsSerivce {
             request.setSummary(request.getSummary());
             request.setUsername(extractUsername());
 
-             supportTicketRepo.updateExistingTicket(request.getTicketNumber(),"closed", request.getClosingRemarks(),LocalDateTime.now(), extractUsername());
+            supportTicketRepo.updateExistingTicket(request.getTicketNumber(),"closed", request.getClosingRemarks(),LocalDateTime.now(), extractUsername());
+            try {
+                chatRepo.removeClosedChatHistory(request.getTicketNumber());
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+
 
             var response = SupportTicketResponse.builder().ticketNumber(String.valueOf(request.getTicketNumber()))
                     .createdDate(LocalDateTime.now())
@@ -115,6 +167,7 @@ public class TicketsSerivce {
     }
 
     public List<SupportTicketResponse> getOpenTicketsList() {
+
 
         List<TicketsEntity> ticketsList = supportTicketRepo.getOpenTicketList("open");
 
@@ -137,4 +190,48 @@ public class TicketsSerivce {
         return response;
     }
 
+    public void saveMessage(ChatMessage dto) {
+
+        ChatMessageEntity entity = new ChatMessageEntity();
+
+        // --- Map data from the DTO to the Entity ---
+
+        // 1. The `chatId` from the DTO is the `ticketNumber` for the entity
+        entity.setTicketNumber(dto.getChatId());
+
+        // 2. The sender and content come directly from the DTO
+        entity.setSender(dto.getSender());
+        entity.setContent(dto.getContent());
+
+        // --- Enrich the Entity with Server-Generated Data ---
+
+        // 3. Generate the timestamp on the server to ensure accuracy
+        entity.setTimestamp(Instant.now());
+
+        // 4. Save the completed, enriched entity to the database
+        chatRepo.save(entity);
+
+    }
+
+    public List<ChatMessage> getHistoryForTicket(String ticketNumber) {
+
+        List<ChatMessageEntity> chatHistory=    chatRepo.findByTicketNumberOrderByTimestampAsc(ticketNumber);
+
+        List<ChatMessage> response=chatHistory.stream().map(obj->{
+            ChatMessage chat= new ChatMessage();
+
+            chat.setChatId(obj.getTicketNumber());
+            chat.setContent(obj.getContent());
+            chat.setSender(obj.getSender());
+            chat.setType(ChatMessage.MessageType.CHAT);
+
+
+            return chat;
+
+        }).collect(Collectors.toList());
+
+        System.out.println("The chats for ticket-->"+ticketNumber+" is " + response);
+
+        return response;
+    }
 }
