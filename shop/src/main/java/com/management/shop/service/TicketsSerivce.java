@@ -17,7 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -252,4 +254,30 @@ public class TicketsSerivce {
 
         return response;
     }
+
+    public String sendSupportEmail(String subject, String body, MultipartFile attachment) {
+
+        try {
+            byte[] mailAttachemnt=null;
+            if(attachment!=null) {
+                  mailAttachemnt = attachment.getBytes();
+            }
+            String emailContent = emailTemplate.generateSupportEmailHtml(extractUsername(), subject, body);
+
+            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+                CompletableFuture<String> futureResult = email.sendSupportEmail("nadanasim3001@gmail.com",
+                        subject, extractUsername(),
+                        mailAttachemnt, emailContent, "Clear Bill");
+                System.out.println(futureResult);
+            }
+
+        } catch (MailjetException | MailjetSocketTimeoutException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return "success";
+    }
+
 }

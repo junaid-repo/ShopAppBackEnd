@@ -80,8 +80,8 @@ public class Notifications {
     @Scheduled(cron = "${scheduler.messageRemover.cron}")
     public void removeOldMessages() {
 
-        notiRepo.deleteAllConditional();
-        notiRepo.deleteDeletedMessages();
+       // notiRepo.deleteAllConditional();
+      //  notiRepo.deleteDeletedMessages();
 
     }
 }

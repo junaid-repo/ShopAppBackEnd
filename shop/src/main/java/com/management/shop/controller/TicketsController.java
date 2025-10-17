@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -49,6 +50,25 @@ public class TicketsController {
 
         return ResponseEntity.ok(response);
 
+    }
+    @PostMapping("api/support/send-email")
+    public ResponseEntity<String> handleEmailRequest(
+            @RequestPart("subject") String subject,
+            @RequestPart("body") String body,
+            // Use `required = false` because the attachment is optional
+            @RequestPart(name = "attachment", required = false) MultipartFile attachment
+    ) {
+
+        String emailResponse=serv.sendSupportEmail(subject, body, attachment);
+
+        if (attachment != null && !attachment.isEmpty()) {
+            System.out.println("Received file: " + attachment.getOriginalFilename());
+            System.out.println("File size: " + attachment.getSize() + " bytes");
+        }
+
+        // ... call your email service ...
+
+        return ResponseEntity.ok("Email sent successfully.");
     }
 
 }

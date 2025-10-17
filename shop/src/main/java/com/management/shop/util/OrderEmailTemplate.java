@@ -292,5 +292,86 @@ public class OrderEmailTemplate {
 
         return finalHtml;
     }
+    public String generateSupportEmailHtml(String username, String subject, String body) {
+
+        // 1. Format the current date and time for display
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+        String formattedDate = LocalDateTime.now().format(formatter);
+
+        // 2. Define the HTML template for the support email notification
+        String htmlTemplate = """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>New Support Email</title>
+                  <style>
+                    body { margin: 0; padding: 0; background-color: #f7f8fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+                    .email-wrapper { width: 100%; background-color: #f7f8fa; padding: 25px 0; }
+                    .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+                    .header { background: linear-gradient(135deg, #ff8c00 0%, #ffc107 100%); color: #ffffff; padding: 35px; text-align: center; }
+                    .header h1 { margin: 0; font-size: 26px; font-weight: 600; }
+                    .content { padding: 35px; color: #5a6474; line-height: 1.6; font-size: 14px; }
+                    .details-table { width: 100%; margin: 25px 0; border-collapse: collapse; }
+                    .details-table td { padding: 8px 0; font-size: 14px; border-bottom: 1px solid #e9ecef; }
+                    .details-table td strong { color: #343a40; }
+                    .message-box { background-color: #f8f9fa; border-left: 4px solid #ffc107; padding: 20px; margin: 25px 0; color: #495057; white-space: pre-wrap; word-wrap: break-word; }
+                    .footer { background-color: #f8f9fa; padding: 25px; text-align: center; font-size: 12px; color: #868e96; }
+                    @media screen and (max-width: 600px) {
+                      .content { padding: 25px; }
+                      .header { padding: 30px; }
+                      .header h1 { font-size: 24px; }
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div class="email-wrapper">
+                    <div class="email-container">
+                      <div class="header">
+                        <h1>New Support Email Received</h1>
+                      </div>
+                      <div class="content">
+                        <p>A user has sent a message via the support email form. Please find the details below.</p>
+                        
+                        <table class="details-table">
+                          <tr>
+                            <td><strong>From User:</strong></td>
+                            <td style="text-align: right;">{{username}}</td>
+                          </tr>
+                           <tr>
+                            <td><strong>Date Sent:</strong></td>
+                            <td style="text-align: right;">{{sentDate}}</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Subject:</strong></td>
+                            <td style="text-align: right;">{{subject}}</td>
+                          </tr>
+                        </table>
+
+                        <p style="margin-top: 30px; font-weight: 600; color: #343a40;">User's Message:</p>
+                        <div class="message-box">
+                          {{body}}
+                        </div>
+
+                      </div>
+                      <div class="footer">
+                        <p>This is an automated notification from your support system.</p>
+                      </div>
+                    </div>
+                  </div>
+                </body>
+                </html>
+                """;
+
+        // 3. Replace placeholders with the provided data
+        String finalHtml = htmlTemplate
+                .replace("{{username}}", username)
+                .replace("{{sentDate}}", formattedDate)
+                .replace("{{subject}}", subject)
+                .replace("{{body}}", body);
+
+        return finalHtml;
+    }
 }
 
