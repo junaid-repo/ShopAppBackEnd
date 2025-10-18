@@ -27,7 +27,7 @@ public interface UserInfoRepository extends JpaRepository<UserInfo, Integer> {
     @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?3 and (    email=?1 or username=?2)", nativeQuery = true)
     List<UserInfo> validateUser(String email, String userId, boolean b);
 
-    @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?3", nativeQuery = true)
+    @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?1", nativeQuery = true)
     List<UserInfo> findAllByStatus(Boolean aTrue);
 
 
