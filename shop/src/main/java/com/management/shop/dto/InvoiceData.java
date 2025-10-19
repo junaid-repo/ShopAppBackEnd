@@ -39,6 +39,7 @@ public class InvoiceData {
     private  String customerShippingAddress;
     private  String customerPhone;
     private  String customerState;
+    private  String customerGst;
 
     // Items
     private List<OrderItemInvoice> products;

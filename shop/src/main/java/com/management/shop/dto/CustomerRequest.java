@@ -14,6 +14,7 @@ private String id;
 private String name;
 private String email;
 private String phone;
+private String gstNumber;
 private String customerState ;
 private String city;
 private Long totalSpent;

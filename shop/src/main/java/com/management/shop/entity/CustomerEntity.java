@@ -27,6 +27,7 @@ public class CustomerEntity {
 	private String status;
     private String state;
     private String city;
+    private String gstNumber;
 	private LocalDateTime createdDate;
     private String userId;
     private LocalDateTime updatedDate;

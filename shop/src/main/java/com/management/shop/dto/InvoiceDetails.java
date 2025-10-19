@@ -22,6 +22,7 @@ public class InvoiceDetails {
 	    private double discountRate;
 	    private String customerEmail;
 	    private String customerPhone;
+        private String customerGstNumber;
         private String orderedDate;
         private Integer customerId;
 }

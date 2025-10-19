@@ -94,6 +94,7 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("customerName", nullSafeString(data.getCustomerName()));
         context.setVariable("customerBillingAddress", nullSafeString(data.getCustomerBillingAddress()));
         context.setVariable("customerShippingAddress", nullSafeString(data.getCustomerShippingAddress()));
+        context.setVariable("customerGstNumber", nullSafeString(data.getCustomerGst()));
         context.setVariable("customerPhone", nullSafeString(data.getCustomerPhone()));
         context.setVariable("customerState", nullSafeString(data.getCustomerState()));
 

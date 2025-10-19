@@ -15,6 +15,6 @@ import java.util.Map;
 public interface ShopUPIRepository extends JpaRepository<ShopUPIEntity, Integer>
 {
 
-    @Query(value="select * from shop_upi where shop_finance_id=?1 order by updated_at desc limit 1", nativeQuery=true)
-    ShopUPIEntity findByShopFinanceId(Integer id);
+    @Query(value="select * from shop_upi where user_id=?1 order by updated_at desc limit 1", nativeQuery=true)
+    ShopUPIEntity findByShopFinanceId(String id);
 }

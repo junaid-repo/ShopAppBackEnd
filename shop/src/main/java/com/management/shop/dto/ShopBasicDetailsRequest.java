@@ -12,4 +12,6 @@ public class ShopBasicDetailsRequest {
     private String shopPincode;
     private String shopCity;
     private String shopState;
+    private String gstin;
+    private String panNumber;
 }

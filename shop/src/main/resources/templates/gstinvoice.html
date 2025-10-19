@@ -314,7 +314,9 @@
                 <p><strong th:text="${customerName}"></strong></p>
                 <p><strong>Mobile:</strong> <span th:text="${customerPhone}"></span></p>
                 <p><strong>Address:</strong> <span th:text="${customerState}"></span></p>
-            </td>
+                <p th:if="${!#strings.isEmpty(customerGstNumber)}">
+                    <strong>Customer GstNumber:</strong> <span th:text="${customerGstNumber}"></span>
+                </p>            </td>
             <td>
                 <h3>SHIP TO</h3>
                 <p><strong th:text="${customerName}"></strong></p>

@@ -13,6 +13,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.management.shop.dto.*;
@@ -155,7 +156,9 @@ public class ShopService {
       //  username="junaid1";
         return username;
     }
-
+    private static <T, R> R getIfNotNull(T source, Function<T, R> getter) {
+        return (source != null) ? getter.apply(source) : null;
+    }
 
     public boolean checkUserStatus(String username) {
         // TODO Auto-generated method stub
@@ -174,6 +177,7 @@ public class ShopService {
 
             var customerEntity = CustomerEntity.builder().userId(extractUsername()).id(existingCustomer.get(0).getId()).name(request.getName()).email(request.getEmail())
                     .createdDate(LocalDateTime.now())
+                    .gstNumber(request.getGstNumber())
                     .state(request.getCustomerState())
                     .city(request.getCity())
                     .phone(request.getPhone()).status("ACTIVE").totalSpent(existingCustomer.get(0).getTotalSpent()).build();
@@ -185,6 +189,7 @@ public class ShopService {
             var customerEntity = CustomerEntity.builder().userId(extractUsername()).name(request.getName()).email(request.getEmail())
                     .createdDate(LocalDateTime.now())
                     .state(request.getCustomerState())
+                    .gstNumber(request.getGstNumber())
                     .city(request.getCity())
                     .phone(request.getPhone()).status("ACTIVE").totalSpent(0).build();
 
@@ -221,6 +226,7 @@ public class ShopService {
 
             var customerEntity = CustomerEntity.builder().id(existingCustomer.get(0).getId()).userId(extractUsername()).name(request.getName()).email(request.getEmail())
                     .state(request.getCustomerState())
+                    .gstNumber(request.getGstNumber())
                     .city(request.getCity())
                     .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").totalSpent(existingCustomer.get(0).getTotalSpent()).build();
 
@@ -230,6 +236,7 @@ public class ShopService {
 
             var customerEntity = CustomerEntity.builder().name(request.getName()).userId(extractUsername()).email(request.getEmail())
                     .state(request.getCustomerState())
+                    .gstNumber(request.getGstNumber())
                     .city(request.getCity())
                     .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").totalSpent(0).build();
 
@@ -1200,7 +1207,7 @@ public class ShopService {
         ShopUPIEntity shopUPIEntity = new ShopUPIEntity();
         if(shopFinanceEntity!=null){
              shopBankEntity=shopBankRepo.findByShopFinanceId(username);
-             shopUPIEntity=salesUPIRepo.findByShopFinanceId(shopFinanceEntity.getId());
+             shopUPIEntity=salesUPIRepo.findByShopFinanceId(username);
         }
 
         ShopInvoiceTermsEnity shopInvoiceTermsEntity=shopInvoiceTermsRepo.findByUserId(username);
@@ -1216,31 +1223,41 @@ public class ShopService {
 
           var response = UpdateUserDTO.builder()
                   .username(username)
-                  .address(shopBasicEntity.getAddress())
-                  .email(userinfo.getEmail())
-                  .gstNumber(shopFinanceEntity.getGstin())
-                  .name(userinfo.getName())
-                  .phone(userinfo.getPhoneNumber())
-                  .shopLocation(shopBasicEntity.getAddress())
-                  .username(username)
-                  .shopAddress(shopBasicEntity.getAddress())
-                  .shopEmail(shopBasicEntity.getShopEmail())
-                  .shopPhone(shopBasicEntity.getShopPhone())
-                  .shopName(shopBasicEntity.getShopName())
-                  .shopPincode(shopBasicEntity.getShopPincode())
-                  .shopCity(shopBasicEntity.getShopCity())
-                  .shopState(shopBasicEntity.getShopState())
-                  .shopSlogan(shopBasicEntity.getShopSlogan())
-                  .pan(shopFinanceEntity.getPanNumber())
-                  .gstin(shopFinanceEntity.getGstin())
-                  .upi(shopUPIEntity.getUpiId())
-                  .terms1(shopInvoiceTermsEntity.getTerm())
-                  .bankAccount(shopBankEntity.getAccountNumber())
-                  .bankAddress(shopBankEntity.getBranchName())
-                  .bankHolder(shopBankEntity.getAccountHolderName())
-                  .bankName(shopBankEntity.getBankName())
-                  .bankIfsc(shopBankEntity.getIfscCode())
-                  .userSource(userinfo.getSource())
+                  .email(getIfNotNull(userinfo, UserInfo::getEmail))
+                  .name(getIfNotNull(userinfo, UserInfo::getName))
+                  .phone(getIfNotNull(userinfo, UserInfo::getPhoneNumber))
+                  .userSource(getIfNotNull(userinfo, UserInfo::getSource))
+
+                  // Fields from shopBasicEntity
+                  .address(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
+                  .shopLocation(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
+                  .shopAddress(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
+                  .shopEmail(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopEmail))
+                  .shopPhone(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopPhone))
+                  .shopName(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopName))
+                  .shopPincode(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopPincode))
+                  .shopCity(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopCity))
+                  .shopState(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopState))
+                  .shopSlogan(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopSlogan))
+
+                  // Fields from shopFinanceEntity
+                  .gstNumber(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getGstin))
+                  .pan(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getPanNumber))
+                  .gstin(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getGstin))
+
+                  // Field from shopUPIEntity
+                  .upi(getIfNotNull(shopUPIEntity, ShopUPIEntity::getUpiId))
+
+                  // Field from shopInvoiceTermsEntity
+                  .terms1(getIfNotNull(shopInvoiceTermsEntity, ShopInvoiceTermsEnity::getTerm))
+
+                  // Fields from shopBankEntity
+                  .bankAccount(getIfNotNull(shopBankEntity, ShopBankEntity::getAccountNumber))
+                  .bankAddress(getIfNotNull(shopBankEntity, ShopBankEntity::getBranchName))
+                  .bankHolder(getIfNotNull(shopBankEntity, ShopBankEntity::getAccountHolderName))
+                  .bankName(getIfNotNull(shopBankEntity, ShopBankEntity::getBankName))
+                  .bankIfsc(getIfNotNull(shopBankEntity, ShopBankEntity::getIfscCode))
+
                   .build();
           return response;
         }
@@ -1910,7 +1927,21 @@ public class ShopService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
+
+
         ShopBasicEntity res = shopBasicRepo.save(shopEntity);
+        if(res!=null) {
+            var shopFinanceEntity = ShopFinanceEntity.builder()
+                    .gstin(safe(request.getGstin()))
+                    .panNumber(safe(request.getPanNumber()))
+                    .userId(extractUsername())
+                    .updatedBy(extractUsername())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            ShopFinanceEntity finRes = shopFinanceRepo.save(shopFinanceEntity);
+        }
+
         return res != null ? "Success" : "Not Successful";
     }
 

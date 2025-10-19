@@ -170,9 +170,11 @@ public class Utility {
                 .dueDate(formattedDate)
 
                 .customerName(toEmpty(order.getCustomerName()))
+
                 .customerBillingAddress("")
                 .customerShippingAddress("")
                 .customerPhone(toEmpty(order.getCustomerPhone()))
+                .customerGst(toEmpty(order.getCustomerGstNumber()))
                 .customerState(custEntity.getCity()+", "+custEntity.getState())
                 .products(products)
 
@@ -208,7 +210,7 @@ public class Utility {
         ShopUPIEntity shopUPIEntity = null;
         if (shopFinanceEntity != null) {
             shopBankEntity = shopBankRepo.findByShopFinanceId(username);
-            shopUPIEntity = salesUPIRepo.findByShopFinanceId(shopFinanceEntity.getId());
+            shopUPIEntity = salesUPIRepo.findByShopFinanceId(username);
         }
 
         // Build the DTO safely using Optional to avoid NPEs
@@ -313,6 +315,7 @@ public class Utility {
                 .gstRate(totalGst)
                 .customerPhone(toEmpty(customerEntity.getPhone()))
                 .customerEmail(toEmpty(customerEntity.getEmail()))
+                .customerGstNumber(toEmpty(customerEntity.getGstNumber()))
                 .customerId(billDetails.getCustomerId())
                 .orderedDate(createdDateStr)
                 .totalAmount(billDetails.getTotalAmount())
