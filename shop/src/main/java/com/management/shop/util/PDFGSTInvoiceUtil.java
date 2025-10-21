@@ -6,6 +6,9 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import com.microsoft.playwright.Browser; // <-- ADD
+import com.microsoft.playwright.Page;      // <-- ADD
+import com.microsoft.playwright.Playwright;  // <-- ADD
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
@@ -20,7 +23,7 @@ public class PDFGSTInvoiceUtil {
         this.templateEngine = templateEngine;
     }
 
-    public byte[] generateGSTInvoice(InvoiceData data) throws Exception {
+    public byte[] generateGSTInvoice(InvoiceData data, String invoiceTemplate) throws Exception {
 
         // --- Core Calculations (null-safe) ---
         List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
@@ -125,14 +128,31 @@ public class PDFGSTInvoiceUtil {
 
         System.out.println("The full data to render invoice "+context);
         // --- Generate PDF using openhtmltopdf ---
-        String htmlContent = templateEngine.process("gstinvoice", context);
+        String htmlContent = templateEngine.process(invoiceTemplate, context);
 
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.withHtmlContent(htmlContent, "/"); // The "/" is a base URI for relative paths
-            builder.toStream(baos);
-            builder.run();
-            return baos.toByteArray();
+        try (Playwright playwright = Playwright.create()) {
+            Browser browser = playwright.chromium().launch(); // Launch headless Chromium
+            Page page = browser.newPage();
+
+            // Set the HTML content
+            // This is perfect for your template since images are embedded (base64)
+            page.setContent(htmlContent);
+
+            // Generate the PDF
+            Page.PdfOptions pdfOptions = new Page.PdfOptions()
+                    .setFormat("A4")
+                    .setPrintBackground(true); // Crucial for your blue header style
+
+            byte[] pdfBytes = page.pdf(pdfOptions);
+
+            // Cleanup
+            browser.close();
+
+            return pdfBytes;
+
+        } catch (Exception e) {
+            // Re-throw or handle as per your app's needs
+            throw new Exception("Error generating PDF with Playwright", e);
         }
     }
 

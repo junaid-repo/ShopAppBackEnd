@@ -8,6 +8,7 @@ import com.management.shop.dto.UpdateUserDTO;
 import com.management.shop.entity.*;
 import com.management.shop.repository.*;
 import com.razorpay.Customer;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +20,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,24 +29,40 @@ import java.util.stream.Collectors;
 public class Utility {
 
     //<-- All @Autowired repositories remain the same -->
-    @Autowired private BillingGstRepository billGstRepo;
-    @Autowired private ShopBasicRepository shopBasicRepo;
-    @Autowired private ShopFinanceRepository shopFinanceRepo;
-    @Autowired private ShopBankRepository shopBankRepo;
-    @Autowired private ShopUPIRepository salesUPIRepo;
-    @Autowired private ShopInvoiceTermsRepository shopInvoiceTermsRepo;
-    @Autowired private ShopDetailsRepo shopDetailsRepo;
-    @Autowired private UserInfoRepository userinfoRepo;
-    @Autowired private ShopRepository shopRepo;
-    @Autowired private ProductRepository prodRepo;
-    @Autowired private BillingRepository billRepo;
-    @Autowired private ProductSalesRepository prodSalesRepo;
-    @Autowired private SalesPaymentRepository salesPaymentRepo;
+    @Autowired
+    private BillingGstRepository billGstRepo;
+    @Autowired
+    private ShopBasicRepository shopBasicRepo;
+    @Autowired
+    private ShopFinanceRepository shopFinanceRepo;
+    @Autowired
+    private ShopBankRepository shopBankRepo;
+    @Autowired
+    private ShopUPIRepository salesUPIRepo;
+    @Autowired
+    private ShopInvoiceTermsRepository shopInvoiceTermsRepo;
+    @Autowired
+    private ShopDetailsRepo shopDetailsRepo;
+    @Autowired
+    private UserInfoRepository userinfoRepo;
+    @Autowired
+    private ShopRepository shopRepo;
+    @Autowired
+    private ProductRepository prodRepo;
+    @Autowired
+    private BillingRepository billRepo;
+    @Autowired
+    private ProductSalesRepository prodSalesRepo;
+    @Autowired
+    private SalesPaymentRepository salesPaymentRepo;
     @Autowired
     private UserProfilePicRepo userProfilePicRepo;
 
     @Autowired
     private ShopRepository custRepo;
+
+    @Autowired
+    SelectedInvoiceRepository invoiceRepo;
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
@@ -84,10 +102,10 @@ public class Utility {
 
         byte[] shopLogoBytes = null;
         try {
-            shopLogoBytes=getShopLogo(username);
+            shopLogoBytes = getShopLogo(username);
         } catch (Exception e) {
-           System.out.println(e.getMessage());
-            shopLogoBytes=null;
+            System.out.println(e.getMessage());
+            shopLogoBytes = null;
         }
 
         List<String> terms = new ArrayList<>();
@@ -117,7 +135,7 @@ public class Utility {
                         .hsnCode(it.getHsn()) // Assuming HSN is not available
                         .quantity(qty)
                         .rate(rateBeforeTaxPerUnit)
-                        .taxAmount(it.getCgst()+it.getIgst()+it.getSgst())
+                        .taxAmount(it.getCgst() + it.getIgst() + it.getSgst())
                         .cgst(it.getCgst())
                         .igst(it.getIgst())
                         .sgst(it.getSgst())
@@ -146,13 +164,13 @@ public class Utility {
             });
         }
 
-       CustomerEntity custEntity= custRepo.findByIdAndUserId(order.getCustomerId(), username);
+        CustomerEntity custEntity = custRepo.findByIdAndUserId(order.getCustomerId(), username);
 
         // Using optional to avoid NullPointerException if userProfile is null
         return InvoiceData.builder()
                 .shopName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
                 .shopSlogan(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopSlogan())).orElse(""))
-                 // Assuming not implemented
+                // Assuming not implemented
                 .shopLogoText(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
                 .shopAddress(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopLocation())).orElse(""))
                 .shopEmail(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopEmail())).orElse(""))
@@ -175,7 +193,7 @@ public class Utility {
                 .customerShippingAddress("")
                 .customerPhone(toEmpty(order.getCustomerPhone()))
                 .customerGst(toEmpty(order.getCustomerGstNumber()))
-                .customerState(custEntity.getCity()+", "+custEntity.getState())
+                .customerState(custEntity.getCity() + ", " + custEntity.getState())
                 .products(products)
 
                 .receivedAmount(order.isPaid() ? order.getTotalAmount() : 0d)
@@ -324,7 +342,7 @@ public class Utility {
                 .build();
     }
 
-    public byte[] getShopLogo(String username)   {
+    public byte[] getShopLogo(String username) {
 
         System.out.println("entered getProfilePic with request  username " + username);
 
@@ -351,10 +369,10 @@ public class Utility {
 
     public Map<String, Object> gstBillingSanity() {
         Map<String, Object> response = new HashMap<>();
-        UpdateUserDTO userDetails=   getUserProfile(extractUsername());
+        UpdateUserDTO userDetails = getUserProfile(extractUsername());
         List<String> missingDetails = new ArrayList<>();
-        if(userDetails!=null){
-            if(userDetails.getShopState()==null){
+        if (userDetails != null) {
+            if (userDetails.getShopState() == null) {
                 response.put("success", false);
                 response.put("message", "Please set your State for proper gst calculation");
                 response.put("type", "error");
@@ -398,5 +416,47 @@ public class Utility {
 
         return response;
 
+    }
+
+    @Transactional
+    public Map<String, String> saveUserInvoiceTemplate(Map<String, Object> request) {
+
+        String selectedTemplate = request.get("selectedTemplateName").toString();
+
+        Map<String, String> response = new HashMap<>();
+        response.put("statusText", "success");
+
+        SelectedInvoiceEntity repoEntityCheck = invoiceRepo.findByUsername(extractUsername());
+
+        if(repoEntityCheck!=null){
+            invoiceRepo.updateSelectedInvoice(selectedTemplate, extractUsername(), LocalDateTime.now());
+        }
+        else {
+            var selectedInvoiceEntity = SelectedInvoiceEntity.builder().templateName(selectedTemplate).username(extractUsername()).updatedBy(extractUsername()).updatedDate(LocalDateTime.now()).build();
+
+            SelectedInvoiceEntity repoEntity = invoiceRepo.save(selectedInvoiceEntity);
+            if (repoEntity != null) {
+                response.put("statusText", "success");
+            } else {
+                response.put("statusText", "some error occured");
+            }
+
+        }
+
+
+
+        return response;
+    }
+
+
+
+    public Map<String, String> getInvoiceTemplate() {
+
+        SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(extractUsername());
+        Map<String, String> response = new HashMap<>();
+        String templateName = repoEntity.getTemplateName();
+        response.put("selectedTemplateName", templateName);
+
+        return response;
     }
 }

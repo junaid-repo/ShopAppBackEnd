@@ -17,5 +17,7 @@ public class SalesResponseDTO {
 	private Integer total;
     private String remarks;
 	private String 	status;
+    private Double paid;
+    private Integer reminderCount;
 	
 }

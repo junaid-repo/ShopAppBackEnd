@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title th:text="'Invoice - ' + ${invoiceId}">Tax Invoice</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --primary-blue: #3498db;
+            --light-blue-bg: #eaf3fb;
+            --text-dark: #333;
+            --text-light: #666;
+            --border-color: #eee;
+            --table-border-light: #e0e0e0;
+            --header-bg-light: #f5f5f5;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 13px;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .invoice-container {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px 30px;
+            box-sizing: border-box;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            vertical-align: top;
+            word-wrap: break-word;
+            text-align: left;
+            padding: 5px;
+        }
+
+        /* --- 1. Top Bar / Logo and Invoice Title --- */
+        .top-bar-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .shop-logo {
+            /* Now stacking logo and text */
+            text-align: left;
+        }
+        .shop-logo img {
+            max-width: 40px;
+            height: auto;
+            display: block; /* Make image block for margin */
+            margin-bottom: 5px; /* Space between image and text */
+        }
+        .shop-logo span {
+            font-size: 20px; /* Reduced size slightly */
+            font-weight: 700;
+            color: var(--primary-blue);
+            display: block; /* Ensure it takes its own line */
+        }
+        .invoice-main-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #000;
+        }
+
+        /* --- 2. Billed To/By & Invoice Details Section --- */
+        .address-details-section {
+            display: flex;
+            margin-top: 25px;
+        }
+        .billed-box {
+            width: 30%;
+            padding-right: 20px;
+            box-sizing: border-box;
+        }
+        .invoice-meta-box {
+            width: 40%;
+            padding-left: 20px;
+            box-sizing: border-box;
+            border-left: 1px dashed var(--border-color);
+        }
+        .billed-box h4, .invoice-meta-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+        .billed-box p {
+            margin: 0 0 4px 0;
+            line-height: 1.5;
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+        .meta-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .meta-item .label {
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        .meta-item .value {
+            font-weight: 600;
+            color: var(--text-dark);
+            text-align: right;
+        }
+
+        /* --- 3. Items Table --- */
+        .items-table {
+            margin-top: 30px;
+            border: 1px solid var(--table-border-light);
+        }
+        .items-table thead {
+            background-color: var(--header-bg-light);
+            color: var(--text-dark);
+        }
+        .items-table th, .items-table td {
+            padding: 10px 8px;
+            border: 1px solid var(--table-border-light);
+            font-size: 12px;
+        }
+        .items-table th {
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .items-table td {
+            line-height: 1.4;
+        }
+        .items-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- UPDATED Column widths --- */
+        .col-item-name { width: 30%; }
+        .col-qty { width: 8%; }
+        .col-rate { width: 12%; }
+        .col-amount { width: 15%; } /* Taxable Amount */
+        .col-tax { width: 20%; }    /* Tax Breakdown */
+        .col-total { width: 15%; }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+
+        small.item-description {
+            display: block;
+            color: var(--text-light);
+            margin-top: 4px;
+            font-size: 11px;
+        }
+
+        /* --- 4. Bottom Sections (Terms, Notes, Totals, Signature, Bank) --- */
+        .bottom-sections {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        .left-column {
+            width: 58%;
+            padding-right: 20px;
+            box-sizing: border-box;
+        }
+        .right-column {
+            width: 42%;
+            padding-left: 20px;
+            box-sizing: border-box;
+            border-left: 1px dashed var(--border-color);
+        }
+
+        .section-header {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+
+        /* Terms and Conditions */
+        .terms-conditions ul {
+            list-style: decimal;
+            padding-left: 18px;
+            margin: 0;
+        }
+        .terms-conditions li {
+            margin-bottom: 5px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-light);
+        }
+
+        /* Show Bank Details checkbox */
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: var(--text-dark);
+        }
+        .checkbox-row input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        /* Bank & Payment Details */
+        .bank-payment-details p {
+            margin: 0 0 4px 0;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-light);
+        }
+        .bank-payment-details strong {
+            color: var(--text-dark);
+        }
+        .bank-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px 30px;
+            margin-top: 15px;
+        }
+        .bank-details-grid .qr-code {
+            text-align: center;
+        }
+        .bank-details-grid .qr-code img {
+            width: 90px;
+            height: 90px;
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            background: #fff;
+        }
+        .bank-details-grid .qr-code p {
+            margin-top: 5px;
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+
+        /* Totals Summary */
+        .totals-summary {
+            background-color: var(--header-bg-light);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .totals-summary .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .totals-summary .summary-row:last-of-type {
+            border-bottom: none;
+        }
+        .totals-summary .label {
+            font-size: 13px;
+            color: var(--text-light);
+        }
+        .totals-summary .value {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .totals-summary .total-due-row {
+            background-color: var(--primary-blue);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .totals-summary .total-due-row .label,
+        .totals-summary .total-due-row .value {
+            color: #fff;
+        }
+        .invoice-in-words {
+            font-size: 12px;
+            color: var(--text-light);
+            padding: 10px 0;
+            line-height: 1.6;
+        }
+        .invoice-in-words strong {
+            display: block;
+            color: var(--text-dark);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        /* Authorized Signature */
+        .signature-section {
+            text-align: right;
+            margin-top: 40px;
+        }
+        .signature-section p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        .signature-section strong {
+            display: block;
+            margin-top: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .signature-line img {
+            max-width: 150px;
+            height: auto;
+            margin-top: -15px;
+            margin-bottom: -10px;
+        }
+
+        /* --- 5. Final Contact Footer --- */
+        .final-contact-footer {
+            margin-top: 40px;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-light);
+            border-top: 1px solid var(--border-color);
+        }
+        .final-contact-footer strong {
+            color: var(--primary-blue);
+            font-weight: 600;
+        }
+
+        /* Page break controls for PDF */
+        .terms-conditions, .bank-payment-details,
+        .totals-summary, .signature-section, .final-contact-footer {
+            page-break-inside: avoid;
+        }
+        .items-table {
+            page-break-inside: auto;
+        }
+        .items-table tbody tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+    </style>
+</head>
+
+<body>
+<div class="invoice-container">
+
+
+    <div class="top-bar-section">
+        <div class="shop-logo">
+            <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
+            <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGO</span>
+            <span style="font-size: 16px; color: #555; margin-top: 4px;" th:text="${shopName}">Shop Name</span>
+        </div>
+        <h1 class="invoice-main-title">Tax Invoice</h1>
+    </div>
+
+
+    <div class="address-details-section">
+        <div class="billed-box">
+            <h4>Billed By</h4>
+            <p th:text="${shopName}">Foobar Labs</p>
+            <p th:text="${shopAddress}">46, Raghavendra Dham Society</p>
+            <p th:text="${shopState}">Surat, Gujarat, India - 394210</p>
+        </div>
+
+        <div class="billed-box">
+            <h4>Billed To</h4>
+            <p th:text="${customerName}">Studio Den</p>
+            <p th:text="${customerState}">Karnataka, India - 560055</p>
+            <p th:if="${customerGstNumber}">GST No: <span th:text="${customerGstNumber}">29VCIC1234K226</span></p>
+            <p th:if="${panNumber}">PAN No: <span th:text="${panNumber}">VCIC89234K</span></p>
+        </div>
+
+        <div class="invoice-meta-box">
+            <div class="meta-item">
+                <span class="label">Invoice No:</span>
+                <span class="value" th:text="${invoiceId}">003</span>
+            </div>
+            <div class="meta-item">
+                <span class="label">Invoice Date:</span>
+                <span class="value" th:text="${orderedDate}">FEB 19, 2020</span>
+            </div>
+        </div>
+    </div>
+
+
+    <table class="items-table">
+        <thead>
+        <tr>
+            <th class="col-item-name">Item #/Item description</th>
+            <th class="col-qty text-right">Quantity</th>
+            <th class="col-rate text-right">Rate</th>
+            <th class="col-amount text-right">Amount</th> <th class="col-tax text-right">Tax</th>       <th class="col-total text-right">Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="product : ${products}">
+            <td>
+                <span th:text="${product['productName']}"></span>
+                <small class="item-description" th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}" th:text="${product['description']}"></small>
+            </td>
+            <td class="text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}">10</td>
+            <td class="text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}">₹ 10,000</td>
+            <td class="text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}">₹ 10,000</td>
+            <td class="text-right">
+                <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+                <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                <br th:if="${product['sgstAmount'] > 0}" />
+                <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+            </td>
+            <td class="text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}">₹ 11,800</td>
+        </tr>
+
+        </tbody>
+    </table>
+
+
+    <div class="bottom-sections">
+        <div class="left-column">
+            <div class="terms-conditions">
+                <h4 class="section-header">Terms And Conditions</h4>
+                <ul>
+                    <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
+                </ul>
+            </div>
+
+            <div class="bank-payment-details" style="margin-top: 30px;">
+                <h4 class="section-header">Bank & Payment Details</h4>
+                <div class="bank-details-grid">
+                    <div>
+                        <p><strong>Account Holder:</strong> <span th:text="${bankAccountName}">Harveys Sandeep Ramachandra</span></p>
+                        <p><strong>Account number:</strong> <span th:text="${bankAccountNumber}">542745218203</span></p>
+                        <p><strong>IFSC:</strong> <span th:text="${bankIfscCode}">SBIN0019789</span></p>
+                        <p><strong>Account Type:</strong> Savings</p>
+                        <p><strong>Bank Name:</strong> <span th:text="${bankName}">State Bank of India</span></p>
+                    </div>
+                    <div class="qr-code">
+                        <p style="font-weight: 600; color: var(--text-dark); margin-bottom: 5px;">UPI - Scan To Pay</p>
+                        <img th:if="${qrCodeBase64}" th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
+                        <p th:text="${upiId}">harveesandeep@okicbc</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="right-column">
+            <div class="totals-summary">
+                <div class="summary-row">
+                    <span class="label">Taxable Amount</span>
+                    <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 0, 'POINT')}">₹ 56,000</span>
+                </div>
+                <div class="summary-row" th:each="gst : ${gstSummary}">
+                    <span class="label" th:text="${gst['type']} + ' @' + ${gst['percentage']} + '%'"></span>
+                    <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
+                </div>
+
+                <div class="total-due-row">
+                    <span class="label">Total Due Amount</span>
+                    <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">₹ 142,488</span>
+                </div>
+            </div>
+
+            <div class="invoice-in-words">
+                <strong>Invoice in Words:</strong>
+                <span th:text="${grandTotalInWords}">Forty Two Thousand Four Hundred and Eighty Eight</span>
+            </div>
+
+            <div class="signature-section">
+                <p>Authorized Signature</p>
+                <div class="signature-line">
+                    <img th:if="${shopSignatureBase64}" th:src="'data:image/png;base64,' + ${shopSignatureBase64}" alt="Signature"/>
+                </div>
+                <strong th:text="${shopAccountName}">Sandeep Maurya</strong>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="final-contact-footer">
+        For any enquiries, email us on <strong><span th:text="${shopEmail}">info@foobarlabs.com</span></strong> or call us on <strong><span th:text="${shopPhone}">+91 98765-43210</span></strong>
+    </div>
+
+</div>
+</body>
+</html>

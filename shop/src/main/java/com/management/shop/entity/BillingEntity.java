@@ -31,11 +31,16 @@ public class BillingEntity {
 	private Integer subTotalAmount;
 	private Integer totalAmount;
     private Double discountPercent;
-	private Integer customerId;
+    private Double payingAmount;
+    private Double remainingAmount;
+    private Integer customerId;
 	private Integer unitsSold;
     private String remarks;
     private Double totalProfitOnCP;
+    private Integer dueReminderCount;
 	private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
+    private String updatedBy;
     private String userId;
 
 	

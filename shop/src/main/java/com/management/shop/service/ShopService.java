@@ -143,6 +143,9 @@ public class ShopService {
     BillingProcess billingProcess;
 
     @Autowired
+    SelectedInvoiceRepository invoiceRepo;
+
+    @Autowired
     Utility utils;
 
     private final Random random = new Random();
@@ -513,6 +516,9 @@ public class ShopService {
         }
         var billingEntity = BillingEntity.builder().customerId(request.getSelectedCustomer().getId())
                 .unitsSold(unitsSold).taxAmount(request.getTax()).userId(extractUsername()).totalAmount(request.getTotal())
+                .payingAmount(request.getPayingAmount())
+                .dueReminderCount(0)
+                .remainingAmount(request.getRemainingAmount())
                 .discountPercent(request.getDiscountPercentage()).remarks(request.getRemarks()).subTotalAmount(request.getTotal() - request.getTax()).createdDate(LocalDateTime.now()).build();
 
         BillingEntity billResponse = billRepo.save(billingEntity);
@@ -590,10 +596,23 @@ public class ShopService {
             if (request.getPaymentMethod() != null) {
                 paymentMethod = request.getPaymentMethod();
             }
+            String payingStatus="Paid";
+
+            if(request.getTotal()>request.getPayingAmount()){
+                payingStatus="SemiPaid";
+            }
+            if(request.getPayingAmount()==0){
+                payingStatus="UnPaid";
+            }
+
+
 
             var paymentEntity = PaymentEntity.builder().billingId(billResponse.getId()).createdDate(LocalDateTime.now())
-                    .paymentMethod(paymentMethod).status("Paid").tax(request.getTax()).userId(extractUsername())
+                    .paymentMethod(paymentMethod).status(payingStatus).tax(request.getTax()).userId(extractUsername())
                     .orderNumber(billResponse.getInvoiceNumber())
+                    .paid(request.getPayingAmount())
+                    .toBePaid(request.getRemainingAmount())
+                    .reminderCount(0)
                     .subtotal(request.getTotal() - request.getTax()).total(request.getTotal()).build();
 
             salesPaymentRepo.save(paymentEntity);
@@ -714,6 +733,9 @@ public class ShopService {
         if ("customer".equalsIgnoreCase(sortField)) {
             sortField = "customer_id";
         }
+        if ("paid".equalsIgnoreCase(sortField)) {
+            sortField = "paying_amount";
+        }
 
         Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
@@ -747,7 +769,9 @@ public class ShopService {
                             .date(obj.getCreatedDate().toString())
                             .id(obj.getInvoiceNumber())
                             .total(obj.getTotalAmount())
+                            .paid(obj.getPayingAmount())
                             .status(paymentStatus)
+                            .reminderCount(obj.getDueReminderCount())
                             .build();
                 })
                 .toList();
@@ -890,13 +914,18 @@ public class ShopService {
         paymentList.sort(Comparator.comparing(PaymentEntity::getCreatedDate).reversed());
         List<PaymentDetails> response = new ArrayList<>();
         paymentList.stream().forEach(obj -> {
-
+            //userProfile.getGstNumber() != null ? userProfile.getGstNumber() : "sample gst number"
             response.add(PaymentDetails.builder()
                     .id(obj.getPaymentReferenceNumber())
                     .amount(obj.getTotal())
                     .date(String.valueOf(obj.getCreatedDate()))
                     .saleId(obj.getOrderNumber())
-                    .method(obj.getPaymentMethod()).build());
+                            .reminderCount(obj.getReminderCount())
+                    .method(obj.getPaymentMethod())
+                            .paid(obj.getPaid()!=null?obj.getPaid():0d)
+                            .due(obj.getToBePaid()!=null?obj.getToBePaid():0d)
+                            .status(obj.getStatus())
+                    .build());
         });
 
         return response;
@@ -1185,7 +1214,18 @@ public class ShopService {
 
         InvoiceData invoiceData=utils.getFullInvoiceDetails(extractUsername(), orderId);
 
-        byte[] response =pdfgstutil.generateGSTInvoice(invoiceData);
+        String invoiceTemplateName="gstinvoice";
+
+        try {
+            SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(extractUsername());
+            if(repoEntity!=null){
+                invoiceTemplateName=repoEntity.getTemplateName();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] response =pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName);
         System.out.println("The full invoice Data is "+invoiceData);
 
 
@@ -2060,4 +2100,74 @@ public class ShopService {
         return response;
     }
 
+    public Map<String, String> sendPaymentReminder(Map<String, Object> request) {
+
+        String orderNo=(String)request.get("orderId");
+
+       BillingEntity billDetails= billRepo.findByInvoiceNumber(orderNo);
+
+        CustomerEntity customer=   shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername());
+
+        Integer totalAmount=billDetails.getTotalAmount();
+        Double paidAmount=billDetails.getPayingAmount();
+        Double dueAmout=billDetails.getRemainingAmount();
+
+        String customerName=customer.getName();
+        String customerEmail=customer.getEmail();
+        String message=(String)request.get("message");
+
+      String htmlTemplate=emailTemplate.getPaymentReminderEmailContent(orderNo, totalAmount, paidAmount,dueAmout,customerName, message);
+
+      Map<String, String> response=new HashMap<>();
+      response.put("status", "success");
+
+        ShopBasicEntity shopBasic= shopBasicRepo.findByUserId(extractUsername());
+
+        try {
+            CompletableFuture<String> futureResult =  email.sendEmailForPaymentReminder(customerEmail, orderNo, customerName, htmlTemplate, shopBasic.getShopName());
+
+            billRepo.updateReminderCount(orderNo, extractUsername(), LocalDateTime.now());
+            salesPaymentRepo.updateReminderCount(orderNo, extractUsername(), LocalDateTime.now());
+            salesCacheService.evictUserSales(extractUsername());
+            salesCacheService.evictUserPayments(extractUsername());
+
+        } catch (MailjetException e) {
+            throw new RuntimeException(e);
+        } catch (MailjetSocketTimeoutException e) {
+            throw new RuntimeException(e);
+        }
+
+        return null;
+    }
+
+    @Transactional
+    public Map<String, Object> updateDuePayments(Map<String, Object> request) {
+
+        String orderNo=(String)request.get("invoiceId");
+        Double amount= Double.valueOf((Integer)request.get("amount"));
+
+
+
+        try {
+            billRepo.updateDuePayment(orderNo, extractUsername(), LocalDateTime.now(), amount);
+            salesPaymentRepo.updateDueAmount(orderNo, extractUsername(), LocalDateTime.now(), amount);
+            salesCacheService.evictUserSales(extractUsername());
+            salesCacheService.evictUserPayments(extractUsername());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        PaymentEntity paymentDetails=salesPaymentRepo.findByOrderNumber(orderNo);
+
+      Map<String, Object> response=new HashMap<>();
+
+      response.put("paid",paymentDetails.getPaid());
+        response.put("due",paymentDetails.getToBePaid());
+        response.put("status",paymentDetails.getStatus());
+
+        log.info("The response updateDuePayments is "+response);
+
+
+        return response;
+    }
 }

@@ -82,6 +82,41 @@ public class EmailSender {
 
 	    }
 
+    public CompletableFuture<String> sendEmailForPaymentReminder(String emailId, String orderNo, String name, String htmlContent, String shopName) throws MailjetException, MailjetSocketTimeoutException {
+
+
+
+
+        String base64Content = "";
+
+
+        MailjetClient client;
+        MailjetRequest request;
+        MailjetResponse response;
+        client = new MailjetClient("3e292e1e3e850abe850793dbb22554b9",
+                "2fa15000afb8c7ad2cd676c9828bcd5e", new ClientOptions("v3.1"));
+        request = new MailjetRequest(Emailv31.resource)
+                .property(Emailv31.MESSAGES, new JSONArray()
+                        .put(new JSONObject()
+                                .put(Emailv31.Message.FROM, new JSONObject().put("Email", "email@clearbill.store")
+                                        .put("Name", shopName))
+                                .put(Emailv31.Message.TO,
+                                        new JSONArray().put(
+                                                new JSONObject().put("Email", emailId).put(shopName, "Hello")))
+                                .put(Emailv31.Message.SUBJECT, "Payment Reminder for Order# "+orderNo)
+                                .put(Emailv31.Message.TEXTPART, "Dear Mr."+name+" Please address this")
+                                .put(Emailv31.Message.HTMLPART, htmlContent
+                                        + "\n"
+                                        + "\n"
+                                        + "")));
+
+        response = client.post(request);
+        System.out.println(response.getStatus());
+        System.out.println(response.getData());
+        return CompletableFuture.completedFuture(response.getData().toString());
+
+    }
+
     public CompletableFuture<String> sendEmail(String emailId, String orderId, String name, byte[] pdfStream, String htmlContent, String shopName) throws MailjetException, MailjetSocketTimeoutException {
         // Assume you have a ByteArrayOutputStream named 'pdfStream'
         // This stream would contain the PDF data, for example, from a PDF generator library.

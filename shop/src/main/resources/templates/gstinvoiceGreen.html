@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title th:text="'Invoice - ' + ${invoiceId}">Tax Invoice</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 5mm; /* page margin */
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px; /* Smaller font to match image */
+            color: #000;
+            width: 100%;
+            margin: 0;
+            background: #fff;
+        }
+
+        .invoice-container {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        /* Use tables for all layouts for PDF compatibility */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed; /* Ensures fixed column widths */
+        }
+
+        th, td {
+            vertical-align: top;
+            word-wrap: break-word;
+            text-align: left;
+            padding: 4px;
+        }
+
+        /* General border style */
+        .bordered, .bordered th, .bordered td {
+            border: 1px solid #000;
+        }
+
+        .no-border, .no-border th, .no-border td {
+            border: none !important;
+        }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .text-bold { font-weight: bold; }
+
+        /* --- 1. Header --- */
+        .header-banner {
+            background-color: #008C76; /* Teal color */
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .header-contact p {
+            margin: 0;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+        .header-logo {
+            text-align: right;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .header-logo img {
+            max-width: 120px; /* Adjust as needed */
+            max-height: 60px;
+        }
+        .header-logo p {
+            margin: 0;
+            font-size: 12px;
+            font-weight: normal;
+        }
+
+        /* --- 2. Title Section --- */
+        .title-table {
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            margin-top: 10px;
+        }
+        .title-table td {
+            padding: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .title-table .invoice-title {
+            font-size: 18px;
+            text-align: center;
+        }
+
+        /* --- 3. Details Section --- */
+        .details-table {
+            margin-top: 10px;
+        }
+        .details-table > tbody > tr > td {
+            width: 50%;
+            padding: 0;
+        }
+        .details-table .inner-table {
+            border: 1px solid #000;
+            height: 100%;
+        }
+        .details-table .inner-table th {
+            background-color: #f2f2f2;
+            padding: 6px;
+            font-size: 13px;
+            border-bottom: 1px solid #000;
+        }
+        .details-table .inner-table td {
+            padding: 6px;
+            height: 20px; /* Set a fixed height for rows */
+        }
+        .details-table .customer-details {
+            border-right: 1px solid #000;
+        }
+        .details-table .invoice-details {
+            border-left: none;
+        }
+        .details-table .label {
+            font-weight: bold;
+            display: inline-block;
+            width: 80px; /* For alignment */
+        }
+
+        /* --- 4. Items Table --- */
+        .items-table {
+            margin-top: 10px;
+        }
+        .items-table thead th {
+            background-color: #333;
+            color: #fff;
+            padding: 8px;
+            font-size: 13px;
+            border: 1px solid #000;
+        }
+        .items-table tbody td {
+            padding: 6px;
+            font-size: 13px;
+        }
+        /* Create the large empty space */
+
+
+        .items-table tfoot td {
+            padding: 8px;
+            font-weight: bold;
+            font-size: 13px;
+            border-top: 2px solid #000;
+        }
+
+        /* Column widths based on your old template, slightly adjusted */
+        .col-sr { width: 5%; }
+        .col-name { width: 25%; }
+        .col-hsn { width: 8%; }
+        .col-rate { width: 10%; }
+        .col-qty { width: 8%; }
+        .col-amount { width: 12%; }
+        .col-tax { width: 20%; }
+        .col-total { width: 12%; }
+
+        small.desc {
+            display: block;
+            color: #555;
+            margin-top: 4px;
+            font-size: 11px;
+            font-style: italic;
+        }
+
+        /* --- 5. Footer Section --- */
+        .footer-table {
+            margin-top: 5px;
+        }
+        .footer-table > tbody > tr > td {
+            width: 65%;
+            padding: 0;
+        }
+        .footer-table > tbody > tr > td:last-child {
+            width: 35%;
+            padding: 0;
+        }
+
+        .footer-left .inner-table td,
+        .footer-right .inner-table td {
+            padding: 6px;
+        }
+
+        .footer-left .section-header,
+        .footer-right .section-header {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            padding: 6px;
+            border-bottom: 1px solid #000;
+        }
+
+        .bank-details .label {
+            font-weight: bold;
+            display: inline-block;
+            width: 110px;
+        }
+        .terms ul {
+            padding-left: 15px;
+            margin: 0;
+        }
+        .terms li {
+            margin-bottom: 3px;
+            font-size: 11px;
+        }
+
+        .totals-summary .label {
+            font-weight: 500;
+        }
+        .totals-summary .total-row td {
+            font-weight: bold;
+            background-color: #f2f2f2;
+            font-size: 14px;
+        }
+
+        .signature-area {
+            padding: 10px 6px;
+            text-align: right;
+        }
+        .signature-area p {
+            margin: 0;
+            font-size: 11px;
+        }
+
+    </style>
+</head>
+
+<body>
+<div class="invoice-container">
+
+    <table class="layout-table no-border">
+        <tr>
+            <td>
+                <div class="header-banner" th:text="${shopName}">GUJARAT FREIGHT TOOLS</div>
+                <div class="header-contact">
+                    <p style="font-weight: bold; font-size: 14px; margin-top: 5px;" th:text="${shopSlogan}">Manufacturing & Supply</p>
+                    <p th:text="${shopAddress}">Shop Address</p>
+                </div>
+            </td>
+            <td style="width: 35%;" class="text-right">
+                <div class="header-logo">
+                    <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
+                    <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGOTEXT</span>
+                </div>
+                <div class="header-contact" style="margin-top: 20px;">
+                    <p th:text="'Tel : ' + ${shopPhone}">Tel : 079-25820309</p>
+                    <p th:text="'Email : ' + ${shopEmail}">Email : info@gfttools.com</p>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="layout-table title-table">
+        <tr>
+            <td style="width: 33%;" th:text="'GSTIN : ' + ${gstNumber}">GSTIN : 24HDE7487RE5RT4</td>
+            <td style="width: 34%;" class="invoice-title">TAX INVOICE</td>
+            <td style="width: 33%;" class="text-right">ORIGINAL FOR RECIPIENT</td>
+        </tr>
+    </table>
+
+    <table class="layout-table details-table">
+        <tr>
+            <td>
+                <table class="inner-table customer-details">
+                    <thead>
+                    <tr><th colspan="2">Customer Detail</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td style="width: 25%;"><span class="label">M/S</span></td>
+                        <td style="width: 75%;" th:text="${customerName}">Kevin Motors</td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">Address</span></td>
+                        <td th:text="${customerState}">Chandani Chok, New Delhi...</td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">PHONE</span></td>
+                        <td th:text="${customerPhone}">9372456566</td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">GSTIN</span></td>
+                        <td th:text="${customerGstNumber}">07AOLQJ1256D1ZG</td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">Place of Supply</span></td>
+                        <td th:text="${customerState}">Delhi ( 07 )</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </td>
+            <td>
+                <table class="inner-table invoice-details">
+                    <thead>
+                    <tr>
+                        <th colspan="4" style="border-left: 1px solid #000;"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td style="width: 25%;"><span class="label">Invoice No.</span></td>
+                        <td style="width: 25%;" class="text-bold" th:text="${invoiceId}">GST112020</td>
+                        <td style="width: 25%;"><span class="label">Invoice Date</span></td>
+                        <td style="width: 25%;" th:text="${orderedDate}">04-Mar-2020</td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">Challan No.</span></td>
+                        <td></td>
+                        <td><span class="label">Challan Date</span></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">P.O. No.</span></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">Delivery Date</span></td>
+                        <td></td>
+                        <td><span class="label">Reverse Charge</span></td>
+                        <td>No</td>
+                    </tr>
+
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="layout-table items-table bordered">
+        <thead>
+        <tr>
+            <th class="col-sr">Sr. No.</th>
+            <th class="col-name">Name of Product / Service</th>
+            <th class="col-hsn">HSN / SAC</th>
+            <th class="col-qty text-right">Qty</th>
+            <th class="col-rate text-right">Rate</th>
+            <th class="col-amount text-right">Taxable Value</th>
+            <th class="col-tax text-center">TAX</th>
+            <th class="col-total text-right">Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="product, iterStat : ${products}">
+            <td class="text-center" th:text="${iterStat.count}">1</td>
+            <td>
+                <span th:text="${product['productName']}"></span>
+                <small class="desc" th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}" th:text="${product['description']}"></small>
+            </td>
+            <td class="text-center" th:text="${product['hsnCode']}"></td>
+            <td class="text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ' Pcs'"></td>
+            <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right">
+                <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+                <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                <br th:if="${product['sgstAmount'] > 0}" />
+                <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+            </td>
+            <td class_ ="text-right" th:text="' ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
+        </tr>
+
+
+        </tbody>
+        <tfoot>
+        <tr>
+            <td colspan="3" class="text-right">Total</td>
+            <td class="text-right" th:text="${#aggregates.sum(products.![quantity])}"></td>
+            <td></td>
+            <td class="text-right" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 0, 'POINT')}"></td>
+            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
+        </tr>
+        </tfoot>
+    </table>
+
+    <table class="layout-table footer-table no-border">
+        <tr>
+            <td>
+                <table class="inner-table bordered">
+                    <tr>
+                        <td class="section-header">Total in words</td>
+                    </tr>
+                    <tr>
+                        <td class="text-bold" th:text="${grandTotalInWords}">...</td>
+                    </tr>
+                    <tr>
+                        <td class="section-header">Bank Details</td>
+                    </tr>
+                    <tr>
+                        <td class="bank-details">
+                            <p><span class="label">Bank Name</span> <span th:text="${bankName}"></span></p>
+                            <p><span class="label">Branch Name</span> </p>
+                            <p><span class="label">Bank Account Number</span> <span th:text="${bankAccountNumber}"></span></p>
+                            <p><span class="label">Bank Branch IFSC</span> <span th:text="${bankIfscCode}"></span></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="section-header">Terms and Conditions</td>
+                    </tr>
+                    <tr>
+                        <td class="terms">
+                            <ul>
+                                <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+
+            <td>
+                <table class="inner-table bordered">
+                    <tbody class="totals-summary">
+                    <tr>
+                        <td class="label">Taxable Amount</td>
+                        <td class="text-right text-bold" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    <tr th:each="gst : ${gstSummary}">
+                        <td class="label" th:text="'Add: ' + ${gst['type']} + ' @' + ${gst['percentage']} + '%'">Add: IGST</td>
+                        <td class="text-right text-bold" th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Total Tax</td>
+                        <td class="text-right text-bold" th:text="${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="label">Total Amount After Tax</td>
+                        <td class="text-right" th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
+                    </tr>
+                    </tbody>
+                    <tbody>
+                    <tr>
+                        <td colspan="2" style="border-top: 1px solid #000; padding: 6px;">
+                            GST Payable on Reverse Charge: <strong>N.A.</strong>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="2" class="signature-area">
+                            <strong style="font-size: 14px;" th:text="'For ' + ${shopName}">For Gujarat Freight Tools</strong>
+                            <br /><br /><br /><br />
+                            <p>This is computer generated</p>
+                            <p>invoice no signature required.</p>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</div>
+</body>
+</html>

@@ -50,4 +50,17 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
             + "ORDER BY MONTH(bp.created_date)", nativeQuery = true)
     List<PaymentEntity> getPaymentList(@Param("fromDate") LocalDateTime fromDate,
                                            @Param("toDate") LocalDateTime toDate, @Param("userId") String userId);
+
+
+    @Transactional
+    @Modifying
+    @Query(value="update billing_payments set  reminder_count= reminder_count+1, updated_by=?2, updated_date=?3 where order_number=?1 and user_id=?2", nativeQuery = true)
+    void updateReminderCount(String orderNo, String username, LocalDateTime updatedDate);
+
+    @Transactional
+    @Modifying
+    @Query(value = "UPDATE billing_payments SET paid = paid + ?4, to_be_paid = to_be_paid - ?4, status = CASE WHEN (to_be_paid - ?4) <= 0 THEN 'Paid' ELSE 'SemiPaid' END, updated_by = ?2, updated_date = ?3 WHERE order_number = ?1 AND user_id = ?2", nativeQuery = true)
+    void updateDueAmount(String orderNo, String username, LocalDateTime updatedDate, Double payingAmount);
+
+    PaymentEntity findByOrderNumber(String orderNo);
 }

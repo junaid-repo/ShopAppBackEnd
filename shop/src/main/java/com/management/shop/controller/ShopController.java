@@ -888,4 +888,52 @@ public class ShopController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("api/shop/user/save/user/invoiceTemplate")
+    public ResponseEntity<Map<String, String>> saveInvoiceTempalteForUser(@RequestBody Map<String, Object> request) {
+
+        // Call the service to perform the business logic
+
+
+        // Create a response structure that matches what your frontend expects (data.data)
+        Map<String, String> response = new HashMap<>();
+
+        response=util.saveUserInvoiceTemplate(request);
+
+
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("api/shop/user/get/user/invoiceTemplate")
+    public ResponseEntity<Map<String, String>> getInvoiceTempalteForUser() {
+
+        // Call the service to perform the business logic
+
+
+        // Create a response structure that matches what your frontend expects (data.data)
+        Map<String, String> response = new HashMap<>();
+
+        response=util.getInvoiceTemplate();
+
+
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("api/shop/payment/send-reminder")
+    ResponseEntity<Map<String, String>> sendPaymentReminders(@RequestBody Map<String, Object> request){
+
+        Map<String, String> response= serv.sendPaymentReminder(request);
+
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("api/shop/payment/update")
+    ResponseEntity<Map<String, Object>> saveDuePayments(@RequestBody Map<String, Object> request){
+
+        Map<String, Object> response= serv.updateDuePayments(request);
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }

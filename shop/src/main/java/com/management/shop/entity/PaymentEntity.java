@@ -33,10 +33,15 @@ public class PaymentEntity {
 	private Integer tax;
 	private Integer subtotal;
 	private Integer total;
+    private Double paid;
+    private Double toBePaid;
 	private String paymentReferenceNumber;
 	private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
+    private String updatedBy;
     private String userId;
     private String orderNumber;
+    private Integer reminderCount;
 	
 	@PostPersist
     public void generateOrderNumberOnPersist() {

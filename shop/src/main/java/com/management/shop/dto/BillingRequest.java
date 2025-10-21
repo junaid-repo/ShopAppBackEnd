@@ -21,6 +21,8 @@ public class BillingRequest {
 	//private Long subTotal;
     @JsonProperty("sellingSubtotal")
 	private Integer total;
+    private Double payingAmount;
+    private Double remainingAmount;
     private Double discountPercentage;
     private String remarks;
 	private String paymentMethod;

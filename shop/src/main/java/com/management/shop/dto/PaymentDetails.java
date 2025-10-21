@@ -16,5 +16,9 @@ public class PaymentDetails {
 	private String date;
 	private Integer amount;
 	private String method;
+    private Double paid;
+    private Double due;
+    private String status;
+    private Integer reminderCount;
 
 }

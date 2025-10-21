@@ -292,6 +292,132 @@ public class OrderEmailTemplate {
 
         return finalHtml;
     }
+    public String getPaymentReminderEmailContent(String orderNo, double totalAmount, double paidAmount, double dueAmount,
+                                                 String customerName, String customMessage) {
+
+        // 1. Format the date and time for display
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+        String formattedDate = LocalDateTime.now().format(formatter);
+
+        // 2. Format currency
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
+        String formattedTotal = currencyFormatter.format(totalAmount);
+        String formattedPaid = currencyFormatter.format(paidAmount);
+        String formattedDue = currencyFormatter.format(dueAmount);
+
+        // 3. Determine status and styling
+        String status = (paidAmount > 0) ? "Partially Paid" : "Payment Due";
+        String statusClass = "status-due"; // A new CSS class for outstanding payments
+
+        // 4. Handle optional custom message
+        String finalMessage = (customMessage == null || customMessage.trim().isEmpty())
+                ? "This is a friendly reminder that the following invoice has an outstanding balance."
+                : customMessage;
+
+        // 5. Define the HTML template
+        String htmlTemplate = """
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>Payment Reminder</title>
+                  <style>
+                    body { margin: 0; padding: 0; background-color: #f7f8fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+                    .email-wrapper { width: 100%; background-color: #f7f8fa; padding: 25px 0; }
+                    .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+                    .header { background: linear-gradient(135deg, #007bff 0%, #2575fc 100%); color: #ffffff; padding: 35px; text-align: center; }
+                    .header h1 { margin: 0; font-size: 26px; font-weight: 600; }
+                    .content { padding: 35px; color: #5a6474; line-height: 1.6; font-size: 14px; }
+                    .content h2 { font-size: 20px; color: #212529; margin-top: 0; font-weight: 600; }
+                    .details-table { width: 100%; margin: 25px 0; border-collapse: collapse; }
+                    .details-table td { padding: 8px 0; font-size: 14px; border-bottom: 1px solid #e9ecef; }
+                    .details-table td strong { color: #343a40; }
+                    
+                    /* Changed border color to red for emphasis */
+                    .summary-box { background-color: #f8f9fa; border-left: 4px solid #c62828; padding: 15px; margin: 25px 0; font-style: italic; color: #495057; }
+                    
+                    .action-button { display: inline-block; background-color: #007bff; color: #ffffff; padding: 12px 25px; margin-top: 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; }
+                    .status-box { padding: 12px; border-radius: 8px; text-align: center; font-weight: 600; margin-top: 25px; font-size: 13px; }
+                    
+                    /* New class for due/unpaid status */
+                    .status-due { background-color: #fbebee; color: #c62828; border: 1px solid #f0c7c7; }
+                    
+                    .footer { background-color: #f8f9fa; padding: 25px; text-align: center; font-size: 12px; color: #868e96; }
+                    @media screen and (max-width: 600px) {
+                      .content { padding: 25px; }
+                      .header { padding: 30px; }
+                      .header h1 { font-size: 24px; }
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div class="email-wrapper">
+                    <div class="email-container">
+                      <div class="header">
+                        <h1>Payment Reminder</h1>
+                      </div>
+                      <div class="content">
+                        <h2>Hello {{customerName}},</h2>
+                        <p>This is a friendly reminder regarding an outstanding payment for your invoice. Please find the details below.</p>
+                        
+                        <table class="details-table">
+                          <tr>
+                            <td><strong>Invoice Number:</strong></td>
+                            <td style="text-align: right;">{{orderNo}}</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Reminder Date:</strong></td>
+                            <td style="text-align: right;">{{reminderDate}}</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Total Amount:</strong></td>
+                            <td style="text-align: right;">{{totalAmount}}</td>
+                          </tr>
+                          <tr>
+                            <td><strong>Amount Paid:</strong></td>
+                            <td style="text-align: right;">{{paidAmount}}</td>
+                          </tr>
+                          <tr style="font-weight: bold; font-size: 16px;">
+                            <td><strong>Amount Due:</strong></td>
+                            <td style="text-align: right; color: #c62828;">{{dueAmount}}</td>
+                          </tr>
+                        </table>
+    
+                        <p style="margin-top: 30px; font-weight: 600; color: #343a40;">Message from our team:</p>
+                        <div class="summary-box">
+                          {{customMessage}}
+                        </div>
+    
+                        <div class="status-box {{statusClass}}">
+                          Payment Status: <strong>{{status}}</strong>
+                        </div>
+                        
+                       
+                      </div>
+                      <div class="footer">
+                        <p>This is an automated notification. Please contact us if you have any questions.</p>
+                      </div>
+                    </div>
+                  </div>
+                </body>
+                </html>
+                """;
+
+        // 6. Replace placeholders with actual data
+        String finalHtml = htmlTemplate
+                .replace("{{customerName}}", customerName)
+                .replace("{{orderNo}}", orderNo)
+                .replace("{{reminderDate}}", formattedDate)
+                .replace("{{totalAmount}}", formattedTotal)
+                .replace("{{paidAmount}}", formattedPaid)
+                .replace("{{dueAmount}}", formattedDue)
+                .replace("{{customMessage}}", finalMessage)
+                .replace("{{status}}", status)
+                .replace("{{statusClass}}", statusClass);
+
+        return finalHtml;
+    }
     public String generateSupportEmailHtml(String username, String subject, String body) {
 
         // 1. Format the current date and time for display

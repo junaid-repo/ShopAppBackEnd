@@ -84,7 +84,7 @@
         }
         /* Addresses */
         .customer-addresses {
-            margin-bottom: 30px;
+            margin-bottom: 10px;
         }
         .customer-addresses td {
             width: 50%;
@@ -142,7 +142,7 @@
         }
         /* Footer */
         .invoice-footer {
-            margin-top: 30px;
+            margin-top: 10px;
         }
         .footer-left, .footer-right {
             vertical-align: top;
@@ -170,10 +170,12 @@
         }
 
         /* Each row within the summary */
+        /* Each row within the summary */
         .totals-summary .summary-item {
-            display: table;      /* Treat this div like a table row */
-            width: 100%;         /* Make the "row" take up the full width */
-            padding: 24px 18px;
+            display: table;
+            width: 100%;
+            /* Use consistent padding like the inner spans */
+            padding: 0;
             font-size: 0.8rem;
             border-bottom: 0.5px solid #e0e0e0;
         }
@@ -189,6 +191,17 @@
         .totals-summary .summary-item > span:last-child {
             text-align: right;
             padding: 14px 10px 10px 12px;
+        }
+
+        .totals-summary .total > span {
+            display: table-cell;
+            vertical-align: middle;
+            padding: 14px 10px 10px 12px; /* Match summary-item padding */
+        }
+
+        /* Align the second span (the amount) to the right */
+        .totals-summary .total > span:last-child {
+            text-align: right;
         }
 
         /* Remove the line separator from the very last item */
@@ -211,15 +224,19 @@
 
         /* The final "TOTAL AMOUNT" row */
         .totals-summary .total {
+            display: table;      /* Changed from flex */
+            width: 100%;         /* Ensure it takes full width like other rows */
             background-color: #5d3a9b;
             color: #fff;
             font-weight: bold;
             font-size: 0.9rem;
-            display: flex; /* Flexbox is fine for this specific, styled row */
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 10px 10px 12px;
+            /* Removed flex properties: justify-content, align-items */
+            /* Adjust padding to match summary-item */
+            padding: 0; /* Apply padding to inner spans instead */
         }
+
+
+
         /* Balance Info */
         .balance-info {
             background-color: #fcfcfc;
@@ -257,6 +274,10 @@
             color: #555;
         }
         .terms li { margin-bottom: 4px; }
+        /* Add this new rule anywhere inside the <style> block */
+        .bank-details, .payment-qr, .terms, .totals-summary, .amount-in-words {
+            page-break-inside: avoid;
+        }
     </style>
 </head>
 
@@ -410,13 +431,13 @@
                         <span class="summary-items-values"  th:text="' ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
                     </div>
 
-                    <div class="summary-item total" style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>
-                                TOTAL AMOUNT
-                                <small style="color: #ffffff; font-size: 0.8em; font-weight: normal; margin-left: 4px;">(rounded off)</small>
-                            </span>
-                                                <span th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
-                    </div>
+                            <div class="summary-item total">
+                <span> TOTAL AMOUNT
+                <small style="color: #ffffff; font-size: 0.8em; font-weight: normal; margin-left: 4px;">(rounded off)</small>
+                </span>
+                                <span> <span th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
+                </span>
+                            </div>
 
                 </div>
 

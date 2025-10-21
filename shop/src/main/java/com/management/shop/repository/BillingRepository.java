@@ -3,9 +3,11 @@ package com.management.shop.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -372,4 +374,17 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             @Param("count") int count
-    );}
+    );
+
+    BillingEntity findByInvoiceNumber(String orderNo);
+
+    @Transactional
+    @Modifying
+    @Query(value="update billing_details set due_reminder_count= due_reminder_count+1, updated_by=?2, updated_date=?3 where invoice_number=?1 and user_id=?2", nativeQuery = true)
+    void updateReminderCount(String orderNo, String username, LocalDateTime updatedDate);
+
+    @Transactional
+    @Modifying
+    @Query(value="update billing_details set paying_amount=paying_amount+?4, remaining_amount= remaining_amount-?4, updated_by=?2, updated_date=?3 where invoice_number=?1 and user_id=?2", nativeQuery = true)
+    void updateDuePayment(String orderNo, String username, LocalDateTime updatedDate, Double amount);
+}
