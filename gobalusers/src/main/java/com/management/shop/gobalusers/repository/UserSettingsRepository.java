@@ -1,8 +1,6 @@
-package com.management.shop.repository;
+package com.management.shop.gobalusers.repository;
 
-import com.management.shop.dto.ShopSettings;
-import com.management.shop.entity.UserSettingsEntity;
-import jakarta.persistence.Table;
+import com.management.shop.gobalusers.entity.UserSettingsEntity;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

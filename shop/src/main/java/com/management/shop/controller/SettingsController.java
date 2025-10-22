@@ -44,6 +44,30 @@ public class SettingsController {
         return  ResponseEntity.status(HttpStatus.OK).body(responseMap);
 
     }
+    @PutMapping("api/shop/settings/user/save/billing")
+    ResponseEntity<Map<String, String>> saveBillingSettings(@RequestBody Map<String, Object> request){
+
+        String response=serv.saveBillingSettings(request);
+        Map<String,String> responseMap=new HashMap<>();
+        responseMap.put("status","success");
+        responseMap.put("message","UI settings updated");
+
+
+        return  ResponseEntity.status(HttpStatus.OK).body(responseMap);
+
+    }
+    @PutMapping("api/shop/settings/user/save/invoice")
+    ResponseEntity<Map<String, String>> saveInvoice(@RequestBody Map<String, Object> request){
+
+        String response=serv.saveInvoiceSetting(request);
+        Map<String,String> responseMap=new HashMap<>();
+        responseMap.put("status","success");
+        responseMap.put("message","UI settings updated");
+
+
+        return  ResponseEntity.status(HttpStatus.OK).body(responseMap);
+
+    }
     @GetMapping("api/shop/get/user/settings")
     ResponseEntity<ShopSettings> saveUserSchedulerSettings(){
 

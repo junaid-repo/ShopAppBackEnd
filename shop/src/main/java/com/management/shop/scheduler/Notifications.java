@@ -55,7 +55,7 @@ public class Notifications {
 
         usersList.stream().forEach(user -> {
             String username = user.getUsername();
-            List<ProductEntity> outOfStockProducts = prodRepo.findByStock(0, username);
+            List<ProductEntity> outOfStockProducts = prodRepo.findByStock(0, username, Boolean.TRUE);
 
 
             outOfStockProducts.stream().forEach(product -> {

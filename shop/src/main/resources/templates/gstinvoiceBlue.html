@@ -485,6 +485,30 @@
                 <span th:text="${grandTotalInWords}">Forty Two Thousand Four Hundred and Eighty Eight</span>
             </div>
 
+            <div class="totals-summary"
+                 th:if="${(paidAmount != null && paidAmount > 0) || (dueAmount != null && dueAmount > 0)}"
+                 style="margin-top: 15px;">
+
+                <div class="summary-row"
+                     th:if="${paidAmount != null && paidAmount > 0}"
+                     style="background-color: #f6fff6; color: #006000; border-bottom: 0.5px solid #e0e0e0;">
+                    <span style="font-weight: bold;">PAID AMOUNT</span>
+                    <span style="font-weight: bold;"
+                          th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                </div>
+
+                <div class="summary-row"
+                     th:if="${dueAmount != null && dueAmount > 0}"
+                     style="background-color: #fff6f6; color: #c00; border-bottom: 0.5px solid #e0e0e0;">
+                    <span style="font-weight: bold;">DUE AMOUNT</span>
+                    <span style="font-weight: bold;"
+                          th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                </div>
+
+            </div>
+
+
+
             <div class="signature-section">
                 <p>Authorized Signature</p>
                 <div class="signature-line">

@@ -108,6 +108,8 @@ public class ShopService {
     @Autowired
     private BillingGstRepository billGstRepo;
 
+    @Autowired
+    private UserSettingsRepository userSettingsRepo;
 
     @Autowired
     CSVUpload util;
@@ -514,6 +516,10 @@ public class ShopService {
         for (var obj : request.getCart()) {
             unitsSold += obj.getQuantity();
         }
+
+        UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername());
+        Boolean sendInvoice=true;
+
         var billingEntity = BillingEntity.builder().customerId(request.getSelectedCustomer().getId())
                 .unitsSold(unitsSold).taxAmount(request.getTax()).userId(extractUsername()).totalAmount(request.getTotal())
                 .payingAmount(request.getPayingAmount())
@@ -521,7 +527,30 @@ public class ShopService {
                 .remainingAmount(request.getRemainingAmount())
                 .discountPercent(request.getDiscountPercentage()).remarks(request.getRemarks()).subTotalAmount(request.getTotal() - request.getTax()).createdDate(LocalDateTime.now()).build();
 
+
+
         BillingEntity billResponse = billRepo.save(billingEntity);
+
+        if(userSettingsEntity!=null){
+            sendInvoice= userSettingsEntity.getAutoSendInvoice();
+            String orderPrefix=userSettingsEntity.getSerialNumberPattern();
+
+            String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+            String sequentialPart = String.format("%04d", billResponse.getId());
+            String invoiceNumber="FMS-" + datePart + "-" + sequentialPart;
+            if(orderPrefix!=null){
+                 invoiceNumber=orderPrefix+"-" + datePart + "-" + sequentialPart;
+
+                billResponse.setInvoiceNumber(invoiceNumber);
+                billRepo.save(billResponse);
+            }
+            else{
+                billResponse.setInvoiceNumber(invoiceNumber);
+                billRepo.save(billResponse);
+            }
+        }
+
         final Double[] totalProfitOnCP = {0d};
         if (billResponse.getId() != null) {
             request.getCart().stream().forEach(obj -> {
@@ -625,23 +654,23 @@ public class ShopService {
             }
 
 
+          if(sendInvoice) {
+              InvoiceDetails order = getOrderDetails(billResponse.getInvoiceNumber());
+              try {
+                  Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
 
+                  if (Arrays.asList(environment.getActiveProfiles()).contains("prod") || Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+                      CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
+                              billResponse.getInvoiceNumber(), order.getCustomerName(),
+                              generateGSTInvoicePdf(billResponse.getInvoiceNumber()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
+                      System.out.println(futureResult);
+                  }
 
-            InvoiceDetails order = getOrderDetails(billResponse.getInvoiceNumber());
-            try {
-                Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
-
-                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
-                    CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
-                            billResponse.getInvoiceNumber(), order.getCustomerName(),
-                            generateGSTInvoicePdf(billResponse.getInvoiceNumber()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
-                    System.out.println(futureResult);
-                }
-
-            } catch (MailjetException | MailjetSocketTimeoutException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+              } catch (MailjetException | MailjetSocketTimeoutException e) {
+                  // TODO Auto-generated catch block
+                  e.printStackTrace();
+              }
+          }
             try {
               salesCacheService.evictUserSales(extractUsername());
                 salesCacheService.evictUserProducts(extractUsername());
@@ -2180,6 +2209,27 @@ public class ShopService {
         log.info("The response updateDuePayments is "+response);
 
 
+        return response;
+    }
+
+    public Map<String, Object> sendInvoiceOverEmail(String invoiceNumber) {
+        InvoiceDetails order = getOrderDetails(invoiceNumber);
+        Map<String, Object> response=new HashMap<>();
+        try {
+            Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
+
+            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+                CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
+                        invoiceNumber, order.getCustomerName(),
+                        generateGSTInvoicePdf(invoiceNumber), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
+                System.out.println(futureResult);
+            }
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        response.put("errorData", "success");
         return response;
     }
 }

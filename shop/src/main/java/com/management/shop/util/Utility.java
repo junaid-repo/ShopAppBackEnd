@@ -57,6 +57,8 @@ public class Utility {
     private SalesPaymentRepository salesPaymentRepo;
     @Autowired
     private UserProfilePicRepo userProfilePicRepo;
+    @Autowired
+    private UserSettingsRepository userSettingsRepo;
 
     @Autowired
     private ShopRepository custRepo;
@@ -163,6 +165,23 @@ public class Utility {
                 }
             });
         }
+        Boolean printDueAmount = true;
+        Boolean printCustomerGst = true;
+        try {
+            UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername());
+            printDueAmount=   userSettingsEntity.getShowPaymentStatus();
+            printCustomerGst=   userSettingsEntity.getShowCustomerGstin();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        if(!printDueAmount){
+            order.setPaidAmount(0);
+            order.setDueAmount(0);
+        }
+        if(!printCustomerGst){
+            order.setCustomerGstNumber("");
+        }
+
 
         CustomerEntity custEntity = custRepo.findByIdAndUserId(order.getCustomerId(), username);
 
@@ -197,6 +216,8 @@ public class Utility {
                 .products(products)
 
                 .receivedAmount(order.isPaid() ? order.getTotalAmount() : 0d)
+                .paidAmount(order.getPaidAmount())
+                .dueAmount(order.getDueAmount())
                 .previousBalance(0d)
                 .grandTotal(order.getTotalAmount())
                 .gstSummary(gstSummary)
@@ -329,6 +350,8 @@ public class Utility {
                 .discountRate(0)
                 .invoiceId(toEmpty(orderReferenceNumber))
                 .paymentReferenceNumber(toEmpty(paymentEntity.getPaymentReferenceNumber()))
+                .paidAmount(paymentEntity.getPaid())
+                .dueAmount(paymentEntity.getToBePaid())
                 .items(items)
                 .gstRate(totalGst)
                 .customerPhone(toEmpty(customerEntity.getPhone()))

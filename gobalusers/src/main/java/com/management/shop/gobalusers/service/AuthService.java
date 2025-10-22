@@ -9,10 +9,8 @@ import com.management.shop.gobalusers.dto.*;
 import com.management.shop.gobalusers.entity.RegisterUserOTPEntity;
 import com.management.shop.gobalusers.entity.UserInfo;
 import com.management.shop.gobalusers.entity.UserPaymentModes;
-import com.management.shop.gobalusers.repository.UserInfoRepository;
-import com.management.shop.gobalusers.repository.UserOtpRepo;
-import com.management.shop.gobalusers.repository.UserPaymentModesRepo;
-import com.management.shop.gobalusers.repository.UserProfilePicRepo;
+import com.management.shop.gobalusers.entity.UserSettingsEntity;
+import com.management.shop.gobalusers.repository.*;
 import com.management.shop.gobalusers.util.AccountEmailTemplate;
 import com.management.shop.gobalusers.util.OTPSender;
 import jakarta.servlet.http.Cookie;
@@ -70,6 +68,9 @@ public class AuthService {
 
     @Autowired
     private UserPaymentModesRepo paymentModesRepo;
+
+    @Autowired
+    private UserSettingsRepository userSetRepo;
 
     private final Random random = new Random();
 
@@ -260,6 +261,9 @@ public class AuthService {
 
             paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
 
+
+
+
             String htmlContent=emailTemplateUtil.registerUserSucess(userInfo.getName(), userInfo.getUsername());
 
             try {
@@ -281,7 +285,7 @@ public class AuthService {
         }
         var response = OtpVerifyResponse.builder().success(false)
                 .username(otpInfo.getOtp())
-                .message("Your entered OTP " + otpInfo.getOtp())
+                .message("Your entered OTP " + otpInfo.getOtp()+" is incorrect, please re-enter")
                 .build();
 
 

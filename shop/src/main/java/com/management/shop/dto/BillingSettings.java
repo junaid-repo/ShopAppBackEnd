@@ -9,10 +9,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ShopSettings {
+public class BillingSettings {
 
-    private UiSettings ui;
-    private SchedulerSettings schedulers;
-    private BillingSettings billing;
-    private InvoiceSettings invoice;
+    private Boolean autoSendInvoice;
+    private Boolean allowNoStockBilling;
+    private Boolean hideNoStockProducts;
+    private String serialNumberPattern;
+
+
 }

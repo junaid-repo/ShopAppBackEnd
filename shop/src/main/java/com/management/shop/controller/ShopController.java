@@ -934,6 +934,13 @@ public class ShopController {
 
         return ResponseEntity.ok(response);
     }
+    @PostMapping("api/shop/send-invoice-email/{invoiceNumber}")
+    ResponseEntity<Map<String, Object>> sendInvoiceOverEmail(@PathVariable String invoiceNumber){
+
+        Map<String, Object> response= serv.sendInvoiceOverEmail(invoiceNumber);
+
+        return ResponseEntity.ok(response);
+    }
 
 
 }

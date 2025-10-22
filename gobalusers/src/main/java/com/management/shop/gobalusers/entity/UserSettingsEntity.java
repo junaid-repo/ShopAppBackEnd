@@ -1,11 +1,10 @@
-package com.management.shop.entity;
+package com.management.shop.gobalusers.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.context.annotation.Primary;
 
 import java.time.LocalDateTime;
 

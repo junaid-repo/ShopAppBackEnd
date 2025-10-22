@@ -107,6 +107,9 @@ public class PDFGSTInvoiceUtil {
         // Financials
         context.setVariable("taxableAmount", taxableAmount);
         context.setVariable("grandTotal", grandTotal);
+        context.setVariable("paidAmount", safeGetDoubleFromPrimitive(data.getPaidAmount()));
+        context.setVariable("dueAmount", safeGetDoubleFromPrimitive(data.getDueAmount()));
+
         context.setVariable("receivedAmount", safeGetDoubleFromPrimitive(data.getReceivedAmount()));
         context.setVariable("previousBalance", safeGetDoubleFromPrimitive(data.getPreviousBalance()));
         context.setVariable("currentBalance", currentBalance);

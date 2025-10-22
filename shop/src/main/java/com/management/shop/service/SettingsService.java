@@ -1,9 +1,6 @@
 package com.management.shop.service;
 
-import com.management.shop.dto.AutoDeleteCustomersSettings;
-import com.management.shop.dto.SchedulerSettings;
-import com.management.shop.dto.ShopSettings;
-import com.management.shop.dto.UiSettings;
+import com.management.shop.dto.*;
 import com.management.shop.entity.UserSettingsEntity;
 import com.management.shop.repository.UserSettingsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Service
 public class SettingsService {
@@ -41,30 +39,106 @@ System.out.println("The scheulder settings to be saved  "+request);
         System.out.println("Current user: " + extractUsername());
         UserSettingsEntity userSettings=settingsRepo.findByUsername(extractUsername());
 
+        if(userSettings==null){
+            saveUserSettings(extractUsername());
+            userSettings=settingsRepo.findByUsername(extractUsername());
+        }
+
         System.out.println("Current user settings: " + userSettings);
 
-     var shopSettigns=   ShopSettings.builder().ui(
-                UiSettings.builder()
-                        .autoSendInvoice(userSettings.getAutoSendInvoice())
-                        .autoPrintInvoice(userSettings.getAutoPrintInvoice())
-                        .darkModeDefault(userSettings.getIsDarkModeDefault())
-                        .billingPageDefault(userSettings.getIsBillingPageDefault())
-                        .build())
+        var shopSettings = ShopSettings.builder().ui(
+                        UiSettings.builder()
+                                .autoSendInvoice(userSettings != null && userSettings.getAutoSendInvoice() != null ? userSettings.getAutoSendInvoice() : false)
+                                .autoPrintInvoice(userSettings != null && userSettings.getAutoPrintInvoice() != null ? userSettings.getAutoPrintInvoice() : false)
+                                .darkModeDefault(userSettings != null && userSettings.getIsDarkModeDefault() != null ? userSettings.getIsDarkModeDefault() : false)
+                                .billingPageDefault(userSettings != null && userSettings.getIsBillingPageDefault() != null ? userSettings.getIsBillingPageDefault() : false)
+                                .build())
                 .schedulers(
-                    SchedulerSettings.builder()
-                            .autoDeleteNotificationsDays(userSettings.getAutoDeleteNotification())
-                            .lowStockAlerts(userSettings.getLowStockAlert())
-                            .autoDeleteCustomers(
-                                    AutoDeleteCustomersSettings.builder()
-                                            .enabled(userSettings.getAutoDeleteCustomers())
-                                            .inactiveDays(userSettings.getAutoDeleteCustomerForInactiveDays())
-                                            .minSpent(userSettings.getAutoDeleteCustomerForMinSpent())
-                                            .build()
-                            ).build()
-                ).build();
+                        SchedulerSettings.builder()
+                                .autoDeleteNotificationsDays(userSettings != null && userSettings.getAutoDeleteNotification() != null ? userSettings.getAutoDeleteNotification() : 0)
+                                .lowStockAlerts(userSettings != null && userSettings.getLowStockAlert() != null ? userSettings.getLowStockAlert() : false)
+                                .autoDeleteCustomers(
+                                        AutoDeleteCustomersSettings.builder()
+                                                .enabled(userSettings != null && userSettings.getAutoDeleteCustomers() != null ? userSettings.getAutoDeleteCustomers() : false)
+                                                .inactiveDays(userSettings != null && userSettings.getAutoDeleteCustomerForInactiveDays() != null ? userSettings.getAutoDeleteCustomerForInactiveDays() : 0)
+                                                .minSpent(userSettings != null && userSettings.getAutoDeleteCustomerForMinSpent() != null ? userSettings.getAutoDeleteCustomerForMinSpent() : 0)
+                                                .build()
+                                ).build()
 
-       System.out.println("The full shop Settings are "+shopSettigns);
+                )
+                .billing(BillingSettings.builder()
+                        .allowNoStockBilling(userSettings != null && userSettings.getAllowNoStockBilling() != null ? userSettings.getAllowNoStockBilling() : false)
+                        .hideNoStockProducts(userSettings != null && userSettings.getHideNoStockProducts() != null ? userSettings.getHideNoStockProducts() : false)
+                        .autoSendInvoice(userSettings != null && userSettings.getAutoSendInvoice() != null ? userSettings.getAutoSendInvoice() : false)
+                        .serialNumberPattern(userSettings != null && userSettings.getSerialNumberPattern() != null ? userSettings.getSerialNumberPattern() : "")
+                        .build())
+                .invoice(InvoiceSettings.builder()
+                        .addDueDate(userSettings != null && userSettings.getAddDueDate() != null ? userSettings.getAddDueDate() : false)
+                        .combineAddresses(userSettings != null && userSettings.getCombineAddresses() != null ? userSettings.getCombineAddresses() : false)
+                        .showPaymentStatus(userSettings != null && userSettings.getShowPaymentStatus() != null ? userSettings.getShowPaymentStatus() : false)
+                        .removeTerms(userSettings != null && userSettings.getRemoveTerms() != null ? userSettings.getRemoveTerms() : false)
+                        .showCustomerGstin(userSettings != null && userSettings.getShowCustomerGstin() != null ? userSettings.getShowCustomerGstin() : false)
+                        .build())
+                .build();
 
-        return shopSettigns;
+       System.out.println("The full shop Settings are "+shopSettings);
+
+        return shopSettings;
+    }
+
+    private void saveUserSettings(String username) {
+
+        var userSettings=    UserSettingsEntity.builder()
+                .allowNoStockBilling(Boolean.FALSE)
+                .autoPrintInvoice(Boolean.FALSE)
+                .autoSendInvoice(Boolean.FALSE)
+                .hideNoStockProducts(Boolean.TRUE)
+                .isDarkModeDefault(Boolean.FALSE)
+                .isBillingPageDefault(Boolean.FALSE)
+                .lowStockAlert(Boolean.TRUE)
+                .serialNumberPattern("FMS")
+                .autoDeleteCustomers(Boolean.FALSE)
+                .autoDeleteNotification(2)
+                .autoDeleteCustomerForInactiveDays(30)
+                .autoDeleteCustomerForMinSpent(10000)
+                .combineAddresses(Boolean.FALSE)
+                .addDueDate(Boolean.FALSE)
+                .showPaymentStatus(Boolean.TRUE)
+                .removeTerms(Boolean.FALSE)
+                .showCustomerGstin(Boolean.TRUE)
+                .username(username)
+                .updatedBy(username)
+                .updatedDate(LocalDateTime.now())
+                .build();
+
+        settingsRepo.save(userSettings);
+    }
+
+    public String saveBillingSettings(Map<String, Object> request) {
+
+        Boolean autoSendInvoice = (Boolean) request.get("autoSendInvoice");
+        Boolean allowNoStockBilling = (Boolean) request.get("allowNoStockBilling");
+        Boolean hideNoStockProducts = (Boolean) request.get("hideNoStockProducts");
+        String serialNumberPattern = (String) request.get("serialNumberPattern");
+
+
+        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts,serialNumberPattern, extractUsername(), LocalDateTime.now());
+
+
+        return "saved";
+    }
+
+    public String saveInvoiceSetting(Map<String, Object> request) {
+
+        Boolean addDueDate = (Boolean) request.get("addDueDate");
+        Boolean combineAddresses = (Boolean) request.get("combineAddresses");
+        Boolean showPaymentStatus = (Boolean) request.get("showPaymentStatus");
+        Boolean removeTerms = (Boolean) request.get("removeTerms");
+        Boolean showCustomerGstin = (Boolean) request.get("showCustomerGstin");
+
+
+        settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms,showCustomerGstin, extractUsername(), LocalDateTime.now());
+
+        return "saved";
     }
 }

@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface SupportTicketRepository extends JpaRepository<TicketsEntity, Integer> {
 
-    @Query(value="select * from support_tickets where username=?1 order by created_date desc limit 10", nativeQuery=true)
+    @Query(value="select * from support_tickets where username=?1 order by created_date desc limit 5", nativeQuery=true)
     List<TicketsEntity> getTicketList(String s);
 
 

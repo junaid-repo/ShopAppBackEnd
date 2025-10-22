@@ -44,9 +44,9 @@ public class BillingEntity {
     private String userId;
 
 	
-	 @PostPersist
+	/* @PostPersist
 	    public void generateOrderNumberOnPersist() {
-	        // Ensure the ID is available and orderNumber hasn't been set yet
+	        // Ensure the ID is available and orde  rNumber hasn't been set yet
 	        if (this.id != null && this.invoiceNumber == null) {
 	            // Format the current date into YYYYMMDD (e.g., 20230818)
 	            String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -58,6 +58,6 @@ public class BillingEntity {
 	            this.invoiceNumber = "FMS-" + datePart + "-" + sequentialPart;
 
 	        }
-	    }
+	    }*/
 
 }
