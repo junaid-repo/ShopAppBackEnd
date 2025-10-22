@@ -59,8 +59,16 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
 
     @Transactional
     @Modifying
-    @Query(value = "UPDATE billing_payments SET paid = paid + ?4, to_be_paid = to_be_paid - ?4, status = CASE WHEN (to_be_paid - ?4) <= 0 THEN 'Paid' ELSE 'SemiPaid' END, updated_by = ?2, updated_date = ?3 WHERE order_number = ?1 AND user_id = ?2", nativeQuery = true)
+    @Query(value = "UPDATE billing_payments SET paid = paid + ?4, to_be_paid = to_be_paid - ?4, updated_by = ?2, updated_date = ?3 WHERE order_number = ?1 AND user_id = ?2", nativeQuery = true)
     void updateDueAmount(String orderNo, String username, LocalDateTime updatedDate, Double payingAmount);
 
+    @Transactional
+    @Modifying
+    @Query(value = "UPDATE billing_payments SET status = ?3 WHERE order_number = ?1 AND user_id = ?2", nativeQuery = true)
+    void updatePaymentStatus(String orderNo, String username, String status);
+
     PaymentEntity findByOrderNumber(String orderNo);
+
+    @Query(value="select * from billing_payments bp where bp.to_be_paid>0 and bp.user_id=?1 AND bp.created_date < (NOW() - INTERVAL '24' HOUR)", nativeQuery = true)
+    List<PaymentEntity> findByUserId(String username);
 }

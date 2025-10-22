@@ -41,11 +41,11 @@ public interface NotificationsRepo extends JpaRepository<MessageEntity,Integer> 
 
     @Transactional
     @Modifying
-    @Query(value = "DELETE FROM shop_message WHERE is_flagged = 0 AND created_date < NOW() - INTERVAL 36 HOUR", nativeQuery = true)
-    void deleteAllConditional();
+    @Query(value = "DELETE FROM shop_message m WHERE m.is_flagged = false AND m.created_date < (NOW() - INTERVAL '48' DAY) AND m.id NOT IN (SELECT max_id FROM (SELECT MAX(sub.id) as max_id FROM shop_message sub WHERE sub.is_flagged = false AND sub.created_date < (NOW() - INTERVAL '48' DAY) AND sub.title = m.title AND sub.subject = m.subject AND sub.details = m.details AND sub.domain = m.domain GROUP BY sub.title, sub.subject, sub.details, sub.domain) as keep_ids)", nativeQuery = true)
+    void deleteOldUnflaggedDuplicates();
 
     @Transactional
     @Modifying
-    @Query(value = "DELETE FROM shop_message WHERE is_deleted = 1 AND created_date < NOW() - INTERVAL 5 HOUR", nativeQuery = true)
-    void deleteDeletedMessages();
+    @Query(value = "DELETE FROM shop_message m WHERE m.is_deleted = true AND m.created_date < (NOW() - INTERVAL '24' HOUR)", nativeQuery = true)
+    void deleteOldDeletedMessages();
 }

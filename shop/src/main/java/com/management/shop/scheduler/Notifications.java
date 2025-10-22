@@ -2,10 +2,12 @@ package com.management.shop.scheduler;
 
 
 import com.management.shop.entity.MessageEntity;
+import com.management.shop.entity.PaymentEntity;
 import com.management.shop.entity.ProductEntity;
 import com.management.shop.entity.UserInfo;
 import com.management.shop.repository.NotificationsRepo;
 import com.management.shop.repository.ProductRepository;
+import com.management.shop.repository.SalesPaymentRepository;
 import com.management.shop.repository.UserInfoRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 
@@ -31,6 +34,9 @@ public class Notifications {
 
     @Autowired
     private UserInfoRepository userinfoRepo;
+
+    @Autowired
+    SalesPaymentRepository salesPaymentRepo;
 
 
     public String extractUsername() {
@@ -77,11 +83,49 @@ public class Notifications {
 
     }
 
+    @Scheduled(cron = "${scheduler.paymentReminder.cron}")
+    public void paymentReminders() {
+
+        List<UserInfo> usersList = userinfoRepo.findAllByStatus(Boolean.TRUE);
+
+
+        usersList.stream().forEach(user -> {
+            String username = user.getUsername();
+            List<PaymentEntity> paymenetList = salesPaymentRepo.findByUserId(username );
+
+
+            paymenetList.stream().forEach(payment -> {
+                Long daysBetween = ChronoUnit.DAYS.between(LocalDateTime.now(), payment.getUpdatedDate());
+                MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("sales")
+                        .title("Due Amount for Order No " + payment.getOrderNumber())
+                        .subject("Payment for " + payment.getOrderNumber() + "is due for " + String.valueOf(daysBetween) + " days.")
+                        .details("Payment for " + payment.getOrderNumber() + "is due for " +  String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment")
+                        .isDeleted(false)
+                        .isDone(false)
+                        .isRead(false)
+                        .isFlagged(false)
+                        .userId(username)
+
+                        .updatedBy(username)
+                        .searchKey(payment.getOrderNumber())
+                        .updatedDate(LocalDateTime.now())
+                        .build();
+
+                notiRepo.save(messageEntity);
+
+
+            });
+        });
+
+    }
+
     @Scheduled(cron = "${scheduler.messageRemover.cron}")
     public void removeOldMessages() {
 
-       // notiRepo.deleteAllConditional();
-      //  notiRepo.deleteDeletedMessages();
+
+
+       notiRepo.deleteOldUnflaggedDuplicates();
+       notiRepo.deleteOldDeletedMessages();
 
     }
 }

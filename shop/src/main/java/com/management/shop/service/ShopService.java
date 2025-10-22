@@ -2159,6 +2159,18 @@ public class ShopService {
 
         PaymentEntity paymentDetails=salesPaymentRepo.findByOrderNumber(orderNo);
 
+        try{
+            String status="SemiPaid";
+            if(paymentDetails.getToBePaid()<=0){
+                status="Paid";
+            }
+            salesPaymentRepo.updatePaymentStatus(orderNo, extractUsername(), status);
+
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
       Map<String, Object> response=new HashMap<>();
 
       response.put("paid",paymentDetails.getPaid());
