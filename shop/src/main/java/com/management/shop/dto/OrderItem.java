@@ -22,4 +22,5 @@ public class OrderItem {
     private double igst;
     private Integer igstPercentage;
     private String hsn;
+    private Double discount;
 }

@@ -17,6 +17,7 @@ public class OrderItemInvoice {
     private double rate; // Price BEFORE tax
     private double taxAmount; // Total tax for this line item
     private double taxPercentage; // e.g., 18.0
+    private double discountPercentage; // e.g., 10.0 for 10% discount
     private double totalAmount;
     private double cgst;
     private Integer cgstPercentage;

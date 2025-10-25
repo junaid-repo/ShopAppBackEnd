@@ -57,7 +57,7 @@ public class PDFGSTInvoiceUtil {
             m.put("rate", safeGetDouble(p, "getRate", "getPrice"));
             m.put("taxAmount", safeGetDouble(p, "getTaxAmount", "getTax"));
             m.put("totalAmount", safeGetDouble(p, "getTotalAmount", "getAmount", "getTotal"));
-
+            m.put("discountPercentage", p.getDiscountPercentage());
             // GST breakdown on product (if present)
             m.put("igstAmount", p.getIgst());
             m.put("igstPercentage", p.getIgstPercentage());
@@ -109,7 +109,7 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("grandTotal", grandTotal);
         context.setVariable("paidAmount", safeGetDoubleFromPrimitive(data.getPaidAmount()));
         context.setVariable("dueAmount", safeGetDoubleFromPrimitive(data.getDueAmount()));
-
+        context.setVariable("totalDiscountAmount", safeGetDoubleFromPrimitive(data.getDiscountPercentage()));
         context.setVariable("receivedAmount", safeGetDoubleFromPrimitive(data.getReceivedAmount()));
         context.setVariable("previousBalance", safeGetDoubleFromPrimitive(data.getPreviousBalance()));
         context.setVariable("currentBalance", currentBalance);
@@ -128,6 +128,27 @@ public class PDFGSTInvoiceUtil {
 
         // Footer
         context.setVariable("termsAndConditions", data.getTermsAndConditions() != null ? data.getTermsAndConditions() : Collections.emptyList());
+
+            //Conditions to show/hide fields
+        context.setVariable("showShopPanOnInvoice", data.getPrintShopPan() != null ? data.getPrintShopPan() : true);
+
+        context.setVariable("showCustomerGst", data.getPrintCustomerGst() != null ? data.getPrintCustomerGst() : true);
+        context.setVariable("combineAddress", data.getCombineCustomerAddresses() != null ? data.getCombineCustomerAddresses() : false);
+
+        context.setVariable("showIndividualDiscountPercentage", data.getItemDiscount() != null ? data.getItemDiscount() : false);
+        context.setVariable("showHsnColumn", data.getShowHsnColumn() != null ? data.getShowHsnColumn() : true);
+        context.setVariable("showRateColumn", data.getShowRateColumn() != null ? data.getShowRateColumn() : true);
+
+        context.setVariable("showTotalDiscountPercentage", data.getShowTotalDiscount() != null ? data.getShowTotalDiscount() : false);
+        context.setVariable("showDueAmount", data.getPrintDueAmount() != null ? data.getPrintDueAmount() : false);
+        context.setVariable("showDueDate", data.getAddDueDate() != null ? data.getShowTotalDiscount() : false);
+
+
+        context.setVariable("showSupportInfo", data.getShowSupportInfo() != null ? data.getShowSupportInfo() : false);
+        context.setVariable("removeTerms", data.getRemoveTerms() != null ? data.getRemoveTerms() : false);
+
+
+
 
         System.out.println("The full data to render invoice "+context);
         // --- Generate PDF using openhtmltopdf ---

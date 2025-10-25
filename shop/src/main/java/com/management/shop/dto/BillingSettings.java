@@ -15,6 +15,8 @@ public class BillingSettings {
     private Boolean allowNoStockBilling;
     private Boolean hideNoStockProducts;
     private String serialNumberPattern;
+    private Boolean showPartialPaymentOption;
+    private Boolean showRemarksOnSummarySide;
 
 
 }

@@ -25,6 +25,7 @@ public class CustomerEntity {
 	private String phone;
 	private Integer totalSpent;
 	private String status;
+    private Boolean isActive;
     private String state;
     private String city;
     private String gstNumber;

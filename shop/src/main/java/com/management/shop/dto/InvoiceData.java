@@ -50,6 +50,8 @@ public class InvoiceData {
     private double dueAmount;
     private double paidAmount;
     private double grandTotal;
+    private double discountPercentage;
+    private double discountAmount;
     List<Map<String, Object>> gstSummary = new ArrayList<>();
 
     // Bank & Payment Details
@@ -61,4 +63,22 @@ public class InvoiceData {
 
     // Footer
     private  List<String> termsAndConditions;
+
+    //Conditions
+
+    Boolean printShopPan;
+
+    Boolean printCustomerGst;
+    Boolean combineCustomerAddresses;
+
+    Boolean itemDiscount;
+    Boolean showHsnColumn;
+    Boolean showRateColumn;
+
+    Boolean showTotalDiscount;
+    Boolean printDueAmount;
+    Boolean addDueDate;
+
+    Boolean showSupportInfo;
+    Boolean removeTerms;
 }

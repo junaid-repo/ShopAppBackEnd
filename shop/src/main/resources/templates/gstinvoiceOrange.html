@@ -69,12 +69,8 @@
             margin: 0 0 8px 0;
             line-height: 1.2;
         }
-        .header-left .shop-address p {
-            margin: 0;
-            line-height: 1.5;
-            font-size: 12px;
-            color: var(--text-light);
-        }
+        /* Removed .header-left .shop-address */
+
         .header-right {
             text-align: right;
             padding-left: 20px;
@@ -95,7 +91,7 @@
             color: var(--text-light);
             line-height: 1.5;
         }
-        .company-address strong {
+        .company-address strong.shop-name { /* Target only the shop name */
             display: block;
             font-weight: 600;
             color: var(--text-dark);
@@ -104,6 +100,17 @@
         }
         .company-address p {
             margin: 0;
+        }
+        /* Style for GST/PAN/Support in header */
+        .company-address p strong.label {
+            font-size: 12px;
+            display: inline-block;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        .company-address p span.value {
+            font-weight: 500;
+            color: var(--text-dark);
         }
 
         /* --- 2. Meta Section (3 Columns) --- */
@@ -127,6 +134,34 @@
             text-transform: uppercase;
             line-height: 1.2;
         }
+
+        /* Customer address block style */
+        .customer-address-block {
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .customer-address-block strong {
+            font-size: 13px;
+            color: var(--text-dark);
+            font-weight: 600;
+            display: block;
+            margin-bottom: 3px;
+        }
+        .customer-address-block span {
+            color: var(--text-medium);
+        }
+        .customer-address-block .cust-gstin {
+            margin-top: 5px;
+        }
+        .customer-address-block .cust-gstin span:first-child {
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        .customer-address-block .cust-gstin span:last-child {
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
         .meta-item {
             display: flex;
             justify-content: space-between;
@@ -187,15 +222,16 @@
             line-height: 1.4;
         }
 
-        /* --- UPDATED Column widths for 8 columns --- */
+        /* --- UPDATED Column widths for 9 columns --- */
         .col-sr { width: 4%;  }
-        .col-item { width: 21%; }
+        .col-item { width: 20%; }
         .col-hsn { width: 8%; }
         .col-qty { width: 7%; }
-        .col-rate { width: 12%; }
-        .col-taxable { width: 12%; } /* Taxable Amount */
+        .col-rate { width: 10%; }
+        .col-taxable { width: 10%; } /* Taxable Amount */
+        .col-disc { width: 8%; }     /* Discount */
         .col-tax { width: 21%; }     /* Tax Breakdown */
-        .col-total { width: 15%; } /* Final Amount */
+        .col-total { width: 12%; }   /* Final Amount */
 
         /* --- 4. Footer --- */
         .invoice-footer {
@@ -393,15 +429,27 @@
         }
         .signature-line {
             display: inline-block;
-            border-top: 1px solid #999;
             width: 150px;
             text-align: center;
             padding-top: 6px;
-            margin-top: 50px;
+            margin-top: 10px; /* Adjusted */
             font-size: 11px;
             font-weight: 500;
             color: var(--text-light);
         }
+        .signature-line img {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: -10px;
+        }
+        .signature-line strong {
+            display: block;
+            margin-top: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
 
         /* Page break controls */
         .footer-section, .totals-table, .signature-area {
@@ -426,14 +474,27 @@
                 <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
             </div>
             <div class="company-address">
-                <strong th:text="${shopName}">Meta Mora Pharmacy</strong>
+                <strong class="shop-name" th:text="${shopName}">Meta Mora Pharmacy</strong>
                 <p th:text="${shopAddress}">5809 Orval River, Lake Trevaburgh,</p>
-
+                <!-- [MOVED] Shop GSTIN -->
+                <p th:if="${!#strings.isEmpty(gstNumber)}" style="margin-top: 5px;">
+                    <strong class="label">GSTIN: </strong> <span class="value" th:text="${gstNumber}"></span>
+                </p>
+                <!-- [MOVED] Shop PAN -->
+                <p th:if="${showShopPanOnInvoice and !#strings.isEmpty(panNumber)}">
+                    <strong class="label">PAN: </strong> <span class="value" th:text="${panNumber}"></span>
+                </p>
+                <!-- [MOVED & UPDATED] Support Info -->
+                <p th:if="${showSupportInfo}" style="margin-top: 5px; color: var(--text-light);">
+                    Email: <span class="value" style="color: var(--text-medium);" th:text="${shopEmail}"></span>,
+                    Phone: <span class="value" style="color: var(--text-medium);" th:text="${shopPhone}"></span>.
+                </p>
             </div>
         </div>
     </header>
 
     <section class="invoice-meta">
+        <!-- Box 1: Invoice Details -->
         <div class="meta-box">
             <h3>Invoice Details</h3>
             <div class="meta-item">
@@ -444,39 +505,59 @@
                 <span class="label">Invoice Date</span>
                 <span class="value" th:text="${orderedDate}">December 1, 2021</span>
             </div>
-            <div class="meta-item">
+            <!-- [CONDITION] Show Due Date -->
+            <div class="meta-item" th:if="${showDueDate and !#strings.isEmpty(dueDate)}">
                 <span class="label">Due Date</span>
                 <span class="value" th:text="${dueDate}">December 15, 2021</span>
             </div>
         </div>
+
+        <!-- Box 2: Billed To (Combined or Separate) -->
         <div class="meta-box">
-            <h3>Billed By</h3> <div class="meta-item">
-            <span class="label">GSTIN</span>
-            <span class="value" th:text="${gstNumber}">29VGGED1234KZ26</span>
-        </div>
-            <div class="meta-item">
-                <span class="label">PAN</span>
-                <span class="value" th:text="${panNumber}">VGGED1234K</span>
-            </div>
-            <div class="meta-item" style="margin-top: 10px;">
-                <span class="label">Customer</span>
-                <span class="value" th:text="${customerName}">Customer Name</span>
-            </div>
-            <div class="meta-item" th:if="${customerGstNumber}">
-                <span class="label">Cust GSTIN</span>
-                <span class="value" th:text="${customerGstNumber}">Customer GST</span>
+            <h3 th:text="${combineAddress} ? 'Billed To / Shipped To' : 'Billed To'">Billed To</h3>
+            <div class="customer-address-block">
+                <strong th:text="${customerName}">Customer Name</strong>
+                <span th:text="${customerBillingAddress}">Customer Billing Address</span><br/>
+                <span th:text="${customerPhone}">Customer Phone</span><br/>
+                <!-- [CONDITION] Show Customer GST Number -->
+                <div class="cust-gstin" th:if="${showCustomerGst and !#strings.isEmpty(customerGstNumber)}">
+                    <span>GSTIN:</span>
+                    <span th:text="${customerGstNumber}"></span>
+                </div>
             </div>
         </div>
+
+        <!-- Box 3: Shipped To (if not combined) OR Payment Record (if combined) -->
         <div class="meta-box">
-            <h3>Payment Record</h3>
-            <div class="meta-item">
-                <span class="label">Invoiced Amount</span>
-                <span class="value" th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">₹94,240</span>
-            </div>
-            <div class="meta-item">
-                <span class="label">Due Amount</span>
-                <span class="value" th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">₹94,240</span>
-            </div>
+            <!-- [CONDITION] Show Shipped To -->
+            <th:block th:unless="${combineAddress}">
+                <h3>Shipped To</h3>
+                <div class="customer-address-block">
+                    <strong th:text="${customerName}">Customer Name</strong>
+                    <span th:text="${customerShippingAddress}">Customer Shipping Address</span><br/>
+                    <span th:text="${customerPhone}">Customer Phone</span>
+                </div>
+            </th:block>
+
+            <!-- [CONDITION] Show Payment Record -->
+            <th:block th:if="${combineAddress}">
+                <h3>Payment Record</h3>
+                <div class="meta-item">
+                    <span class="label">Invoiced Amount</span>
+                    <span class="value" th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">₹94,240</span>
+                </div>
+                <!-- [CONDITION] Show Due/Paid Amount Block -->
+                <th:block th:if="${showDueAmount}">
+                    <div class="meta-item" th:if="${paidAmount != null and paidAmount > 0}">
+                        <span class="label">Paid Amount</span>
+                        <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                    </div>
+                    <div class="meta-item" th:if="${dueAmount != null and dueAmount > 0}">
+                        <span class="label">Due Amount</span>
+                        <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                    </div>
+                </th:block>
+            </th:block>
         </div>
     </section>
 
@@ -485,10 +566,14 @@
         <tr>
             <th class="col-sr">#</th>
             <th class="col-item">Item Name</th>
-            <th class="col-hsn text-right">HSN</th>
+            <!-- [CONDITION] Show HSN Column -->
+            <th class="col-hsn text-right" th:if="${showHsnColumn}">HSN</th>
             <th class="col-qty text-right">QTY</th>
-            <th class="col-rate text-right">Rate</th>
+            <!-- [CONDITION] Show Rate Column -->
+            <th class="col-rate text-right" th:if="${showRateColumn}">Rate</th>
             <th class="col-taxable text-right">Taxable Amt</th>
+            <!-- [CONDITION] Show Item Discount -->
+            <th class="col-disc text-right" th:if="${showIndividualDiscountPercentage}">Disc %</th>
             <th class="col-tax text-right">Tax</th>
             <th class="col-total text-right">Amount</th>
         </tr>
@@ -500,10 +585,14 @@
                 <span th:text="${product['productName']}">Web Development</span>
                 <small class="desc" th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}" th:text="${product['description']}">Description here</small>
             </td>
-            <td class="col-hsn text-right" th:text="${product['hsnCode']}">0056</td>
+            <!-- [CONDITION] Show HSN Column -->
+            <td class="col-hsn text-right" th:if="${showHsnColumn}" th:text="${product['hsnCode']}">0056</td>
             <td class="col-qty text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}">10</td>
-            <td class="col-rate text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}">₹ 1,000</td>
+            <!-- [CONDITION] Show Rate Column -->
+            <td class="col-rate text-right" th:if="${showRateColumn}" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}">₹ 1,000</td>
             <td class="col-taxable text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}">₹ 10,000</td>
+            <!-- [CONDITION] Show Item Discount -->
+            <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}" th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
             <td class="col-tax text-right">
                 <span th:if="${product['igstAmount'] > 0}" th:text="'₹ ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'">₹900 (9%)</span>
                 <span th:if="${product['cgstAmount'] > 0}" th:text="'₹ ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
@@ -559,11 +648,20 @@
                 </div>
             </div>
 
-            <div class="footer-section terms">
+            <!-- [CONDITION] Remove Terms and Conditions -->
+            <div class="footer-section terms" th:unless="${removeTerms}">
                 <h4>Terms And Conditions</h4>
                 <ul>
                     <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
                 </ul>
+            </div>
+
+            <!-- [UPDATED] [CONDITION] Show Support Info -->
+            <div class="footer-section" th:if="${showSupportInfo}">
+                <h4>Support Info</h4>
+                <p>
+                    For support contact <strong style="color: var(--text-medium);" th:text="${shopEmail}"></strong> or <strong style="color: var(--text-medium);" th:text="${shopPhone}"></strong>.
+                </p>
             </div>
 
 
@@ -575,6 +673,11 @@
                 <tbody>
                 <tr>
                     <td>Sub Total</td> <td th:text="'₹ ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}">₹ 11,800</td>
+                </tr>
+                <!-- [CONDITION] Show Total Discount -->
+                <tr th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
+                    <td>Discount</td>
+                    <td th:text="'- ₹ ' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
                 </tr>
                 <tr>
                     <td>Taxable Amount</td>
@@ -592,12 +695,35 @@
                 </tbody>
             </table>
 
+            <!-- [CONDITION] Payment Record (if not combined) -->
+            <th:block th:if="${!combineAddress and showDueAmount}">
+                <table class="totals-table" style="margin-top: 15px; border-top: 1px solid var(--border-color-light);">
+                    <tbody>
+                    <tr th:if="${paidAmount != null and paidAmount > 0}">
+                        <td>Paid Amount</td>
+                        <td th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    <tr th:if="${dueAmount != null and dueAmount > 0}">
+                        <td>Due Amount</td>
+                        <td th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </th:block>
+
             <div class="signature-area">
                 <p>For <span class="shop-name-for-signature" th:text="${shopName}">Vinayaga Industrial Products and Services</span></p>
-                <div class="signature-line">Authorised Signatory</div>
+                <!-- [CONDITION] Show Signature Image -->
+                <div class="signature-line" style="height: 60px; border-top: none; margin-top: 10px;">
+                    <img th:if="${shopSignatureBase64}" th:src="'data:image/png;base64,' + ${shopSignatureBase64}" alt="Signature" style="max-width: 150px; height: auto;"/>
+                </div>
+                <div class="signature-line" style="margin-top: 0;">
+                    Authorised Signatory
+                </div>
             </div>
         </div>
     </footer>
 </div>
 </body>
 </html>
+

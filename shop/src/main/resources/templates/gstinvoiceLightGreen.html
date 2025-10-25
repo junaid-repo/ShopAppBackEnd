@@ -86,7 +86,7 @@
             margin-bottom: 5px;
         }
         .company-logo img {
-            max-width: 60px; /* Kept your original max-height */
+            max-width: 60px;
             height: auto;
             margin-right: 10px;
         }
@@ -163,14 +163,15 @@
         }
         .text-right { text-align: right; }
 
-        /* Using your 7-column widths */
-        .items-table th:nth-child(1) { width: 20%; }  /* ITEM */
-        .items-table th:nth-child(2) { width: 8%; }   /* HSN */
-        .items-table th:nth-child(3) { width: 13%; }  /* RATE */
-        .items-table th:nth-child(4) { width: 10%; }  /* QTY */
-        .items-table th:nth-child(5) { width: 13%; }  /* AMOUNT */
-        .items-table th:nth-child(6) { width: 22%; }  /* TAX */
-        .items-table th:nth-child(7) { width: 14%; }  /* TOTAL */
+        /* Column widths */
+        .col-item { width: 20%; }
+        .col-hsn { width: 8%; }
+        .col-rate { width: 13%; }
+        .col-qty { width: 10%; }
+        .col-amount { width: 13%; }
+        .col-disc { width: 10%; }
+        .col-tax { width: 16%; }
+        .col-total { width: 10%; }
 
         small.desc {
             display: block;
@@ -300,6 +301,30 @@
             color: #000;
         }
 
+        /* Paid/Due Amount table */
+        .paid-due-table {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .paid-due-table tr td {
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 5px;
+        }
+        .paid-due-table .paid-row td {
+            background-color: #f6fff6;
+            color: #006000;
+        }
+        .paid-due-table .due-row td {
+            background-color: #fff6f6;
+            color: #c00;
+        }
+        .paid-due-table tr td:last-child {
+            text-align: right;
+        }
+
+
         /* Signature */
         .signature-area {
             margin-top: 30px;
@@ -313,14 +338,24 @@
             margin: 0;
         }
         .signature-line {
-            border-top: 1px solid #999;
             width: 220px;
-            display: inline-block;
-            padding-top: 8px;
-            margin-top: 70px; /* Space for signature */
+            margin-top: 10px; /* Space for signature */
             font-size: 13px;
             font-weight: 500;
         }
+        .signature-line img {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: -10px;
+        }
+        .signature-line strong {
+            display: block;
+            margin-top: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
 
         /* Your page-break fix */
         .bank-details, .payment-qr, .terms, .totals-table, .signature-area, .total-in-words {
@@ -344,7 +379,10 @@
             </div>
             <div class="company-address">
                 <span th:text="${shopAddress}">Shop Address</span><br />
-                <span th:text="${shopPhone}"></span> | <span th:text="${shopEmail}"></span>
+                <!-- [CONDITION] Show Support Info -->
+                <span th:if="${showSupportInfo}">
+                    <span th:text="${shopPhone}"></span> | <span th:text="${shopEmail}"></span>
+                </span>
             </div>
         </div>
     </header>
@@ -353,9 +391,11 @@
         <div class="meta-box">
             <h3>BILLED TO</h3>
             <p><strong th:text="${customerName}"></strong></p>
-            <p th:text="${customerState}"></p>
+            <!-- Use customerBillingAddress -->
+            <p th:text="${customerBillingAddress}"></p>
             <p th:text="${customerPhone}"></p>
-            <p th:if="${!#strings.isEmpty(customerGstNumber)}" th:text="'GSTIN: ' + ${customerGstNumber}"></p>
+            <!-- [CONDITION] Show Customer GST Number -->
+            <p th:if="${showCustomerGst and !#strings.isEmpty(customerGstNumber)}" th:text="'GSTIN: ' + ${customerGstNumber}"></p>
         </div>
         <div class="meta-box">
             <h3>INVOICE DETAILS</h3>
@@ -367,22 +407,24 @@
                 <span class="label">Invoice Date</span>
                 <span class="value" th:text="${orderedDate}"></span>
             </div>
-            <div class="meta-item">
+            <!-- [CONDITION] Show Due Date -->
+            <div class="meta-item" th:if="${showDueDate and !#strings.isEmpty(dueDate)}">
                 <span class="label">Due Date</span>
                 <span class="value" th:text="${dueDate}"></span>
             </div>
         </div>
         <div class="meta-box">
             <h3>BILLED BY</h3>
-            <div class="meta-item">
+            <div class="meta-item" th:if="${!#strings.isEmpty(gstNumber)}">
                 <span class="label">GSTIN</span>
                 <span class="value" th:text="${gstNumber}"></span>
             </div>
-            <div class="meta-item">
+            <!-- [CONDITION] Show Shop PAN Number -->
+            <div class="meta-item" th:if="${showShopPanOnInvoice and !#strings.isEmpty(panNumber)}">
                 <span class="label">PAN</span>
                 <span class="value" th:text="${panNumber}"></span>
             </div>
-            <div class="meta-item">
+            <div class="meta-item" th:if="${!#strings.isEmpty(shopSlogan)}">
                 <span class="label">Slogan</span>
                 <span class="value" th:text="${shopSlogan}"></span>
             </div>
@@ -392,43 +434,54 @@
     <table class="items-table">
         <thead>
         <tr>
-            <th>ITEMS</th>
-            <th class="text-right">HSN</th>
-            <th class="text-right">RATE</th>
-            <th class="text-right">QTY.</th>
-            <th class="text-right">AMOUNT</th>
-            <th class="text-right">TAX</th>
-            <th class="text-right">TOTAL</th>
+            <th class="col-item">ITEMS</th>
+            <!-- [CONDITION] Show HSN Column -->
+            <th class="col-hsn text-right" th:if="${showHsnColumn}">HSN</th>
+            <th class_ ="col-qty text-right">QTY.</th>
+            <!-- [CONDITION] Show Rate Column -->
+            <th class="col-rate text-right" th:if="${showRateColumn}">RATE</th>
+            <th class="col-amount text-right">AMOUNT</th>
+            <!-- [CONDITION] Show Item Discount -->
+            <th class="col-disc text-right" th:if="${showIndividualDiscountPercentage}">DISC %</th>
+            <th class="col-tax text-right">TAX</th>
+            <th class="col-total text-right">TOTAL</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="product : ${products}">
-            <td>
+            <td class="col-item">
                 <span th:text="${product['productName']}"></span>
                 <small class="desc" th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}" th:text="${product['description']}"></small>
             </td>
-            <td class="text-right" th:text="${product['hsnCode']}"></td>
-            <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
-            <td class="text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ' Pcs'"></td>
-            <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
-            <td class="text-right">
+            <!-- [CONDITION] Show HSN Column -->
+            <td class="col-hsn text-right" th:if="${showHsnColumn}" th:text="${product['hsnCode']}"></td>
+            <td class="col-qty text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ' Pcs'"></td>
+            <!-- [CONDITION] Show Rate Column -->
+            <td class="col-rate text-right" th:if="${showRateColumn}" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="col-amount text-right" th:text="${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <!-- [CONDITION] Show Item Discount -->
+            <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}" th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
+            <td class="col-tax text-right">
                 <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
                 <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
                 <br th:if="${product['sgstAmount'] > 0}" />
                 <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
             </td>
-            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="col-total text-right" th:text="' ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
         </tr>
         </tbody>
         <tfoot>
         <tr>
-            <td colspan="3">SUBTOTAL</td>
+            <!-- [CONDITION] Colspan adjusted -->
+            <td th:attr="colspan=1 + (${showHsnColumn} ? 1 : 0)" class="text-right">SUBTOTAL</td>
             <td class="text-right" th:text="${#aggregates.sum(products.![quantity])}"></td>
-            <td></td>
-            <td class_ ="text-right"
+            <td th:if="${showRateColumn}"></td> <!-- Rate spacer -->
+            <td class="text-right" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td th:if="${showIndividualDiscountPercentage}"></td> <!-- Discount spacer -->
+            <td class="text-right"
                 th:text="' ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 0, 'POINT')}">
             </td>
-            <td class_ ="text-right"
+            <td class="text-right"
                 th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">
             </td>
 
@@ -443,7 +496,7 @@
                 <p th:text="${grandTotalInWords}"></p>
             </div>
 
-            <div class_ ="footer-section bank-details">
+            <div class="footer-section bank-details">
                 <h4>Bank and UPI details</h4>
                 <div class="bank-details-container">
                     <div class="bank-info">
@@ -460,7 +513,8 @@
                 </div>
             </div>
 
-            <div class_ ="footer-section terms">
+            <!-- [CONDITION] Remove Terms and Conditions -->
+            <div class="footer-section terms" th:unless="${removeTerms}">
                 <h4>Terms And Conditions</h4>
                 <ul>
                     <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
@@ -475,25 +529,50 @@
                     <td>Taxable Amount</td>
                     <td th:text="' ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></td>
                 </tr>
+                <!-- [CONDITION] Show Total Discount -->
+                <tr th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
+                    <td style="font-weight: 600;">Discount</td>
+                    <td style="font-weight: 600;" th:text="'- ' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                </tr>
 
                 <tr th:each="gst : ${gstSummary}">
                     <td th:text="${gst['type']} + ' @' + ${gst['percentage']} + '%'"></td>
                     <td th:text="' ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></td>
-        </div>
+                </tr>
 
-        <tr class="total-due">
-            <td>Total(INR)</td>
-            <td th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
-        </tr>
-        </tbody>
-        </table>
+                <tr class="total-due">
+                    <td>Total(INR)</td>
+                    <td th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
+                </tr>
+                </tbody>
+            </table>
 
-        <div class="signature-area">
-            <p>For <span th:text="${shopName}"></span></p>
-            <span class="signature-line">Authorised Signatory</span>
+            <!-- [CONDITION] Show Due/Paid Amount Block -->
+            <table class="paid-due-table" th:if="${showDueAmount and ((paidAmount != null and paidAmount > 0) or (dueAmount != null and dueAmount > 0))}">
+                <tbody>
+                <tr class="paid-row" th:if="${paidAmount != null and paidAmount > 0}">
+                    <td>Paid Amount</td>
+                    <td th:text="' ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                </tr>
+                <tr class="due-row" th:if="${dueAmount != null and dueAmount > 0}">
+                    <td>Due Amount</td>
+                    <td th:text="' ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="signature-area">
+                <p>For <span th:text="${shopName}"></span></p>
+                <div class="signature-line" style="height: 60px;">
+                    <!-- [CONDITION] Show Signature Image -->
+                    <img th:if="${shopSignatureBase64}" th:src="'data:image/png;base64,' + ${shopSignatureBase64}" alt="Signature"/>
+                </div>
+                <strong th:text="${shopAccountName}" style="display: block; margin-top: 5px; font-size: 14px; font-weight: 600;">Sandeep Maurya</strong>
+                <p>(Authorised Signatory)</p>
+            </div>
         </div>
-</div>
-</footer>
+    </footer>
 </div>
 </body>
 </html>
+

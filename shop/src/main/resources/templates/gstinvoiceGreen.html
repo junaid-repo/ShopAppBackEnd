@@ -154,14 +154,15 @@
             border-top: 2px solid #000;
         }
 
-        /* Column widths based on your old template, slightly adjusted */
+        /* Column widths adjusted for discount */
         .col-sr { width: 5%; }
-        .col-name { width: 25%; }
+        .col-name { width: 20%; }
         .col-hsn { width: 8%; }
-        .col-rate { width: 10%; }
         .col-qty { width: 8%; }
-        .col-amount { width: 12%; }
-        .col-tax { width: 20%; }
+        .col-rate { width: 10%; }
+        .col-amount { width: 10%; }
+        .col-disc { width: 10%; } /* Added discount column */
+        .col-tax { width: 17%; }
         .col-total { width: 12%; }
 
         small.desc {
@@ -229,6 +230,12 @@
             margin: 0;
             font-size: 11px;
         }
+        .signature-line img {
+            max-width: 150px;
+            height: auto;
+            margin-top: -15px;
+            margin-bottom: -10px;
+        }
 
     </style>
 </head>
@@ -250,7 +257,8 @@
                     <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
                     <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGOTEXT</span>
                 </div>
-                <div class="header-contact" style="margin-top: 20px;">
+                <!-- [CONDITION] Show Support Info -->
+                <div class="header-contact" style="margin-top: 20px;" th:if="${showSupportInfo}">
                     <p th:text="'Tel : ' + ${shopPhone}">Tel : 079-25820309</p>
                     <p th:text="'Email : ' + ${shopEmail}">Email : info@gfttools.com</p>
                 </div>
@@ -260,7 +268,12 @@
 
     <table class="layout-table title-table">
         <tr>
-            <td style="width: 33%;" th:text="'GSTIN : ' + ${gstNumber}">GSTIN : 24HDE7487RE5RT4</td>
+            <td style="width: 33%;">
+                <span th:if="${!#strings.isEmpty(gstNumber)}" th:text="'GSTIN : ' + ${gstNumber}">GSTIN : 24HDE7487RE5RT4</span>
+                <!-- [CONDITION] Show Shop PAN Number -->
+                <br th:if="${showShopPanOnInvoice and !#strings.isEmpty(panNumber)}" />
+                <span th:if="${showShopPanOnInvoice and !#strings.isEmpty(panNumber)}" th:text="'PAN : ' + ${panNumber}"></span>
+            </td>
             <td style="width: 34%;" class="invoice-title">TAX INVOICE</td>
             <td style="width: 33%;" class="text-right">ORIGINAL FOR RECIPIENT</td>
         </tr>
@@ -280,13 +293,15 @@
                     </tr>
                     <tr>
                         <td><span class="label">Address</span></td>
-                        <td th:text="${customerState}">Chandani Chok, New Delhi...</td>
+                        <!-- Use customerBillingAddress -->
+                        <td th:text="${customerBillingAddress}">Chandani Chok, New Delhi...</td>
                     </tr>
                     <tr>
                         <td><span class="label">PHONE</span></td>
                         <td th:text="${customerPhone}">9372456566</td>
                     </tr>
-                    <tr>
+                    <!-- [CONDITION] Show Customer GST Number -->
+                    <tr th:if="${showCustomerGst and !#strings.isEmpty(customerGstNumber)}">
                         <td><span class="label">GSTIN</span></td>
                         <td th:text="${customerGstNumber}">07AOLQJ1256D1ZG</td>
                     </tr>
@@ -310,6 +325,13 @@
                         <td style="width: 25%;" class="text-bold" th:text="${invoiceId}">GST112020</td>
                         <td style="width: 25%;"><span class="label">Invoice Date</span></td>
                         <td style="width: 25%;" th:text="${orderedDate}">04-Mar-2020</td>
+                    </tr>
+                    <!-- [CONDITION] Show Due Date -->
+                    <tr th:if="${showDueDate and !#strings.isEmpty(dueDate)}">
+                        <td><span class="label">Due Date</span></td>
+                        <td th:text="${dueDate}"></td>
+                        <td></td>
+                        <td></td>
                     </tr>
                     <tr>
                         <td><span class="label">Challan No.</span></td>
@@ -341,10 +363,14 @@
         <tr>
             <th class="col-sr">Sr. No.</th>
             <th class="col-name">Name of Product / Service</th>
-            <th class="col-hsn">HSN / SAC</th>
+            <!-- [CONDITION] Show HSN Column -->
+            <th class="col-hsn" th:if="${showHsnColumn}">HSN / SAC</th>
             <th class="col-qty text-right">Qty</th>
-            <th class="col-rate text-right">Rate</th>
+            <!-- [CONDITION] Show Rate Column -->
+            <th class="col-rate text-right" th:if="${showRateColumn}">Rate</th>
             <th class="col-amount text-right">Taxable Value</th>
+            <!-- [CONDITION] Show Item Discount -->
+            <th class="col-disc text-right" th:if="${showIndividualDiscountPercentage}">Disc %</th>
             <th class="col-tax text-center">TAX</th>
             <th class="col-total text-right">Total</th>
         </tr>
@@ -356,27 +382,33 @@
                 <span th:text="${product['productName']}"></span>
                 <small class="desc" th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}" th:text="${product['description']}"></small>
             </td>
-            <td class="text-center" th:text="${product['hsnCode']}"></td>
+            <!-- [CONDITION] Show HSN Column -->
+            <td class="text-center" th:if="${showHsnColumn}" th:text="${product['hsnCode']}"></td>
             <td class="text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ' Pcs'"></td>
-            <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <!-- [CONDITION] Show Rate Column -->
+            <td class="text-right" th:if="${showRateColumn}" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
             <td class="text-right" th:text="${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <!-- [CONDITION] Show Item Discount -->
+            <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}" th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
             <td class="text-right">
                 <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
                 <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
                 <br th:if="${product['sgstAmount'] > 0}" />
                 <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
             </td>
-            <td class_ ="text-right" th:text="' ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
         </tr>
 
 
         </tbody>
         <tfoot>
         <tr>
-            <td colspan="3" class="text-right">Total</td>
+            <!-- [CONDITION] Colspan adjusted -->
+            <td th:attr="colspan=2 + (${showHsnColumn} ? 1 : 0)" class="text-right">Total</td>
             <td class="text-right" th:text="${#aggregates.sum(products.![quantity])}"></td>
-            <td></td>
+            <td th:if="${showRateColumn}"></td> <!-- Rate spacer -->
             <td class="text-right" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td th:if="${showIndividualDiscountPercentage}"></td> <!-- Discount spacer -->
             <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 0, 'POINT')}"></td>
             <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
         </tr>
@@ -404,16 +436,19 @@
                             <p><span class="label">Bank Branch IFSC</span> <span th:text="${bankIfscCode}"></span></p>
                         </td>
                     </tr>
-                    <tr>
-                        <td class="section-header">Terms and Conditions</td>
-                    </tr>
-                    <tr>
-                        <td class="terms">
-                            <ul>
-                                <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
-                            </ul>
-                        </td>
-                    </tr>
+                    <!-- [CONDITION] Remove Terms and Conditions -->
+                    <th:block th:unless="${removeTerms}">
+                        <tr>
+                            <td class="section-header">Terms and Conditions</td>
+                        </tr>
+                        <tr>
+                            <td class="terms">
+                                <ul>
+                                    <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </th:block>
                 </table>
             </td>
 
@@ -423,6 +458,11 @@
                     <tr>
                         <td class="label">Taxable Amount</td>
                         <td class="text-right text-bold" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    <!-- [CONDITION] Show Total Discount -->
+                    <tr th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
+                        <td class="label">Discount</td>
+                        <td class="text-right text-bold" th:text="'- ' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
                     </tr>
                     <tr th:each="gst : ${gstSummary}">
                         <td class="label" th:text="'Add: ' + ${gst['type']} + ' @' + ${gst['percentage']} + '%'">Add: IGST</td>
@@ -437,15 +477,33 @@
                         <td class="text-right" th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
                     </tr>
                     </tbody>
+                </table>
+
+                <!-- [CONDITION] Show Due/Paid Amount Block -->
+                <table class="inner-table bordered" th:if="${showDueAmount and ((paidAmount != null and paidAmount > 0) or (dueAmount != null and dueAmount > 0))}" style="margin-top: 5px;">
+                    <tbody class="totals-summary">
+                    <tr th:if="${paidAmount != null and paidAmount > 0}" style="background-color: #f6fff6; color: #006000;">
+                        <td class="label">Paid Amount</td>
+                        <td class="text-right text-bold" th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    <tr th:if="${dueAmount != null and dueAmount > 0}" style="background-color: #fff6f6; color: #c00;">
+                        <td class="label">Due Amount</td>
+                        <td class="text-right text-bold" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <table class="inner-table bordered" style="border-top: none;">
                     <tbody>
-
-
                     <tr>
                         <td colspan="2" class="signature-area">
                             <strong style="font-size: 14px;" th:text="'For ' + ${shopName}">For Gujarat Freight Tools</strong>
-                            <br /><br /><br /><br />
-                            <p>This is computer generated</p>
-                            <p>invoice no signature required.</p>
+                            <br/>
+                            <div class="signature-line" style="height: 60px;">
+                                <img th:if="${shopSignatureBase64}" th:src="'data:image/png;base64,' + ${shopSignatureBase64}" alt="Signature" style="max-width: 150px; height: auto;"/>
+                            </div>
+                            <strong th:text="${shopAccountName}" style="display: block; margin-top: 5px; font-size: 14px; font-weight: 600;">Sandeep Maurya</strong>
+                            <p>(Authorised Signatory)</p>
                         </td>
                     </tr>
                     </tbody>
@@ -457,3 +515,4 @@
 </div>
 </body>
 </html>
+

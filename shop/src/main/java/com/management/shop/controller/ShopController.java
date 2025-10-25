@@ -942,5 +942,24 @@ public class ShopController {
         return ResponseEntity.ok(response);
     }
 
+   /* @PostMapping("api/shop/getGlobalSearchTerms/{globalSearchTerms}")
+    ResponseEntity<List<Map<String, Object>>> getGlobalSearch(@PathVariable String globalSearchTerms){
+
+        List<Map<String, Object>> response= serv.globalSearch(globalSearchTerms, 7);
+
+        return ResponseEntity.ok(response);
+    }*/
+    @GetMapping("api/shop/getGlobalSearchTerms")
+    public ResponseEntity<List<Map<String, Object>>> globalSearch(
+            @RequestParam String term,
+            @RequestParam(defaultValue = "10") int limit) {
+
+        List<Map<String, Object>> response= serv.globalSearch(term, 7);
+
+        // Uses the fast, indexed prefix-search
+        return ResponseEntity.ok(response);
+
+    }
+
 
 }

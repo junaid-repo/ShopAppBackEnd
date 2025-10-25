@@ -7,7 +7,6 @@ import com.management.shop.dto.OrderItemInvoice;
 import com.management.shop.dto.UpdateUserDTO;
 import com.management.shop.entity.*;
 import com.management.shop.repository.*;
-import com.razorpay.Customer;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -145,6 +144,7 @@ public class Utility {
                         .igstPercentage(it.getIgstPercentage())
                         .sgstPercentage(it.getSgstPercentage())
                         .taxPercentage(taxPercentage)
+                        .discountPercentage(it.getDiscount())
                         .description(it.getDetails())
                         .totalAmount(totalForLine)
                         .build();
@@ -165,22 +165,43 @@ public class Utility {
                 }
             });
         }
-        Boolean printDueAmount = true;
+
+        //updateParametersAsPerSettings(order, userProfile);
+
+        Boolean printShopPan = true;
+
         Boolean printCustomerGst = true;
+        Boolean combineCustomerAddresses = true;
+
+        Boolean itemDiscount=false;
+        Boolean showHsnColumn=true;
+        Boolean showRateColumn=true;
+
+        Boolean showTotalDiscount=true;
+        Boolean printDueAmount = true;
+        Boolean addDueDate = false;
+
+        Boolean showSupportInfo=true;
+        Boolean removeTerms=false;
+
         try {
             UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername());
             printDueAmount=   userSettingsEntity.getShowPaymentStatus();
             printCustomerGst=   userSettingsEntity.getShowCustomerGstin();
+            printShopPan=userSettingsEntity.getShowShopPan();
+            combineCustomerAddresses=userSettingsEntity.getCombineAddresses(); //
+            itemDiscount=userSettingsEntity.getShowItemDiscount();
+            showHsnColumn=userSettingsEntity.getShowHsnColumn();
+            showRateColumn=userSettingsEntity.getShowRateColumn();
+            showTotalDiscount=userSettingsEntity.getShowTotalDiscount();
+            addDueDate=userSettingsEntity.getAddDueDate();
+            showSupportInfo=userSettingsEntity.getShowSupportInfo();
+            removeTerms=userSettingsEntity.getRemoveTerms();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        if(!printDueAmount){
-            order.setPaidAmount(0);
-            order.setDueAmount(0);
-        }
-        if(!printCustomerGst){
-            order.setCustomerGstNumber("");
-        }
+
+
 
 
         CustomerEntity custEntity = custRepo.findByIdAndUserId(order.getCustomerId(), username);
@@ -208,8 +229,8 @@ public class Utility {
 
                 .customerName(toEmpty(order.getCustomerName()))
 
-                .customerBillingAddress("")
-                .customerShippingAddress("")
+                .customerBillingAddress(custEntity.getCity() + ", " + custEntity.getState())
+                .customerShippingAddress(custEntity.getCity() + ", " + custEntity.getState())
                 .customerPhone(toEmpty(order.getCustomerPhone()))
                 .customerGst(toEmpty(order.getCustomerGstNumber()))
                 .customerState(custEntity.getCity() + ", " + custEntity.getState())
@@ -220,6 +241,7 @@ public class Utility {
                 .dueAmount(order.getDueAmount())
                 .previousBalance(0d)
                 .grandTotal(order.getTotalAmount())
+                .discountPercentage(order.getDiscountRate())
                 .gstSummary(gstSummary)
 
                 .bankAccountName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankHolder())).orElse(""))
@@ -229,7 +251,68 @@ public class Utility {
                 .upiId(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getUpi())).orElse(""))
 
                 .termsAndConditions(terms)
+
+                .printShopPan(printShopPan)
+                .printCustomerGst(printCustomerGst)
+                .combineCustomerAddresses(combineCustomerAddresses)
+                .itemDiscount(itemDiscount)
+                .showHsnColumn(showHsnColumn)
+                .showRateColumn(showRateColumn)
+                .showTotalDiscount(showTotalDiscount)
+                .printDueAmount(printDueAmount)
+                .addDueDate(addDueDate)
+                .showSupportInfo(showSupportInfo)
+                .removeTerms(removeTerms)
+
+
                 .build();
+    }
+
+    private void updateParametersAsPerSettings(InvoiceDetails order, UpdateUserDTO userProfile) {
+        Boolean printShopPan = true;
+
+        Boolean printCustomerGst = true;
+        Boolean combineCustomerAddresses = true;
+
+        Boolean itemDiscount=false;
+        Boolean showHsnColumn=true;
+        Boolean showRateColumn=true;
+
+        Boolean showTotalDiscount=true;
+        Boolean printDueAmount = true;
+        Boolean addDueDate = false;
+
+        Boolean showSupportInfo=true;
+        Boolean removeTerms=false;
+
+        try {
+            UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername());
+            printDueAmount=   userSettingsEntity.getShowPaymentStatus();
+            printCustomerGst=   userSettingsEntity.getShowCustomerGstin();
+            printShopPan=userSettingsEntity.getShowShopPan();
+            combineCustomerAddresses=userSettingsEntity.getCombineAddresses(); //
+            itemDiscount=userSettingsEntity.getShowItemDiscount();
+            showHsnColumn=userSettingsEntity.getShowHsnColumn();
+            showRateColumn=userSettingsEntity.getShowRateColumn();
+            showTotalDiscount=userSettingsEntity.getShowTotalDiscount();
+            addDueDate=userSettingsEntity.getAddDueDate();
+            showSupportInfo=userSettingsEntity.getShowSupportInfo();
+            removeTerms=userSettingsEntity.getRemoveTerms();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        if(!printDueAmount){
+            order.setPaidAmount(0);
+            order.setDueAmount(0);
+        }
+        if(!printCustomerGst){
+            order.setCustomerGstNumber("");
+        }
+        if(!printShopPan){
+           userProfile.setPan("");
+        }
+
+
     }
 
     public UpdateUserDTO getUserProfile(String username) {
@@ -336,6 +419,7 @@ public class Utility {
                             .igst(obj.getIgst())
                             .igstPercentage(obj.getIgstPercentage())
                             .details(toEmpty(obj.getProductDetails()))
+                            .discount(obj.getDiscountPercentage())
                             .quantity(obj.getQuantity())
                             .hsn(prodRes.getHsn())
                             .build();
@@ -347,7 +431,7 @@ public class Utility {
                 .orElse("");
 
         return InvoiceDetails.builder()
-                .discountRate(0)
+                .discountRate(billDetails.getDiscountPercent())
                 .invoiceId(toEmpty(orderReferenceNumber))
                 .paymentReferenceNumber(toEmpty(paymentEntity.getPaymentReferenceNumber()))
                 .paidAmount(paymentEntity.getPaid())

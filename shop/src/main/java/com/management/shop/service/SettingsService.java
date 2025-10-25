@@ -70,6 +70,8 @@ System.out.println("The scheulder settings to be saved  "+request);
                         .allowNoStockBilling(userSettings != null && userSettings.getAllowNoStockBilling() != null ? userSettings.getAllowNoStockBilling() : false)
                         .hideNoStockProducts(userSettings != null && userSettings.getHideNoStockProducts() != null ? userSettings.getHideNoStockProducts() : false)
                         .autoSendInvoice(userSettings != null && userSettings.getAutoSendInvoice() != null ? userSettings.getAutoSendInvoice() : false)
+                        .showPartialPaymentOption(userSettings != null && userSettings.getShowPartialPaymentOption() != null ? userSettings.getShowPartialPaymentOption() : false)
+                        .showRemarksOnSummarySide(userSettings != null && userSettings.getShowRemarksOptions() != null ? userSettings.getShowRemarksOptions() : false)
                         .serialNumberPattern(userSettings != null && userSettings.getSerialNumberPattern() != null ? userSettings.getSerialNumberPattern() : "")
                         .build())
                 .invoice(InvoiceSettings.builder()
@@ -78,6 +80,15 @@ System.out.println("The scheulder settings to be saved  "+request);
                         .showPaymentStatus(userSettings != null && userSettings.getShowPaymentStatus() != null ? userSettings.getShowPaymentStatus() : false)
                         .removeTerms(userSettings != null && userSettings.getRemoveTerms() != null ? userSettings.getRemoveTerms() : false)
                         .showCustomerGstin(userSettings != null && userSettings.getShowCustomerGstin() != null ? userSettings.getShowCustomerGstin() : false)
+
+                        .showTotalDiscountPercentage(userSettings != null && userSettings.getShowTotalDiscount() != null ? userSettings.getShowTotalDiscount() : false)
+                        .showIndividualDiscountPercentage(userSettings != null && userSettings.getShowItemDiscount() != null ? userSettings.getShowItemDiscount() : false)
+                        .showShopPanOnInvoice(userSettings != null && userSettings.getShowShopPan() != null ? userSettings.getShowShopPan() : false)
+                        .showSupportInfoOnInvoice(userSettings != null && userSettings.getShowSupportInfo() != null ? userSettings.getShowSupportInfo() : false)
+                        .showRateColumn( userSettings != null && userSettings.getShowRateColumn() != null ? userSettings.getShowRateColumn() : false)
+                        .showHsnColumn( userSettings != null && userSettings.getShowHsnColumn() != null ? userSettings.getShowHsnColumn() : false)
+
+
                         .build())
                 .build();
 
@@ -106,6 +117,14 @@ System.out.println("The scheulder settings to be saved  "+request);
                 .showPaymentStatus(Boolean.TRUE)
                 .removeTerms(Boolean.FALSE)
                 .showCustomerGstin(Boolean.TRUE)
+                .showPaymentStatus(Boolean.TRUE)
+                .showRemarksOptions(Boolean.FALSE)
+                .showShopPan(Boolean.TRUE)
+                .showHsnColumn(Boolean.TRUE)
+                .showItemDiscount(Boolean.FALSE)
+                .showRateColumn(Boolean.TRUE)
+                .showTotalDiscount(Boolean.FALSE)
+                .showSupportInfo(Boolean.FALSE)
                 .username(username)
                 .updatedBy(username)
                 .updatedDate(LocalDateTime.now())
@@ -121,8 +140,11 @@ System.out.println("The scheulder settings to be saved  "+request);
         Boolean hideNoStockProducts = (Boolean) request.get("hideNoStockProducts");
         String serialNumberPattern = (String) request.get("serialNumberPattern");
 
+        Boolean doPartialBilling =(Boolean)request.get("showPartialPaymentOption");
+        Boolean showRemarksOption= (Boolean)request.get("showRemarksOnSummarySide");
 
-        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts,serialNumberPattern, extractUsername(), LocalDateTime.now());
+
+        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts,serialNumberPattern, extractUsername(), LocalDateTime.now() ,doPartialBilling ,showRemarksOption);
 
 
         return "saved";
@@ -136,8 +158,17 @@ System.out.println("The scheulder settings to be saved  "+request);
         Boolean removeTerms = (Boolean) request.get("removeTerms");
         Boolean showCustomerGstin = (Boolean) request.get("showCustomerGstin");
 
+        Boolean showTotalDiscountPercentage = (Boolean) request.get("showTotalDiscountPercentage");
+        Boolean showIndividualDiscountPercentage = (Boolean) request.get("showIndividualDiscountPercentage");
+        Boolean showShopPanOnInvoice = (Boolean) request.get("showShopPanOnInvoice");
+        Boolean showSupportInfoOnInvoice = (Boolean) request.get("showSupportInfoOnInvoice");
+        Boolean showRateColumn = (Boolean) request.get("showRateColumn");
+        Boolean showHsnColumn = (Boolean) request.get("showHsnColumn");
 
-        settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms,showCustomerGstin, extractUsername(), LocalDateTime.now());
+
+        settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms, showCustomerGstin, extractUsername(), LocalDateTime.now(),
+                showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn);
+
 
         return "saved";
     }

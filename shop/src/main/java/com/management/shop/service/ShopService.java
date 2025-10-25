@@ -150,6 +150,9 @@ public class ShopService {
     @Autowired
     Utility utils;
 
+    @Autowired
+    GlobalSearchIndexRepository globalSearchRepo;
+
     private final Random random = new Random();
 
     @Value("${aws.s3.bucket-name}")
@@ -183,6 +186,7 @@ public class ShopService {
             var customerEntity = CustomerEntity.builder().userId(extractUsername()).id(existingCustomer.get(0).getId()).name(request.getName()).email(request.getEmail())
                     .createdDate(LocalDateTime.now())
                     .gstNumber(request.getGstNumber())
+                    .isActive(Boolean.TRUE)
                     .state(request.getCustomerState())
                     .city(request.getCity())
                     .phone(request.getPhone()).status("ACTIVE").totalSpent(existingCustomer.get(0).getTotalSpent()).build();
@@ -196,6 +200,7 @@ public class ShopService {
                     .state(request.getCustomerState())
                     .gstNumber(request.getGstNumber())
                     .city(request.getCity())
+                    .isActive(Boolean.TRUE)
                     .phone(request.getPhone()).status("ACTIVE").totalSpent(0).build();
 
             ent = shopRepo.save(customerEntity);
@@ -233,7 +238,7 @@ public class ShopService {
                     .state(request.getCustomerState())
                     .gstNumber(request.getGstNumber())
                     .city(request.getCity())
-                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").totalSpent(existingCustomer.get(0).getTotalSpent()).build();
+                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").isActive(Boolean.TRUE).totalSpent(existingCustomer.get(0).getTotalSpent()).build();
 
             ent = shopRepo.save(customerEntity);
 
@@ -1199,7 +1204,7 @@ public class ShopService {
 
     @Transactional
     public void deleteCustomer(Integer id) {
-        shopRepo.updateStatus(id, "IN-ACTIVE", extractUsername());
+        shopRepo.updateStatus(id, "IN-ACTIVE", extractUsername(), Boolean.FALSE);
         try {
             salesCacheService.evictUserCustomers(extractUsername());
             salesCacheService.evictsUserAnalytics(extractUsername());
@@ -2230,6 +2235,26 @@ public class ShopService {
             e.printStackTrace();
         }
         response.put("errorData", "success");
+        return response;
+    }
+
+    public List<Map<String, Object>> globalSearch(String globalSearchTerms, Integer limit) {
+
+
+       List<GlobalSearchIndex> searchList= globalSearchRepo.findActiveEntities(extractUsername(), globalSearchTerms, Boolean.TRUE);
+
+
+      List<Map<String, Object>> response= searchList.stream().map(obj->{
+           Map<String, Object> responseMap=new HashMap<>();
+           responseMap.put("id", obj.getSourceId());
+           responseMap.put("displayName", obj.getDisplayName());
+           responseMap.put("sourceType", obj.getSourceType());
+           return responseMap;
+
+       }).collect(Collectors.toList());
+
+      System.out.println("The global search response is "+response);
+
         return response;
     }
 }

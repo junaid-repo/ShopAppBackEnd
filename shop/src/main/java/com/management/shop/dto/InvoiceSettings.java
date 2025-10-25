@@ -15,4 +15,11 @@ public class InvoiceSettings {
     private Boolean showPaymentStatus;
     private Boolean removeTerms;
     private Boolean showCustomerGstin;
+
+    Boolean showTotalDiscountPercentage ;
+    Boolean showIndividualDiscountPercentage ;
+    Boolean showShopPanOnInvoice ;
+    Boolean showSupportInfoOnInvoice ;
+    Boolean showRateColumn ;
+    Boolean showHsnColumn ;
 }

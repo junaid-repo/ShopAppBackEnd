@@ -69,7 +69,7 @@ public class SettingsController {
 
     }
     @GetMapping("api/shop/get/user/settings")
-    ResponseEntity<ShopSettings> saveUserSchedulerSettings(){
+    ResponseEntity<ShopSettings> getFullUserSettings(){
 
         ShopSettings response=serv.getFullUserSettings();
 
