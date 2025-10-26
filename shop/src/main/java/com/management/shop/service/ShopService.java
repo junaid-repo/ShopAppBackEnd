@@ -248,7 +248,7 @@ public class ShopService {
                     .state(request.getCustomerState())
                     .gstNumber(request.getGstNumber())
                     .city(request.getCity())
-                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").totalSpent(0).build();
+                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").isActive(Boolean.TRUE).totalSpent(0).build();
 
             ent = shopRepo.save(customerEntity);
         }
