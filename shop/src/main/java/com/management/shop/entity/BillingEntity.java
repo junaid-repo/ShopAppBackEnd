@@ -27,9 +27,9 @@ public class BillingEntity {
 	@GeneratedValue(strategy=GenerationType.AUTO)
 	private Integer id;
 	private String invoiceNumber;
-	private Integer taxAmount;
-	private Integer subTotalAmount;
-	private Integer totalAmount;
+	private Double taxAmount;
+	private Double subTotalAmount;
+	private Double totalAmount;
     private Double discountPercent;
     private Double payingAmount;
     private Double remainingAmount;

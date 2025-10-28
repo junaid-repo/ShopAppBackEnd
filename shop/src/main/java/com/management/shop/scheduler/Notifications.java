@@ -52,6 +52,8 @@ public class Notifications {
 
         List<UserInfo> usersList = userinfoRepo.findAllByStatus(Boolean.TRUE);
 
+        System.out.println("Running outOfStockNotification scheduler for users: " + usersList.size());
+
 
         usersList.stream().forEach(user -> {
             String username = user.getUsername();
@@ -95,24 +97,25 @@ public class Notifications {
 
 
             paymenetList.stream().forEach(payment -> {
-                Long daysBetween = ChronoUnit.DAYS.between(LocalDateTime.now(), payment.getUpdatedDate());
-                MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("sales")
-                        .title("Due Amount for Order No " + payment.getOrderNumber())
-                        .subject("Payment for " + payment.getOrderNumber() + "is due for " + String.valueOf(daysBetween) + " days.")
-                        .details("Payment for " + payment.getOrderNumber() + "is due for " +  String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment")
-                        .isDeleted(false)
-                        .isDone(false)
-                        .isRead(false)
-                        .isFlagged(false)
-                        .userId(username)
+                Long daysBetween = ChronoUnit.DAYS.between(payment.getUpdatedDate(), LocalDateTime.now());
+                if(daysBetween>3) {
+                    MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("sales")
+                            .title("Due Amount for Order No " + payment.getOrderNumber())
+                            .subject("Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days.")
+                            .details("Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment")
+                            .isDeleted(false)
+                            .isDone(false)
+                            .isRead(false)
+                            .isFlagged(false)
+                            .userId(username)
 
-                        .updatedBy(username)
-                        .searchKey(payment.getOrderNumber())
-                        .updatedDate(LocalDateTime.now())
-                        .build();
+                            .updatedBy(username)
+                            .searchKey(payment.getOrderNumber())
+                            .updatedDate(LocalDateTime.now())
+                            .build();
 
-                notiRepo.save(messageEntity);
-
+                    notiRepo.save(messageEntity);
+                }
 
             });
         });

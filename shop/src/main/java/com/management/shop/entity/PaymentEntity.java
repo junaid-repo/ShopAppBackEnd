@@ -30,9 +30,9 @@ public class PaymentEntity {
 	private Integer billingId;
 	private String paymentMethod;
 	private String status;
-	private Integer tax;
-	private Integer subtotal;
-	private Integer total;
+	private Double tax;
+	private Double subtotal;
+	private Double total;
     private Double paid;
     private Double toBePaid;
 	private String paymentReferenceNumber;

@@ -23,7 +23,7 @@ public class CustomerEntity {
 	private String email;
     @Column(name="phone", unique=true,nullable=true)
 	private String phone;
-	private Integer totalSpent;
+	private Double totalSpent;
 	private String status;
     private Boolean isActive;
     private String state;

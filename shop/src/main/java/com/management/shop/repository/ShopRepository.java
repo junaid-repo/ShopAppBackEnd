@@ -22,7 +22,7 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
 	@Modifying
 	@Transactional
 	@Query(value = "UPDATE shop_customer  SET total_spent = total_spent + ?2 WHERE id = ?1 and user_id = ?3", nativeQuery = true)
-	void updateCustomerSpentAmount(Integer id, Integer spent_value, String userId);
+	void updateCustomerSpentAmount(Integer id, Double spent_value, String userId);
 
 	@Query(value = "SELECT   * FROM    shop_customer WHERE    created_date BETWEEN ?1 AND ?2  and user_id = ?3 ", nativeQuery = true)
 	List<CustomerEntity> findCustomerByDateRange(LocalDateTime fromDate, LocalDateTime toDate, String userId);

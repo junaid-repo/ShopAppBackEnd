@@ -3,11 +3,10 @@ package com.management.shop.controller;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.management.shop.dto.*;
 import com.management.shop.util.Utility;
@@ -258,6 +257,28 @@ public class ShopController {
         List<ProductEntity> response = serv.getAllProducts();
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+    @GetMapping("api/shop/export/products")
+    ResponseEntity<byte[]> exportFullProductList() {
+
+        byte[] csvData  = serv.exportAllProductAsCSV();
+
+        DateFormat dateFormatter = new SimpleDateFormat("yyyyMMdd_HHmm");
+        String currentDateTime = dateFormatter.format(new Date());
+        String fileName = String.format("Products_Export_All_%s.csv", currentDateTime);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.setContentDispositionFormData("attachment", fileName);
+        headers.setContentLength(csvData.length);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=REP-" +".csv")
+                .contentType(MediaType.APPLICATION_PDF).body(csvData);
+
+
 
     }
 
@@ -958,6 +979,22 @@ public class ShopController {
 
         // Uses the fast, indexed prefix-search
         return ResponseEntity.ok(response);
+
+    }
+
+    @PostMapping("api/shop/refreshbackendcache")
+    public ResponseEntity<String> clearServerSideCache() {
+
+        String response= serv.clearServerSideCache();
+
+        if (response.equals("success")) {
+            return ResponseEntity.ok(response);
+        }
+        else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to clear cache");
+        }
+        // Uses the fast, indexed prefix-search
+
 
     }
 

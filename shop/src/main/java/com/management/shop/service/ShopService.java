@@ -153,6 +153,9 @@ public class ShopService {
     @Autowired
     GlobalSearchIndexRepository globalSearchRepo;
 
+    @Autowired
+    CSVUtil csvutil;
+
     private final Random random = new Random();
 
     @Value("${aws.s3.bucket-name}")
@@ -176,9 +179,11 @@ public class ShopService {
 
     public CustomerSuccessDTO saveCustomer(CustomerRequest request) {
         System.out.println("entered into saveCustomer with" + request.toString());
+        List<CustomerEntity> existingCustomer = new ArrayList<>();
 
-        List<CustomerEntity> existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
-
+        if(!request.getPhone().equals("") && !(request.getPhone()==null) && !request.getPhone().equals("0000000000")) {
+            existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
+        }
         CustomerEntity ent = null;
 
         if (existingCustomer.size() > 0) {
@@ -201,7 +206,7 @@ public class ShopService {
                     .gstNumber(request.getGstNumber())
                     .city(request.getCity())
                     .isActive(Boolean.TRUE)
-                    .phone(request.getPhone()).status("ACTIVE").totalSpent(0).build();
+                    .phone(request.getPhone()).status("ACTIVE").totalSpent(0d).build();
 
             ent = shopRepo.save(customerEntity);
         }
@@ -228,8 +233,11 @@ public class ShopService {
     @CacheEvict(value = "customers", key = "#root.target.extractUsername()")
     public CustomerEntity saveCustomerForBilling(CustomerRequest request) {
         System.out.println("entered into saveCustomer with" + request.toString());
-        List<CustomerEntity> existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
+        List<CustomerEntity> existingCustomer = new ArrayList<>();
 
+        if(!request.getPhone().equals("") && !(request.getPhone()==null) && !request.getPhone().equals("0000000000")) {
+            existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
+        }
         CustomerEntity ent = null;
 
         if (existingCustomer.size() > 0) {
@@ -248,7 +256,7 @@ public class ShopService {
                     .state(request.getCustomerState())
                     .gstNumber(request.getGstNumber())
                     .city(request.getCity())
-                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").isActive(Boolean.TRUE).totalSpent(0).build();
+                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").isActive(Boolean.TRUE).totalSpent(0d).build();
 
             ent = shopRepo.save(customerEntity);
         }
@@ -381,6 +389,21 @@ public class ShopService {
     public List<ProductEntity> getAllProducts() {
 
         return prodRepo.findAllActiveProducts(Boolean.TRUE,  extractUsername());
+    }
+
+    public byte[] exportAllProductAsCSV() {
+
+        List<ProductEntity> productList= prodRepo.findAllActiveProducts(Boolean.TRUE,  extractUsername());
+
+        try {
+            return  csvutil.exportAllProductAsCSV(productList);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
+        return null;
     }
 
 
@@ -923,8 +946,8 @@ public class ShopService {
         Integer countOfOrders=0;
 
         for (BillingEntity obj : billList) {
-            monthlyRevenue = monthlyRevenue + obj.getTotalAmount();
-            taxCollected = taxCollected + obj.getTaxAmount();
+            monthlyRevenue = (int) (monthlyRevenue + obj.getTotalAmount());
+            taxCollected = (int) (taxCollected + obj.getTaxAmount());
             totalUnitsSold = totalUnitsSold + obj.getUnitsSold();
             countOfOrders=countOfOrders+1;
         }
@@ -2142,7 +2165,7 @@ public class ShopService {
 
         CustomerEntity customer=   shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername());
 
-        Integer totalAmount=billDetails.getTotalAmount();
+        Double totalAmount=billDetails.getTotalAmount();
         Double paidAmount=billDetails.getPayingAmount();
         Double dueAmout=billDetails.getRemainingAmount();
 
@@ -2178,7 +2201,7 @@ public class ShopService {
     public Map<String, Object> updateDuePayments(Map<String, Object> request) {
 
         String orderNo=(String)request.get("invoiceId");
-        Double amount= Double.valueOf((Integer)request.get("amount"));
+        Double amount= Double.valueOf((Double) request.get("amount"));
 
 
 
@@ -2256,5 +2279,26 @@ public class ShopService {
       System.out.println("The global search response is "+response);
 
         return response;
+    }
+
+    public String clearServerSideCache() {
+        try {
+            salesCacheService.evictUserSales(extractUsername());
+            salesCacheService.evictUserProducts(extractUsername());
+            salesCacheService.evictUserPayments(extractUsername());
+            salesCacheService.evictUserCustomers(extractUsername());
+            salesCacheService.evictUserDasbhoard(extractUsername());
+            salesCacheService.evictsUserGoals(extractUsername());
+            salesCacheService.evictsUserAnalytics(extractUsername());
+            salesCacheService.evictsTopSelling(extractUsername());
+            salesCacheService.evictsTopOrders(extractUsername());
+            return "success";
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+
+
+        }
+        return "not success";
     }
 }

@@ -11,6 +11,7 @@ public class ApiCorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")  // Only the API routes you want to expose to the frontend
                 .allowedOrigins("http://localhost:3000")  // React frontend
+                .allowedOrigins("http://localhost:8080")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                 .allowCredentials(true);  // Allow cookies
     }

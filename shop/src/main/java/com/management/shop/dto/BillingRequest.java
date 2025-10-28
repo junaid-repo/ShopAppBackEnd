@@ -17,10 +17,10 @@ import lombok.NoArgsConstructor;
 public class BillingRequest {
 	private CustomerEntity selectedCustomer;
 	private List<ProductBillDTO> cart;
-	private Integer tax;
+	private Double tax;
 	//private Long subTotal;
     @JsonProperty("sellingSubtotal")
-	private Integer total;
+	private Double total;
     private Double payingAmount;
     private Double remainingAmount;
     private Double discountPercentage;

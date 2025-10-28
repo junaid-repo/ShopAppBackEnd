@@ -14,7 +14,7 @@ public class PaymentDetails {
 	private String id;
 	private String saleId;
 	private String date;
-	private Integer amount;
+	private Double amount;
 	private String method;
     private Double paid;
     private Double due;

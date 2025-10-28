@@ -14,7 +14,7 @@ public class SalesResponseDTO {
 	private String id;
 	private String customer;
 	private String date;
-	private Integer total;
+	private Double total;
     private String remarks;
 	private String 	status;
     private Double paid;
