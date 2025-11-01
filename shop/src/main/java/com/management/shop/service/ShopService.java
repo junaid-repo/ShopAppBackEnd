@@ -675,6 +675,12 @@ public class ShopService {
             salesPaymentRepo.save(paymentEntity);
 
             try {
+                String savePaymentHistory = utils.asyncSavePaymentHistory(billResponse.getId(), paymentEntity.getId(),  request.getPayingAmount(), billResponse.getInvoiceNumber());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            try {
                 shopRepo.updateCustomerSpentAmount(request.getSelectedCustomer().getId(), request.getTotal(), extractUsername());
             } catch (Exception e) {
                 // TODO Auto-generated catch block,
@@ -2201,7 +2207,7 @@ public class ShopService {
     public Map<String, Object> updateDuePayments(Map<String, Object> request) {
 
         String orderNo=(String)request.get("invoiceId");
-        Double amount= Double.valueOf((Double) request.get("amount"));
+        Double amount=  Double.parseDouble((String)request.get("amount"));
 
 
 
@@ -2223,6 +2229,7 @@ public class ShopService {
             }
             salesPaymentRepo.updatePaymentStatus(orderNo, extractUsername(), status);
 
+            utils.asyncSavePaymentHistory(paymentDetails.getBillingId(), paymentDetails.getId(),amount,orderNo);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -2239,7 +2246,27 @@ public class ShopService {
 
         return response;
     }
+    public List<Map<String, Object>> getPaymentHistory(Map<String, Object> request) {
 
+        String orderNo = (String) request.get("orderNumber");
+        String paymentRefereceNumber = (String) request.get("PaymentReferenceNumber");
+
+        List<Map<String, Object>> response = new ArrayList<>();
+
+        List<PaymentHistory> historyList = utils.getPaymentHistory(orderNo);
+
+
+        historyList.stream().forEach(obj -> {
+            Map<String, Object> historyMap = new HashMap<>();
+            historyMap.put("date", obj.getUpdatedDate());
+            historyMap.put("amount", obj.getPaidAmount());
+            historyMap.put("tokenNumber", obj.getTokenNo());
+            response.add(historyMap);
+        });
+
+        log.info("The response getPaymentHistory is " + response);
+  return response;
+    }
     public Map<String, Object> sendInvoiceOverEmail(String invoiceNumber) {
         InvoiceDetails order = getOrderDetails(invoiceNumber);
         Map<String, Object> response=new HashMap<>();

@@ -955,6 +955,13 @@ public class ShopController {
 
         return ResponseEntity.ok(response);
     }
+    @PostMapping("api/shop/payment/history")
+    ResponseEntity<List<Map<String, Object>>> getPaymentHistory(@RequestBody Map<String, Object> request){
+
+        List<Map<String, Object>> response= serv.getPaymentHistory(request);
+
+        return ResponseEntity.ok(response);
+    }
     @PostMapping("api/shop/send-invoice-email/{invoiceNumber}")
     ResponseEntity<Map<String, Object>> sendInvoiceOverEmail(@PathVariable String invoiceNumber){
 

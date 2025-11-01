@@ -10,6 +10,7 @@ import com.management.shop.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.ResponseInputStream;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Component
@@ -58,6 +60,9 @@ public class Utility {
     private UserProfilePicRepo userProfilePicRepo;
     @Autowired
     private UserSettingsRepository userSettingsRepo;
+
+    @Autowired
+    private PaymentHistoryRepository paymentHisRepo;
 
     @Autowired
     private ShopRepository custRepo;
@@ -565,5 +570,49 @@ public class Utility {
         response.put("selectedTemplateName", templateName);
 
         return response;
+    }
+
+
+   public String asyncSavePaymentHistory(Integer billingId, Integer paymentId, Double paidAmount, String orderNumber) {
+        //CompletableFuture.supplyAsync()
+
+
+            PaymentHistory paymentHistoryEntity= PaymentHistory.builder()
+                    .billingId(billingId)
+                    .paymentId(paymentId)
+                    .paidAmount(paidAmount)
+                    .orderNumber(orderNumber)
+                    .userId(extractUsername())
+                    .createdDate(LocalDateTime.now())
+                    .updatedDate(LocalDateTime.now())
+                    .updatedBy(extractUsername())
+                    .build();
+
+            PaymentHistory paymentHisResponse=    paymentHisRepo.save(paymentHistoryEntity);
+
+            if(paymentHisResponse.getId()!=null){
+                String tokenNumber="TKN-"+ LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) +"-"+String.format("%04d",paymentHisResponse.getId());
+
+                paymentHistoryEntity.setTokenNo(tokenNumber);
+
+                paymentHisRepo.save(paymentHistoryEntity);
+            }
+
+            if(paymentHisResponse!=null){
+                System.out.println("Payment history saved successfully for order "+paymentHisResponse.getTokenNo());
+            }else {
+                return "some error while saving payment history";
+            }
+       System.out.println("Async method invoked for saving payment history ");
+
+            return "done";
+
+
+
+    }
+
+    public List<PaymentHistory> getPaymentHistory(String orderNo) {
+
+        return paymentHisRepo.findPaymentHistoryByOrderNumber(orderNo, extractUsername());
     }
 }
