@@ -2,12 +2,11 @@ package com.management.shop.service;
 
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
-import com.management.shop.dto.BillingRequest;
-import com.management.shop.dto.BillingResponse;
-import com.management.shop.dto.SubscriptionReceiptData;
-import com.management.shop.dto.SubsriptionRequest;
+import com.management.shop.dto.*;
+import com.management.shop.entity.SubsriptionPayment;
 import com.management.shop.entity.UserInfo;
 import com.management.shop.entity.UserSubscriptions;
+import com.management.shop.repository.SubsriptionPaymentRepository;
 import com.management.shop.repository.UserInfoRepository;
 import com.management.shop.repository.UserSubscriptionsRepository;
 import com.management.shop.util.EmailSender;
@@ -51,6 +50,9 @@ public class SubscribtionsService {
 
     @Autowired
     SubscriptionInvoiceUtil generateGSTInvoicePdf;
+
+    @Autowired
+    SubsriptionPaymentRepository subsripPayRepo;
 
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -108,9 +110,34 @@ public class SubscribtionsService {
         return response;
     }
 
-    public String updateSubsription(String subscriptionId) {
+    public String updateSubsription(VerifyAndBillRequest request) {
+
+        String subscriptionId=request.getSubscriptionId();
+        System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_payment_id());
+        System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_order_id());
+        System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_signature());
+
+
 
         UserSubscriptions userSub= subsRepo.findBySubscriptionId(subscriptionId);
+
+        try {
+            var paymentDetails= SubsriptionPayment.builder()
+                     .userSubId(subscriptionId)
+                     .paymentDate(LocalDateTime.now())
+                     .updatedAt(LocalDateTime.now())
+                     .updatedBy(extractUsername())
+                     .username(extractUsername())
+                     .amount(userSub.getPrice())
+                             .gatewayPaymentId(request.getRazorpay_payment_id())
+                     .gatewayOrderId(request.getRazorpay_order_id())
+                     .gatewaySignature(request.getRazorpay_signature())
+                     .build();
+
+            subsripPayRepo.save(paymentDetails);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         userSub.setStatus("active");
         userSub.setUpdatedAt(LocalDateTime.now());
@@ -150,7 +177,7 @@ public class SubscribtionsService {
         SubscriptionReceiptData data = new SubscriptionReceiptData();
         if(userSub!=null) {
             data.setAppName("Clear Bill");
-            data.setAppAddress("123 Business Avenue, Ranchi, JH 834001");
+            data.setAppAddress("123 Business Avenue, Kolkata, WB 700102");
             data.setAppGstin("20ABCDE1234F1Z5");
             data.setAppPhone("+91 98765 43210");
             data.setAppEmail("support@clearbill.store");
@@ -190,7 +217,7 @@ public class SubscribtionsService {
                 String emailContent = emailTemplate.getSubscriptionSuccessEmailContent(getSubscriptionDetails(), extractUsername());
 
                 if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
-                    CompletableFuture<String> futureResult = email.sendEmail("junaidraza3002@gmail.com",
+                    CompletableFuture<String> futureResult = email.sendEmail(userinfo.getEmail(),
                             userSub.getSubscriptionId(),userinfo.getName(),
                             generateGSTInvoicePdf.generateSubscriptionReceipt(data), emailContent, "Clear Bill");
                     System.out.println(futureResult);

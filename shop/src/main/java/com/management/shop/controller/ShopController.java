@@ -111,7 +111,6 @@ public class ShopController {
     }
 
     @PostMapping("api/shop/create/forBilling/customer")
-    @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<CustomerEntity> createCustomerForBilling(@RequestBody CustomerRequest request) {
 
         CustomerEntity response = serv.saveCustomerForBilling(request);
@@ -262,7 +261,6 @@ public class ShopController {
 
     }
     @GetMapping("api/shop/export/products")
-    @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<byte[]> exportFullProductList() {
 
         byte[] csvData  = serv.exportAllProductAsCSV();

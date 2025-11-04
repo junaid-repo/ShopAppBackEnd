@@ -55,7 +55,7 @@ public class SubsController {
                 System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_signature());
 
                 // This replaces the direct call to /api/shop/do/billing
-                String billingResponse = serv.updateSubsription(request.getSubscriptionId());
+                String billingResponse = serv.updateSubsription(request);
 
 
 
