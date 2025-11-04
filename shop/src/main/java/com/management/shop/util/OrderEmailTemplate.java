@@ -6,7 +6,7 @@ import com.management.shop.dto.SupportTicketRequest;
 import com.management.shop.dto.UpdateUserDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -496,6 +496,140 @@ public class OrderEmailTemplate {
                 .replace("{{sentDate}}", formattedDate)
                 .replace("{{subject}}", subject)
                 .replace("{{body}}", body);
+
+        return finalHtml;
+    }
+
+    public String getSubscriptionSuccessEmailContent(Map<String, Object> subscriptionDetails, String username) {
+
+        // 1. Format the data for display
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
+
+        // Extract and cast values from the Map
+        LocalDateTime startDate = (LocalDateTime) subscriptionDetails.get("startDate");
+        LocalDateTime endDate = (LocalDateTime) subscriptionDetails.get("endDate");
+        String formattedStartDate = startDate.format(formatter);
+        String formattedEndDate = endDate.format(formatter);
+
+        // Assuming 'price' is stored as paisa (e.g., 19900.0)
+        // Cast to Number to handle BigDecimal, Double, or Long
+        Number priceInPaisa = (Number) subscriptionDetails.get("price");
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
+        String formattedPrice = currencyFormatter.format(priceInPaisa.doubleValue() / 100.0);
+
+        String planTypeRaw = (String) subscriptionDetails.get("planType");
+        String statusRaw = (String) subscriptionDetails.get("status");
+        String subscriptionId = (String) subscriptionDetails.get("subscriptionId");
+
+        // Make Plan Type and Status user-friendly (e.g., "Monthly", "Active")
+        String planType = planTypeRaw.substring(0, 1).toUpperCase()
+                + planTypeRaw.substring(1).toLowerCase();
+
+        String status = statusRaw.substring(0, 1).toUpperCase()
+                + statusRaw.substring(1).toLowerCase();
+
+        // 2. Define the HTML template (this remains unchanged)
+        String htmlTemplate = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-g">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Welcome to Premium!</title>
+              <style>
+                body { margin: 0; padding: 0; background-color: #f7f8fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+                .email-wrapper { width: 100%; background-color: #f7f8fa; padding: 25px 0; }
+                .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+                .header { background: linear-gradient(135deg, #f7b733 0%, #f59e0b 100%); color: #333; padding: 35px; text-align: center; }
+                .header img { width: 60px; height: 60px; margin-bottom: 15px; }
+                .header h1 { margin: 0; font-size: 26px; font-weight: 600; }
+                .content { padding: 35px; color: #5a6474; line-height: 1.6; font-size: 15px; }
+                .content h2 { font-size: 22px; color: #212529; margin-top: 0; font-weight: 600; }
+                .details-table { width: 100%; margin: 30px 0; border-collapse: collapse; }
+                .details-table td { padding: 10px 0; font-size: 14px; border-bottom: 1px solid #e9ecef; }
+                .details-table td strong { color: #343a40; }
+                .status-box { padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px; display: inline-block; }
+                .status-active { background-color: #e6f7f0; color: #1b8751; }
+                .features-box { background-color: #f8f9fa; border-left: 4px solid #f59e0b; padding: 20px; margin-top: 30px; }
+                .features-box h4 { margin-top: 0; color: #343a40; font-weight: 600; }
+                .features-box ul { margin: 15px 0 0 0; padding-left: 20px; color: #495057; }
+                .action-button { display: inline-block; background-color: #f59e0b; color: #ffffff; padding: 12px 25px; margin-top: 30px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+                .footer { background-color: #f8f9fa; padding: 25px; text-align: center; font-size: 12px; color: #868e96; }
+              </style>
+            </head>
+            <body>
+              <div class="email-wrapper">
+                <div class="email-container">
+                  <div class="header">
+                    <img src="https://i.imgur.com/EktPEdC.png" alt="Premium Crown">
+                    <h1>Welcome to Premium!</h1>
+                  </div>
+                  <div class="content">
+                    <h2>Hello, {{username}}!</h2>
+                    <p>Your upgrade is complete! You now have access to all Premium features. We're thrilled to have you on board.</p>
+                    
+                    <p style="margin-top: 30px; font-weight: 600; color: #343a40;">Here are your subscription details:</p>
+                    <table class="details-table">
+                      <tr>
+                        <td><strong>Subscription ID:</strong></td>
+                        <td style="text-align: right;">{{subscriptionId}}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Plan:</strong></td>
+                        <td style="text-align: right;">{{planType}}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Amount Paid:</strong></td>
+                        <td style="text-align: right; font-weight: 600;">{{amountPaid}}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Plan Starts:</strong></td>
+                        <td style="text-align: right;">{{startDate}}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Renews On:</strong></td>
+                        <td style="text-align: right;">{{endDate}}</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Status:</strong></td>
+                        <td style="text-align: right;">
+                          <span class="status-box status-active">{{status}}</span>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <div class="features-box">
+                      <h4>What's next?</h4>
+                      <p>You can now immediately start using your new features:</p>
+                      <ul>
+                        <li>Create unlimited invoices</li>
+                        <li>Use the Bulk CSV Upload for products</li>
+                        <li>Explore Advanced Analytics & Reports</li>
+                      </ul>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                       <a href="/dashboard" class="action-button">Go to Your Dashboard</a>
+                    </div>
+                  </div>
+                  <div class="footer">
+                    <p>Thank you for choosing ClearBill. We're here if you need help.</p>
+                  </div>
+                </div>
+              </div>
+            </body>
+            </html>
+            """;
+
+        // 3. Replace placeholders with actual data
+        String finalHtml = htmlTemplate
+                .replace("{{username}}", username)
+                .replace("{{subscriptionId}}", subscriptionId)
+                .replace("{{planType}}", planType)
+                .replace("{{amountPaid}}", formattedPrice)
+                .replace("{{startDate}}", formattedStartDate)
+                .replace("{{endDate}}", formattedEndDate)
+                .replace("{{status}}", status);
 
         return finalHtml;
     }

@@ -27,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -110,6 +111,7 @@ public class ShopController {
     }
 
     @PostMapping("api/shop/create/forBilling/customer")
+    @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<CustomerEntity> createCustomerForBilling(@RequestBody CustomerRequest request) {
 
         CustomerEntity response = serv.saveCustomerForBilling(request);
@@ -260,6 +262,7 @@ public class ShopController {
 
     }
     @GetMapping("api/shop/export/products")
+    @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<byte[]> exportFullProductList() {
 
         byte[] csvData  = serv.exportAllProductAsCSV();
@@ -423,6 +426,7 @@ public class ShopController {
     }
 
     @PostMapping(path = "api/shop/bulk-upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('PREMIUM')")
     public ResponseEntity<?> bulkUpload(@RequestPart("file") MultipartFile file) {
         try {
             List<ProductRequest> products = serv.uploadBulkProduct(file);
@@ -942,6 +946,7 @@ public class ShopController {
     }
 
     @PostMapping("api/shop/payment/send-reminder")
+    @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<Map<String, String>> sendPaymentReminders(@RequestBody Map<String, Object> request){
 
         Map<String, String> response= serv.sendPaymentReminder(request);
@@ -963,6 +968,7 @@ public class ShopController {
         return ResponseEntity.ok(response);
     }
     @PostMapping("api/shop/send-invoice-email/{invoiceNumber}")
+    @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<Map<String, Object>> sendInvoiceOverEmail(@PathVariable String invoiceNumber){
 
         Map<String, Object> response= serv.sendInvoiceOverEmail(invoiceNumber);
@@ -1000,6 +1006,35 @@ public class ShopController {
         else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to clear cache");
         }
+        // Uses the fast, indexed prefix-search
+
+
+    }
+    @GetMapping("api/shop/billing/daily-count")
+    public ResponseEntity<Map<String, Integer>> getOrderCountForDay() {
+
+
+        Map<String, Integer> response= serv.getOrderCountForDay();
+       // Map<String, Integer> response=new HashMap<>();
+
+            return ResponseEntity.ok(response);
+
+
+        // Uses the fast, indexed prefix-search
+
+
+    }
+
+    @GetMapping("api/shop/user/updateRole")
+    public ResponseEntity<Map<String, Integer>> updateUserRole() {
+
+
+        Map<String, Integer> response= serv.addSubscriptions();
+        // Map<String, Integer> response=new HashMap<>();
+
+        return ResponseEntity.ok(response);
+
+
         // Uses the fast, indexed prefix-search
 
 

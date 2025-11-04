@@ -30,5 +30,8 @@ public interface UserInfoRepository extends JpaRepository<UserInfo, Integer> {
     @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?1", nativeQuery = true)
     List<UserInfo> findAllByStatus(Boolean aTrue);
 
-
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE user_info SET roles = ?2  WHERE username = ?1 and is_active=true", nativeQuery = true)
+    void updateUserRole(String s, String rolePremium);
 }

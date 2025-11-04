@@ -27,6 +27,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -166,6 +167,15 @@ public class ShopService {
         System.out.println("Current user: " + username);
       //  username="junaid1";
         return username;
+    }
+    public List<String> extractRoles() {
+        List<String> roles = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        System.out.println("Current user roles: " + roles);
+        return roles;
     }
     private static <T, R> R getIfNotNull(T source, Function<T, R> getter) {
         return (source != null) ? getter.apply(source) : null;
@@ -924,7 +934,11 @@ public class ShopService {
         System.out.println("selected day range" + range);
         List<BillingEntity> billList = new ArrayList<>();
         List<ProductEntity> prodList = new ArrayList<>();
+
+      List<String> roles=  extractRoles();
+        System.out.println("The user roles"+roles);
         Integer days = 0;
+
         if (!range.equals("today")) {
             if (range.equals("lastYear")) {
                 days = 365;
@@ -1534,17 +1548,13 @@ public class ShopService {
     }
     public UserProfileDto  getUserProfileWithRoles() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        if(username.equals("junaid1")){
-            UserProfileDto response=      UserProfileDto.builder().username("junaid1").email("nadanasime3001@gmail.com").roles(List.of("ADMIN", "USER")).build();
-            System.out.println("getUserProfileWithRoles: " + response);
-         return response;
-        }
-        else{
-            UserProfileDto response=      UserProfileDto.builder().username(username).email("na@na.com").roles(List.of( "USER")).build();
 
-            System.out.println("getUserProfileWithRoles: " + response);
-            return response;
-        }
+
+        UserProfileDto response = UserProfileDto.builder().username(username).email("na@na.com").roles(extractRoles()).build();
+
+        System.out.println("getUserProfileWithRoles: " + response);
+        return response;
+
 
     }
 
@@ -2327,5 +2337,30 @@ public class ShopService {
 
         }
         return "not success";
+    }
+
+    public Map<String, Integer> getOrderCountForDay() {
+
+        Map<String, Integer> response=new HashMap<>();
+        String username=extractUsername();
+        try {
+            Integer totalOrders=billRepo.countOrdersForToday(username, LocalDateTime.now().toLocalDate().atStartOfDay(), LocalDateTime.now().toLocalDate().atTime(LocalTime.MAX));
+
+            response.put("count", totalOrders);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return response;
+    }
+
+
+
+    public Map<String, Integer> addSubscriptions() {
+
+        userinfoRepo.updateUserRole(extractUsername(), "ROLE_PREMIUM");
+
+        return null;
     }
 }
