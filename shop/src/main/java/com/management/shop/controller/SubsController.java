@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -71,8 +72,8 @@ public class SubsController {
     }
 
     @GetMapping("api/shop/subscription/details")
-    ResponseEntity<Map<String, Object>> getSubscriptionDetails(){
-        Map<String, Object> response=    serv.getSubscriptionDetails();
+    ResponseEntity<List<Map<String, Object>>> getSubscriptionDetails(){
+        List<Map<String, Object>> response=    serv.getSubscriptionDetails();
 
         return ResponseEntity.ok(response);
 

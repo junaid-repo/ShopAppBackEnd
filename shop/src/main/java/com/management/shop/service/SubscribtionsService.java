@@ -22,10 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -72,6 +69,16 @@ public class SubscribtionsService {
 
     public Map<String, Object> saveSubscription(SubsriptionRequest request) {
             String username=extractUsername();
+
+        UserSubscriptions userSubDetails= subsRepo.findByUsername(extractUsername(), "active");
+
+
+           if(userSubDetails!=null) {
+               Map<String, Object> updateExistingSub = updateExistingSub(request, userSubDetails);
+
+               return updateExistingSub;
+           }
+
             Map<String, Object> response = new HashMap<>();
              Integer numberOfDays=0;
 
@@ -110,6 +117,49 @@ public class SubscribtionsService {
         return response;
     }
 
+    private Map<String, Object> updateExistingSub(SubsriptionRequest request, UserSubscriptions existingSub) {
+
+        String username=extractUsername();
+        Map<String, Object> response = new HashMap<>();
+        Integer numberOfDays=0;
+
+        LocalDateTime existingEndDate=existingSub.getEndDate();
+
+        if (request.getPlanType().equals("YEARLY")){
+            numberOfDays=365;
+        }
+        else{
+            numberOfDays=30;
+        }
+        LocalDateTime startDate= existingEndDate.plusDays(1);
+        LocalDateTime endDate= existingEndDate.plusDays(1).plusDays(numberOfDays);
+        UserSubscriptions ent=    UserSubscriptions.builder().planType(request.getPlanType())
+                .days(numberOfDays)
+                .status("pending")
+                .username(username)
+                .startDate(startDate)
+                .endDate(endDate)
+                .updatedAt(LocalDateTime.now())
+                .updatedBy(username)
+                .price(Double.valueOf(request.getAmount())).build();
+
+        UserSubscriptions userSub=  subsRepo.save(ent);
+
+        if(userSub!=null){
+            String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            String sequentialPart = String.format("%04d", userSub.getId());
+            String subscriptionId = "SUB-" + datePart + "-" + sequentialPart;
+            ent.setSubscriptionId(subscriptionId);
+            subsRepo.save(ent);
+        }
+
+        response.put("subscriptionId", ent.getSubscriptionId());
+        response.put("amount", ent.getPrice());
+        response.put("orderId", ent.getId());
+
+        return response;
+    }
+
     public String updateSubsription(VerifyAndBillRequest request) {
 
         String subscriptionId=request.getSubscriptionId();
@@ -120,6 +170,13 @@ public class SubscribtionsService {
 
 
         UserSubscriptions userSub= subsRepo.findBySubscriptionId(subscriptionId);
+        String toSetStatus="active";
+
+        UserSubscriptions userSubDetails= subsRepo.findByUsername(extractUsername(), "active");
+
+        if(userSubDetails!=null) {
+            toSetStatus="upcoming";
+        }
 
         try {
             var paymentDetails= SubsriptionPayment.builder()
@@ -139,40 +196,51 @@ public class SubscribtionsService {
             throw new RuntimeException(e);
         }
 
-        userSub.setStatus("active");
+        userSub.setStatus(toSetStatus);
         userSub.setUpdatedAt(LocalDateTime.now());
         userSub.setUpdatedBy(subscriptionId);
         subsRepo.save(userSub);
 
         userinfoRepo.updateUserRole(userSub.getUsername(),"ROLE_PREMIUM");
-        sendSubscriptionInvoice();
+
+
+        try {
+            sendSubscriptionInvoice();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
 
         return "Ok";
     }
 
-    public Map<String, Object> getSubscriptionDetails() {
+    public List<Map<String, Object>> getSubscriptionDetails() {
 
-        UserSubscriptions userSub= subsRepo.findByUsername(extractUsername(), "active");
+        List<UserSubscriptions> userSubList = subsRepo.findByUsernameList(extractUsername(), "pending");
 
-        Map<String, Object> response = new HashMap<>();
-        if(userSub!=null) {
-            response.put("subscriptionId", userSub.getSubscriptionId());
-            response.put("planType", userSub.getPlanType());
-            response.put("status", userSub.getStatus());
-            response.put("startDate", userSub.getStartDate());
-            response.put("endDate", userSub.getEndDate());
-            response.put("price", userSub.getPrice());
+        List<Map<String, Object>> responseList = new ArrayList<>();
+
+        for (UserSubscriptions userSub : userSubList) {
+            Map<String, Object> response = new HashMap<>();
+            if (userSub != null) {
+                response.put("subscriptionId", userSub.getSubscriptionId());
+                response.put("planType", userSub.getPlanType());
+                response.put("status", userSub.getStatus());
+                response.put("startDate", userSub.getStartDate());
+                response.put("endDate", userSub.getEndDate());
+                response.put("price", userSub.getPrice());
+            }
+            responseList.add(response);
         }
-        System.out.println("subscriptionId: " + response);
-        return response;
+        System.out.println("getSubscriptionDetails: " + responseList);
+        return responseList;
     }
 
     public void sendSubscriptionInvoice() {
 
 
 
-        UserSubscriptions userSub= subsRepo.findByUsername(extractUsername(), "active");
+        UserSubscriptions userSub= subsRepo.findLatestActiveOrUpcomingByUsername(extractUsername());
         UserInfo userinfo=userinfoRepo.findByUsername(extractUsername()).get();
         SubscriptionReceiptData data = new SubscriptionReceiptData();
         if(userSub!=null) {
@@ -214,7 +282,7 @@ public class SubscribtionsService {
 
 
             try {
-                String emailContent = emailTemplate.getSubscriptionSuccessEmailContent(getSubscriptionDetails(), extractUsername());
+                String emailContent = emailTemplate.getSubscriptionSuccessEmailContent(getSubscriptionDetails().get(getSubscriptionDetails().size()-1), extractUsername());
 
                 if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                     CompletableFuture<String> futureResult = email.sendEmail(userinfo.getEmail(),

@@ -2023,9 +2023,13 @@ public class ShopService {
         return value != null ? value.trim() : "";
     }
 
+    @Transactional
     public String updateBasicDetails(ShopBasicDetailsRequest request) {
 
         System.out.println("ShopBasicDetailsRequest with request->"+ request);
+
+        shopBasicRepo.removeExistingBasicDetails(extractUsername());
+
         var shopEntity = ShopBasicEntity.builder()
                 .shopName(safe(request.getShopName()))
                 .shopSlogan(safe(request.getShopSlogan()))
@@ -2051,7 +2055,7 @@ public class ShopService {
                     .updatedBy(extractUsername())
                     .updatedAt(LocalDateTime.now())
                     .build();
-
+            shopFinanceRepo.removeShopFinanceEntities(extractUsername());
             ShopFinanceEntity finRes = shopFinanceRepo.save(shopFinanceEntity);
         }
 
@@ -2059,6 +2063,7 @@ public class ShopService {
     }
 
 
+    @Transactional
     public String updateFinanceDetails(ShopFinanceDetailsRequest request) {
         var shopFinanceEntity = ShopFinanceEntity.builder()
                 .gstin(safe(request.getGstin()))
@@ -2068,6 +2073,7 @@ public class ShopService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
+        shopFinanceRepo.removeShopFinanceEntities(extractUsername());
         ShopFinanceEntity finRes = shopFinanceRepo.save(shopFinanceEntity);
 
         if (finRes != null) {
@@ -2083,7 +2089,7 @@ public class ShopService {
                     .updatedBy(extractUsername())
                     .updatedAt(LocalDateTime.now())
                     .build();
-
+            shopBankRepo.removeBankDetails(extractUsername());
             shopBankRepo.save(shopBankEntity);
 
             // UPI Details
@@ -2095,7 +2101,7 @@ public class ShopService {
                     .updatedBy(extractUsername())
                     .updatedAt(LocalDateTime.now())
                     .build();
-
+            salesUPIRepo.removeUpiId(extractUsername());
             salesUPIRepo.save(shopUPIEntity);
 
             return "Success";
