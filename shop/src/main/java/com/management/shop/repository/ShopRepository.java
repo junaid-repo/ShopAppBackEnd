@@ -3,6 +3,7 @@ package com.management.shop.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.management.shop.dto.CustomerOutstandingDto;
 import com.management.shop.entity.ProductEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -85,5 +86,24 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
             @Param("toDate") LocalDateTime toDate,
             @Param("userId") String userId
     );
-
+    @Query(value = "SELECT " +
+            "    c.name as name, " +
+            "    c.phone as phone, " +
+            "    c.email as email, " +
+            "    SUM(b.remaining_amount) as totalOutstanding, " +
+            "    GROUP_CONCAT(b.invoice_number SEPARATOR ', ') as invoiceList " +
+            "FROM " +
+            "    shop_customer c " +
+            "JOIN " +
+            "    billing_details b ON c.id = b.customer_id AND c.user_id = b.user_id " +
+            "WHERE " +
+            "    b.user_id = ?1 " +
+            "    AND b.remaining_amount > 0 " + // Filter for outstanding bills
+            "GROUP BY " +
+            "    c.id, c.name, c.phone, c.email " +
+            "HAVING " +
+            "    totalOutstanding > 0 " +
+            "ORDER BY " +
+            "    totalOutstanding DESC", nativeQuery = true)
+    List<CustomerOutstandingDto> findCustomersWithOutstandingAmount(String userId);
 }

@@ -106,4 +106,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
             @Param("search") String search,
             @Param("limit") int count
     );
+
+    @Query(value = "SELECT * FROM shop_product WHERE stock < 3 AND user_id = ?1 ORDER BY stock ASC", nativeQuery = true)
+    List<ProductEntity> findLowStockProducts(String userId);
 }

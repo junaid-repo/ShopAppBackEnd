@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import com.management.shop.dto.PaymentReportDto;
+import com.management.shop.dto.PaymentSummaryDto;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -84,4 +86,61 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
             @Param("toDate") LocalDateTime toDate,
             @Param("userId") String userId
     );
+
+
+    @Query(value = "SELECT " +
+            "    p.payment_reference_number as paymentReferenceNumber, " +
+            "    b.invoice_number as invoiceNumber, " +
+            "    p.created_date as createdDate, " +
+            "    p.payment_method as paymentMethod, " +
+            "    p.total as total, " +
+            "    p.paid as paid, " +
+            "    p.to_be_paid as toBePaid, " +
+            "    p.status as status " +
+            "FROM " +
+            "    billing_payments p " +
+            "JOIN " +
+            "    billing_details b ON p.billing_id = b.id AND p.user_id = b.user_id " +
+            "WHERE " +
+            "    p.created_date BETWEEN ?1 AND ?2 " +
+            "    AND p.user_id = ?3 " +
+            "ORDER BY " +
+            "    p.created_date DESC", nativeQuery = true)
+    List<PaymentReportDto> findPaymentReportByDateRange(LocalDateTime fromDate, LocalDateTime toDate, String userId);
+
+    // --- NEW METHOD 2: For Summary by Method ---
+    @Query(value = "SELECT " +
+            "    p.payment_method as category, " +
+            "    SUM(p.total) as totalAmount, " +
+            "    GROUP_CONCAT(b.invoice_number SEPARATOR ', ') as invoiceList " +
+            "FROM " +
+            "    billing_payments p " +
+            "JOIN " +
+            "    billing_details b ON p.billing_id = b.id AND p.user_id = b.user_id " +
+            "WHERE " +
+            "    p.created_date BETWEEN ?1 AND ?2 " +
+            "    AND p.user_id = ?3 " +
+            "GROUP BY " +
+            "    p.payment_method " +
+            "ORDER BY " +
+            "    totalAmount DESC", nativeQuery = true)
+    List<PaymentSummaryDto> findPaymentSummaryByMethod(LocalDateTime fromDate, LocalDateTime toDate, String userId);
+
+    // --- NEW METHOD 3: For Summary by Status ---
+    @Query(value = "SELECT " +
+            "    p.status as category, " +
+            "    SUM(p.total) as totalAmount, " +
+            "    GROUP_CONCAT(b.invoice_number SEPARATOR ', ') as invoiceList " +
+            "FROM " +
+            "    billing_payments p " +
+            "JOIN " +
+            "    billing_details b ON p.billing_id = b.id AND p.user_id = b.user_id " +
+            "WHERE " +
+            "    p.created_date BETWEEN ?1 AND ?2 " +
+            "    AND p.user_id = ?3 " +
+            "GROUP BY " +
+            "    p.status " +
+            "ORDER BY " +
+            "    totalAmount DESC", nativeQuery = true)
+    List<PaymentSummaryDto> findPaymentSummaryByStatus(LocalDateTime fromDate, LocalDateTime toDate, String userId);
 }

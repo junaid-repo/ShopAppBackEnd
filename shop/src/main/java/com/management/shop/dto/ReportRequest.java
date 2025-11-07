@@ -15,6 +15,8 @@ public class ReportRequest {
 	
 
 private String reportType;
+private String reportId;
+private String format;
 private String fromDate;
 private String toDate;
 	

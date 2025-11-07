@@ -12,4 +12,6 @@ public interface BillingGstRepository extends JpaRepository<BillingGstEntity, In
 
     @Query(value="select * from billing_gst bg where bg.order_number =?2 and user_id=?1 order by bg.gst_percentage", nativeQuery=true)
     List<BillingGstEntity> findByUserIdAndOrderId(String username, String orderId);
+
+
 }

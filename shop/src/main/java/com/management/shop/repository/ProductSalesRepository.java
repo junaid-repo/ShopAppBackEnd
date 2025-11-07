@@ -3,9 +3,7 @@ package com.management.shop.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.management.shop.dto.ProductPerformanceProjection;
-import com.management.shop.dto.ProductSalesReport;
-import com.management.shop.dto.ProductSalesReportView;
+import com.management.shop.dto.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -105,5 +103,50 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             @Param("userId") String userId,
             @Param("n") Integer n
     );
+    @Query(value = "SELECT " +
+            "    p.hsn as hsn, " +
+            "    p.name as productName, " +
+            "    SUM(ps.quantity) as totalQuantity, " +
+            "    SUM(ps.sub_total) as totalTaxableValue, " +
+            "    SUM(ps.cgst) as totalCgst, " +
+            "    SUM(ps.sgst) as totalSgst, " +
+            "    SUM(ps.igst) as totalIgst, " +
+            "    SUM(ps.tax) as totalGst " +
+            "FROM " +
+            "    product_sales ps " +
+            "JOIN " +
+            "    shop_product p ON ps.product_id = p.id AND ps.user_id = p.user_id " +
+            "JOIN " +
+            "    billing_details b ON ps.billing_id = b.id AND ps.user_id = b.user_id " +
+            "WHERE " +
+            "    b.created_date BETWEEN ?1 AND ?2 " +
+            "    AND ps.user_id = ?3 " +
+            "GROUP BY " +
+            "    p.hsn, p.name " +
+            "ORDER BY " +
+            "    p.hsn", nativeQuery = true)
+    List<GstByHsnDto> findGstByHsn(LocalDateTime fromDate, LocalDateTime toDate, String userId);
 
+    /**
+     * 3) Finds monthly GST summary for the date range.
+     */
+    @Query(value = "SELECT " +
+            "    DATE_FORMAT(b.created_date, '%Y-%m') as monthYear, " +
+            "    SUM(ps.sub_total) as totalTaxableValue, " +
+            "    SUM(ps.cgst) as totalCgst, " +
+            "    SUM(ps.sgst) as totalSgst, " +
+            "    SUM(ps.igst) as totalIgst, " +
+            "    SUM(ps.tax) as totalGst " +
+            "FROM " +
+            "    product_sales ps " +
+            "JOIN " +
+            "    billing_details b ON ps.billing_id = b.id AND ps.user_id = b.user_id " +
+            "WHERE " +
+            "    b.created_date BETWEEN ?1 AND ?2 " +
+            "    AND ps.user_id = ?3 " +
+            "GROUP BY " +
+            "    DATE_FORMAT(b.created_date, '%Y-%m') " +
+            "ORDER BY " +
+            "    monthYear ASC", nativeQuery = true)
+    List<MonthlyGstSummaryDto> findMonthlyGstSummary(LocalDateTime fromDate, LocalDateTime toDate, String userId);
 }

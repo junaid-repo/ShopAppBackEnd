@@ -3,6 +3,9 @@ package com.management.shop.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.management.shop.dto.CustomerSalesReportDto;
+import com.management.shop.dto.GstByCustomerDto;
+import com.management.shop.dto.GstByStateDto;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -410,4 +413,71 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     List<Object[]> getMonthlyBillingSummary(@Param("fromDate") LocalDateTime fromDate,
                                             @Param("toDate") LocalDateTime toDate,
                                             @Param("userId") String userId);
+
+
+    @Query(value = "SELECT " +
+            "    c.name as name, " +
+            "    c.email as email, " +
+            "    c.phone as phone, " +
+            "    SUM(b.total_amount) as totalSalesValue, " +
+            "    COUNT(b.id) as orderCount, " +
+            "    GROUP_CONCAT(b.invoice_number SEPARATOR ', ') as invoiceList " +
+            "FROM " +
+            "    shop_customer c " +
+            "JOIN " +
+            "    billing_details b ON c.id = b.customer_id AND c.user_id = b.user_id " +
+            "WHERE " +
+            "    b.created_date BETWEEN ?1 AND ?2 " +
+            "    AND c.user_id = ?3 " +
+            "GROUP BY " +
+            "    c.id, c.name, c.email, c.phone " +
+            "ORDER BY " +
+            "    totalSalesValue DESC", nativeQuery = true)
+    List<CustomerSalesReportDto> findCustomerSalesByDateRange(LocalDateTime fromDate, LocalDateTime toDate, String userId);
+
+    @Query(value = "SELECT " +
+            "    COALESCE(c.state, 'N/A') as state, " +
+            "    SUM(ps.sub_total) as totalTaxableValue, " +
+            "    SUM(ps.cgst) as totalCgst, " +
+            "    SUM(ps.sgst) as totalSgst, " +
+            "    SUM(ps.igst) as totalIgst, " +
+            "    SUM(ps.tax) as totalGst " +
+            "FROM " +
+            "    billing_details b " +
+            "JOIN " +
+            "    shop_customer c ON b.customer_id = c.id AND b.user_id = c.user_id " +
+            "JOIN " +
+            "    product_sales ps ON b.id = ps.billing_id AND b.user_id = ps.user_id " +
+            "WHERE " +
+            "    b.created_date BETWEEN ?1 AND ?2 " +
+            "    AND b.user_id = ?3 " +
+            "GROUP BY " +
+            "    c.state " +
+            "ORDER BY " +
+            "    totalGst DESC", nativeQuery = true)
+    List<GstByStateDto> findGstByState(LocalDateTime fromDate, LocalDateTime toDate, String userId);
+
+    @Query(value = "SELECT " +
+            "    c.name as name, " +
+            "    c.phone as phone, " +
+            "    c.gst_number as gstNumber, " +
+            "    SUM(ps.sub_total) as totalTaxableValue, " +
+            "    SUM(ps.cgst) as totalCgst, " +
+            "    SUM(ps.sgst) as totalSgst, " +
+            "    SUM(ps.igst) as totalIgst, " +
+            "    SUM(ps.tax) as totalGst " +
+            "FROM " +
+            "    billing_details b " +
+            "JOIN " +
+            "    shop_customer c ON b.customer_id = c.id AND b.user_id = c.user_id " +
+            "JOIN " +
+            "    product_sales ps ON b.id = ps.billing_id AND b.user_id = ps.user_id " +
+            "WHERE " +
+            "    b.created_date BETWEEN ?1 AND ?2 " +
+            "    AND b.user_id = ?3 " +
+            "GROUP BY " +
+            "    c.id, c.name, c.phone, c.gst_number " + // Group by customer
+            "ORDER BY " +
+            "    totalGst DESC", nativeQuery = true)
+    List<GstByCustomerDto> findGstByCustomer(LocalDateTime fromDate, LocalDateTime toDate, String userId);
 }

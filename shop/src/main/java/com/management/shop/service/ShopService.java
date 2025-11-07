@@ -1142,7 +1142,12 @@ public class ShopService {
 
         System.out.println(toDateTime);
 
-        byte[] fileBytes = repogen.downloadReport(request.getReportType(), fromDateTime, toDateTime, extractUsername());
+        byte[] fileBytes = null;
+        try {
+            fileBytes = repogen.downloadReport(request.getReportType(), request.getFormat(), fromDateTime, toDateTime, extractUsername());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         return fileBytes;
     }
