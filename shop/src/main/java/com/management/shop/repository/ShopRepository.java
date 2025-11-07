@@ -21,7 +21,7 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
 
 	@Modifying
 	@Transactional
-	@Query(value = "UPDATE shop_customer  SET total_spent = total_spent + ?2 WHERE id = ?1 and user_id = ?3", nativeQuery = true)
+	@Query(value = "UPDATE shop_customer  SET total_spent = total_spent + ?2, updated_date = NOW() WHERE id = ?1 and user_id = ?3", nativeQuery = true)
 	void updateCustomerSpentAmount(Integer id, Double spent_value, String userId);
 
 	@Query(value = "SELECT   * FROM    shop_customer WHERE    created_date BETWEEN ?1 AND ?2  and user_id = ?3 ", nativeQuery = true)
@@ -56,7 +56,7 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
     CustomerEntity findByIdAndUserId(Integer id, String userId);
 
     @Query(
-            value = "SELECT * FROM shop_customer p WHERE p.user_id = :username AND status = 'ACTIVE' AND " +
+            value = "SELECT * FROM shop_customer p WHERE p.user_id = :username AND status = 'ACTIVE' AND  is_active = :is_active AND" +
                     "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                     "LOWER(p.phone) LIKE LOWER(CONCAT('%', :search, '%')))",
             nativeQuery = true
@@ -64,6 +64,26 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
     Page<CustomerEntity> findAllCustomersWithPagination(
             @Param("username") String username,
             @Param("search") String search,
-            Pageable pageable
+            Pageable pageable,
+            @Param("is_active") Boolean is_active
     );
+
+    @Query(value = "SELECT " +
+            "CASE " +
+            "WHEN sc.gst_number IS NULL OR sc.gst_number = '' THEN 'Without GST' " +
+            "ELSE 'With GST' " +
+            "END AS gst_status, " +
+            "COUNT(sc.id) AS customerCount " +
+            "FROM shop_customer sc " +
+            "WHERE sc.user_id = :userId " +
+            "AND sc.updated_date IS NOT NULL " +
+            "AND sc.updated_date BETWEEN :fromDate AND :toDate " +
+            "GROUP BY gst_status",
+            nativeQuery = true)
+    List<Object[]> getCustomerGstSummary(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("userId") String userId
+    );
+
 }

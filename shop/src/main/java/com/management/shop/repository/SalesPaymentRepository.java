@@ -71,4 +71,17 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
 
     @Query(value="select * from billing_payments bp where bp.to_be_paid>0 and bp.user_id=?1 AND bp.created_date < (NOW() - INTERVAL '24' HOUR)", nativeQuery = true)
     List<PaymentEntity> findByUserId(String username);
+
+
+
+    @Query("SELECT b.status, SUM(b.total), COUNT(b) " +
+            "FROM PaymentEntity b " +
+            "WHERE b.userId = :userId " +
+            "AND b.createdDate BETWEEN :fromDate AND :toDate " +
+            "GROUP BY b.status")
+    List<Object[]> getCombinedPaymentSummary(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("userId") String userId
+    );
 }

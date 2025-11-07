@@ -1037,6 +1037,16 @@ public class ShopController {
 
 
     }
+    @PostMapping("api/shop/user/superAnalytics")
+    @PreAuthorize("hasRole('PREMIUM')")
+    ResponseEntity<AnalyticsRes> getSuperAnalytics(@RequestBody AnalyticsRequest request) {
 
+        System.out.println("Entered super analytic controller with request-->"+request);
+
+        AnalyticsRes response = serv.getSuperAnalytics(request);
+
+        return ResponseEntity.ok(response);
+
+    }
 
 }

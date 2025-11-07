@@ -390,4 +390,24 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
 
     @Query(value="select count(*) from billing_details where user_id=?1 and created_date BETWEEN ?2 AND ?3", nativeQuery = true)
     Integer countOrdersForToday(String username, LocalDateTime localDateTime, LocalDateTime localDateTime1);
+
+
+
+
+    @Query(value = "SELECT " +
+            "DATE_FORMAT(bp.created_date, '%b') AS month, " +
+            "SUM(bd.total_profit_oncp) AS totalProfit, " +
+            "SUM(bd.total_amount) AS totalRevenue, " +
+            "SUM(bd.units_sold) AS totalStock, " +
+            "COUNT(bp.id) AS salesCount " +
+            "FROM billing_payments bp " +
+            "JOIN billing_details bd ON bp.billing_id = bd.id " +
+            "WHERE bp.created_date BETWEEN :fromDate AND :toDate " +
+            "AND bp.user_id = :userId " +
+            "GROUP BY MONTH(bp.created_date), DATE_FORMAT(bp.created_date, '%b') " +
+            "ORDER BY MONTH(bp.created_date)",
+            nativeQuery = true)
+    List<Object[]> getMonthlyBillingSummary(@Param("fromDate") LocalDateTime fromDate,
+                                            @Param("toDate") LocalDateTime toDate,
+                                            @Param("userId") String userId);
 }

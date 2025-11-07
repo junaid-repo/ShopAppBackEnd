@@ -10,6 +10,7 @@ import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -504,7 +505,7 @@ public class ShopService {
         String username = extractUsername();
         Page<CustomerEntity> response=null;
         try{
-            response=   shopRepo.findAllCustomersWithPagination(username, search, pageable);
+            response=   shopRepo.findAllCustomersWithPagination(username, search, pageable, Boolean.TRUE);
         }
         catch(Exception e){
             e.printStackTrace();
@@ -538,7 +539,7 @@ public class ShopService {
         String username = extractUsername();
         Page<CustomerEntity> response=null;
         try{
-            response=   shopRepo.findAllCustomersWithPagination(username, search, pageable);
+            response=   shopRepo.findAllCustomersWithPagination(username, search, pageable, Boolean.TRUE);
         }
         catch(Exception e){
             e.printStackTrace();
@@ -2368,5 +2369,199 @@ public class ShopService {
         userinfoRepo.updateUserRole(extractUsername(), "ROLE_PREMIUM");
 
         return null;
+    }
+
+    @Cacheable(value = "analytics", keyGenerator = "userScopedKeyGenerator")
+    public AnalyticsRes getSuperAnalytics(AnalyticsRequest request) {
+        String userId = extractUsername();
+        YearMonth startYm = YearMonth.parse(request.getStartDate()); // e.g. "2025-05"
+        YearMonth endYm = YearMonth.parse(request.getEndDate());     // e.g. "2025-11"
+
+        // Start of the first day of the month
+        LocalDateTime startDate = startYm.atDay(1).atStartOfDay();
+
+        // End of the last day of the month (23:59:59.999999999)
+        LocalDateTime endDate = endYm.atEndOfMonth().atTime(LocalTime.MAX);
+
+        AnalyticsRes superResponse = new AnalyticsRes();
+
+        // --- 1 & 2. Combined Payment and Invoice Status ---
+        List<Object[]> combinedResults = salesPaymentRepo.getCombinedPaymentSummary(startDate, endDate, userId);
+
+        List<PieAnalyticsMap> paymentStatusList = new ArrayList<>();
+        List<PieAnalyticsMap> invoiceStatusList = new ArrayList<>();
+
+        if (combinedResults != null) {
+            for (Object[] row : combinedResults) {
+                // Check for null row or null status name
+                if (row == null || row[0] == null) {
+                    continue;
+                }
+
+                String statusName = row[0].toString();
+
+                // --- 1. Payment Status (SUM from row[1]) ---
+                double paymentValue = 0.0;
+                if (row[1] != null) {
+                    paymentValue = ((Number) row[1]).doubleValue();
+                }
+                PieAnalyticsMap paymentMap = new PieAnalyticsMap();
+                paymentMap.setName(statusName);
+                paymentMap.setValue(paymentValue);
+                paymentStatusList.add(paymentMap);
+
+                // --- 2. Invoice Status (COUNT from row[2]) ---
+                double invoiceCount = 0.0;
+                if (row[2] != null) {
+                    invoiceCount = ((Number) row[2]).doubleValue();
+                }
+                PieAnalyticsMap invoiceMap = new PieAnalyticsMap();
+                invoiceMap.setName(statusName);
+                invoiceMap.setValue(invoiceCount);
+                invoiceStatusList.add(invoiceMap);
+            }
+        }
+
+// Set both responses. The final response structure is identical.
+        superResponse.setPaymentStatus(paymentStatusList);
+        superResponse.setInvoiceStatus(invoiceStatusList);
+
+        // --- 3. Monthly Profits ---
+        List<Object[]> billingResults = billRepo.getMonthlyBillingSummary(startDate, endDate, userId);
+
+// Initialize all lists and totals
+        List<PieAnalyticsMap> monthlyProfitsList = new ArrayList<>();
+        List<PieAnalyticsMap> monthlyRevenueList = new ArrayList<>();
+        List<PieAnalyticsMap> monthlyStockList = new ArrayList<>();
+        List<PieAnalyticsMap> monthlySalesList = new ArrayList<>();
+
+        double totalProfit = 0.0;
+        double totalRevenue = 0.0;
+        Double totalStockSold = 0d;
+        Double totalSales = 0d;
+
+        if (billingResults != null) {
+            // Process all data in a single loop
+            for (Object[] row : billingResults) {
+                // Check for null row or null month
+                if (row == null || row[0] == null) {
+                    continue;
+                }
+
+                String month = row[0].toString();
+
+                // --- 1. Profit (from row[1]) ---
+                double profitValue = 0.0;
+                if (row[1] != null) {
+                    profitValue = ((Number) row[1]).doubleValue();
+                }
+                PieAnalyticsMap profitMap = new PieAnalyticsMap();
+                profitMap.setName(month);
+                profitMap.setValue(profitValue);
+                monthlyProfitsList.add(profitMap);
+                totalProfit += profitValue;
+
+                // --- 2. Revenue (from row[2]) ---
+                double revenueValue = 0.0;
+                if (row[2] != null) {
+                    revenueValue = ((Number) row[2]).doubleValue();
+                }
+                PieAnalyticsMap revenueMap = new PieAnalyticsMap();
+                revenueMap.setName(month);
+                revenueMap.setValue(revenueValue);
+                monthlyRevenueList.add(revenueMap);
+                totalRevenue += revenueValue;
+
+                // --- 3. Stock Sold (from row[3]) ---
+                double stockValue = 0.0;
+                if (row[3] != null) {
+                    stockValue = ((Number) row[3]).doubleValue();
+                }
+                PieAnalyticsMap stockMap = new PieAnalyticsMap();
+                stockMap.setName(month);
+                stockMap.setValue(stockValue);
+                monthlyStockList.add(stockMap);
+                totalStockSold += stockValue;
+
+                // --- 4. Sales Count (from row[4]) ---
+                double salesCountValue = 0.0;
+                if (row[4] != null) {
+                    salesCountValue = ((Number) row[4]).doubleValue();
+                }
+                PieAnalyticsMap salesMap = new PieAnalyticsMap();
+                salesMap.setName(month);
+                salesMap.setValue(salesCountValue);
+                monthlySalesList.add(salesMap);
+                totalSales += salesCountValue;
+            }
+        }
+
+// Set all four responses for the superResponse
+        superResponse.setMonthlyProfits(monthlyProfitsList);
+        superResponse.setTotalProfit(totalProfit);
+
+        superResponse.setSalesAndRevenue(monthlyRevenueList);
+        superResponse.setTotalRevenue(totalRevenue);
+
+        superResponse.setMonthlyStockSold(monthlyStockList);
+        superResponse.setTotalStockSold(totalStockSold);
+
+        superResponse.setMonthlySales(monthlySalesList);
+        superResponse.setTotalSales(totalSales);
+        // --- 7. Top Sold Products ---
+        Integer n = 6; // Set N to whatever you want
+        List<Object[]> topProductsResults = prodSalesRepo.getTopSoldProducts(
+                startDate,
+                endDate,
+                userId,
+                n
+        );
+        List<PieAnalyticsMap> topProductsList = new ArrayList<>();
+
+        if (topProductsResults != null) {
+            for (Object[] row : topProductsResults) {
+                if (row == null || row[0] == null) {
+                    continue;
+                }
+
+                double value = 0.0;
+                if (row[1] != null) {
+                    value = ((Number) row[1]).doubleValue();
+                }
+
+                PieAnalyticsMap pieMap = new PieAnalyticsMap();
+                pieMap.setName(row[0].toString()); // e.g., "Product A"
+                pieMap.setValue(value);
+                topProductsList.add(pieMap);
+            }
+        }
+        superResponse.setTopProducts(topProductsList);
+
+        // --- 8. Customer GST Summary (COUNT) ---
+        List<Object[]> gstResults = shopRepo.getCustomerGstSummary(startDate, endDate, userId);
+        List<PieAnalyticsMap> customerGstList = new ArrayList<>();
+
+        if (gstResults != null) {
+            for (Object[] row : gstResults) {
+                if (row == null || row[0] == null) {
+                    continue;
+                }
+
+                double value = 0.0;
+                if (row[1] != null) {
+                    value = ((Number) row[1]).doubleValue();
+                }
+
+                PieAnalyticsMap pieMap = new PieAnalyticsMap();
+                pieMap.setName(row[0].toString()); // e.g., "With GST"
+                pieMap.setValue(value);
+                customerGstList.add(pieMap);
+            }
+        }
+        superResponse.setCustomerGst(customerGstList);
+
+        log.info("The response getSuperAnalytics is " + superResponse);
+
+        return superResponse;
     }
 }

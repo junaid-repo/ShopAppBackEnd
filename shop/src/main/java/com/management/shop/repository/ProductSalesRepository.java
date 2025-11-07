@@ -86,4 +86,24 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             @Param("endDate") LocalDateTime endDate,
             @Param("count") int count);
 
+
+    @Query(value = "SELECT sp.name AS productName, " +
+            "SUM(ps.quantity) AS totalQuantity " +
+            "FROM product_sales ps " +
+            "JOIN billing_details bd ON ps.billing_id = bd.id " +
+            "JOIN shop_product sp ON ps.product_id = sp.id " + // <-- 1. JOINED shop_product
+            "WHERE bd.created_date BETWEEN :fromDate AND :toDate " +
+            "AND bd.user_id = :userId " +
+            "AND sp.name IS NOT NULL AND sp.name != '' " + // <-- 2. FILTERED null/empty names
+            "GROUP BY sp.name " + // <-- Group by the REAL name
+            "ORDER BY totalQuantity DESC " +
+            "LIMIT :n",
+            nativeQuery = true)
+    List<Object[]> getTopSoldProducts(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("userId") String userId,
+            @Param("n") Integer n
+    );
+
 }
