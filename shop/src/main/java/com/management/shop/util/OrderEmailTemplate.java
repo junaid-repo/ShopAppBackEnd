@@ -633,5 +633,90 @@ public class OrderEmailTemplate {
 
         return finalHtml;
     }
+    public String getReportEmailContent(String greetingName, String reportName, String reportDateRange) {
+
+        // 1. Format the data for display
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, h:mm a");
+        String formattedGeneratedDate = LocalDateTime.now().format(formatter);
+
+        // Handle potential nulls or empty strings for a robust method
+        String finalGreeting = (greetingName == null || greetingName.isBlank()) ? "Hello," : "Hello, " + greetingName + "!";
+        String finalReportName = (reportName == null || reportName.isBlank()) ? "Your Report" : reportName;
+        String finalReportDateRange = (reportDateRange == null || reportDateRange.isBlank()) ? "N/A" : reportDateRange;
+
+        // 2. Define the HTML template
+        String htmlTemplate = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Your Report is Ready</title>
+          <style>
+            body { margin: 0; padding: 0; background-color: #f7f8fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+            .email-wrapper { width: 100%; background-color: #f7f8fa; padding: 25px 0; }
+            .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+            /* A blue/teal gradient for a more "data" feel */
+            .header { background: linear-gradient(135deg, #0288d1 0%, #26a69a 100%); color: #ffffff; padding: 35px; text-align: center; }
+            .header img { width: 60px; height: 60px; margin-bottom: 15px; }
+            .header h1 { margin: 0; font-size: 26px; font-weight: 600; }
+            .content { padding: 35px; color: #5a6474; line-height: 1.6; font-size: 15px; }
+            .content h2 { font-size: 22px; color: #212529; margin-top: 0; font-weight: 600; }
+            .details-table { width: 100%; margin: 30px 0; border-collapse: collapse; }
+            .details-table td { padding: 12px 0; font-size: 14px; border-bottom: 1px solid #e9ecef; }
+            .details-table td strong { color: #343a40; }
+            .footer { background-color: #f8f9fa; padding: 25px; text-align: center; font-size: 12px; color: #868e96; }
+          </style>
+        </head>
+        <body>
+          <div class="email-wrapper">
+            <div class="email-container">
+              <div class="header">
+                <!-- A generic report/document icon -->
+                <img src="https://i.imgur.com/w1kXgT4.png" alt="Report Icon">
+                <h1>Your Report is Ready</h1>
+              </div>
+              <div class="content">
+                <h2>{{greetingName}}</h2>
+                <p>Your requested report is attached to this email. Please find a summary of the report details below.</p>
+                
+                <table class="details-table">
+                  <tr>
+                    <td><strong>Report Name:</strong></td>
+                    <td style="text-align: right;">{{reportName}}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Date Range:</strong></td>
+                    <td style="text-align: right;">{{reportDateRange}}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Generated On:</strong></td>
+                    <td style="text-align: right;">{{generatedDate}}</td>
+                  </tr>
+                </table>
+
+                <p style="margin-top: 30px; font-size: 14px; color: #868e96;">
+                  This is an automated message. The attached report was generated based on your request.
+                </p>
+              </div>
+              <div class="footer">
+                <p>Thank you for using our service.</p>
+                <p>&copy; 2025 ClearBill. All rights reserved.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+        """;
+
+        // 3. Replace placeholders with actual data
+        String finalHtml = htmlTemplate
+                .replace("{{greetingName}}", finalGreeting)
+                .replace("{{reportName}}", finalReportName)
+                .replace("{{reportDateRange}}", finalReportDateRange)
+                .replace("{{generatedDate}}", formattedGeneratedDate);
+
+        return finalHtml;
+    }
 }
 

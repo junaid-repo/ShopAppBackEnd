@@ -117,6 +117,51 @@ public class EmailSender {
 
     }
 
+    public CompletableFuture<String> sendEmailReportWithAttachment(String emailId, String subject, String fileName, byte[] pdfStream, String htmlContent, String shopName) throws MailjetException, MailjetSocketTimeoutException {
+
+
+
+        String base64Content = "";
+        try {
+
+            base64Content = Base64.getEncoder().encodeToString(pdfStream);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+        }
+
+        MailjetClient client;
+        MailjetRequest request;
+        MailjetResponse response;
+        client = new MailjetClient("3e292e1e3e850abe850793dbb22554b9",
+                "2fa15000afb8c7ad2cd676c9828bcd5e", new ClientOptions("v3.1"));
+        request = new MailjetRequest(Emailv31.resource)
+                .property(Emailv31.MESSAGES, new JSONArray()
+                        .put(new JSONObject()
+                                .put(Emailv31.Message.FROM, new JSONObject().put("Email", "email@clearbill.store")
+                                        .put("Name", shopName))
+                                .put(Emailv31.Message.TO,
+                                        new JSONArray().put(
+                                                new JSONObject().put("Email", emailId).put(shopName, "Hello")))
+                                .put(Emailv31.Message.SUBJECT, subject)
+                                .put(Emailv31.Message.TEXTPART, "")
+                                .put(Emailv31.Message.HTMLPART, htmlContent
+                                        + "\n"
+                                        + "\n"
+                                        + "")
+                                .put(Emailv31.Message.ATTACHMENTS, new JSONArray()
+                                        .put(new JSONObject()
+                                                .put("ContentType", "application/pdf")
+                                                .put("Filename", fileName)
+                                                .put("Base64Content", base64Content)))));
+
+        response = client.post(request);
+        System.out.println(response.getStatus());
+        System.out.println(response.getData());
+        return CompletableFuture.completedFuture(response.getData().toString());
+
+    }
+
     public CompletableFuture<String> sendEmail(String emailId, String orderId, String name, byte[] pdfStream, String htmlContent, String shopName) throws MailjetException, MailjetSocketTimeoutException {
         // Assume you have a ByteArrayOutputStream named 'pdfStream'
         // This stream would contain the PDF data, for example, from a PDF generator library.

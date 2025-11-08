@@ -36,10 +36,12 @@ public class BillingEntity {
     private Integer customerId;
 	private Integer unitsSold;
     private String remarks;
+    private String gstin;
     private Double totalProfitOnCP;
     private Integer dueReminderCount;
 	private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
+
     private String updatedBy;
     private String userId;
 

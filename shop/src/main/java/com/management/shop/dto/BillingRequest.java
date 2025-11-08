@@ -23,6 +23,7 @@ public class BillingRequest {
 	private Double total;
     private Double payingAmount;
     private Double remainingAmount;
+    private String gstin;
     private Double discountPercentage;
     private String remarks;
 	private String paymentMethod;

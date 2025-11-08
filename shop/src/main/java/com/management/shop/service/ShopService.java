@@ -562,6 +562,7 @@ public class ShopService {
         var billingEntity = BillingEntity.builder().customerId(request.getSelectedCustomer().getId())
                 .unitsSold(unitsSold).taxAmount(request.getTax()).userId(extractUsername()).totalAmount(request.getTotal())
                 .payingAmount(request.getPayingAmount())
+                .gstin(request.getGstin())
                 .dueReminderCount(0)
                 .remainingAmount(request.getRemainingAmount())
                 .discountPercent(request.getDiscountPercentage()).remarks(request.getRemarks()).subTotalAmount(request.getTotal() - request.getTax()).createdDate(LocalDateTime.now()).build();
@@ -2568,5 +2569,37 @@ public class ShopService {
         log.info("The response getSuperAnalytics is " + superResponse);
 
         return superResponse;
+    }
+
+    public void sendReportEmail(MultipartFile file, String subject, List<String> emailList) {
+
+
+        try {
+
+                byte[] fileBytes = file.getBytes();
+
+
+
+            emailList.stream().forEach(emailObj -> {
+                String template= emailTemplate.getReportEmailContent("Sir",file.getOriginalFilename(), "monthly");
+                CompletableFuture<String> futureResult = null;
+                try {
+                    futureResult = email.sendEmailReportWithAttachment(emailObj,
+                        subject, file.getOriginalFilename(),
+                            fileBytes, template, "Clear Bill");
+                } catch (MailjetException e) {
+                    throw new RuntimeException(e);
+                } catch (MailjetSocketTimeoutException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println(futureResult);
+
+            });
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+
+        }
     }
 }

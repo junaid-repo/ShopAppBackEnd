@@ -1049,4 +1049,69 @@ public class ShopController {
 
     }
 
+        @PostMapping("api/shop/report/email")
+        public ResponseEntity<Map<String, String>> sendReportEmail(
+                @RequestParam("file") MultipartFile file,
+                @RequestParam("subject") String subject,
+                @RequestParam("to") String toEmails) {
+
+            Map<String, String> response = new HashMap<>();
+            // 1. Validate input
+            if (file.isEmpty()) {
+                response.put("message", "File is missing.");
+                return new ResponseEntity<>(
+                        response,
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+
+            if (toEmails == null || toEmails.trim().isEmpty()) {
+
+                response.put("message", "No recipient emails provided.");
+                return new ResponseEntity<>(
+                        response,
+                        HttpStatus.BAD_REQUEST
+                );
+
+
+            }
+
+            // 2. Process the "to" string into a list or array
+            List<String> emailList = Arrays.asList(toEmails.split(","));
+
+            try {
+
+                serv.sendReportEmail(file, subject, emailList);
+
+                // 3. Call your email service
+                // This is a placeholder for your actual email logic.
+
+                // emailService.sendEmailWithAttachment(
+                //     emailList,
+                //     subject,
+                //     "Please find the attached report.",
+                //     file.getBytes(),
+                //     file.getOriginalFilename()
+                // );
+
+                // 4. Return success response using a Map
+                response.put("message", "Report Send Succesfully.");
+                return new ResponseEntity<>(
+                        response,
+                        HttpStatus.OK
+                );
+            } catch (Exception e) {
+                // 5. Return error response using a Map
+                e.printStackTrace(); // Log the actual error
+                response.put("message", "File is missing.");
+                return new ResponseEntity<>(
+                        response,
+                        HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
 }
+
+
+
