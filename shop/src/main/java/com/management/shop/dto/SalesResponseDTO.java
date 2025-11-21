@@ -18,6 +18,7 @@ public class SalesResponseDTO {
     private String remarks;
 	private String 	status;
     private Double paid;
+    private String gstin;
     private Integer reminderCount;
 	
 }

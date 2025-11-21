@@ -428,11 +428,11 @@ public class AuthService {
                 cookie.setSecure(true);         // ✅ Required for HTTPS
                 cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
                 cookie.setMaxAge(3600);         // ✅ 1 hour
-                cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
+                cookie.setDomain(".friendsmobile.info"); // ✅ Share across subdomains
 // Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
 
                 response.addHeader("Set-Cookie",
-                        "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
+                        "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.friendsmobile.info; Max-Age=36000");
             } else {
                 cookie.setHttpOnly(true);      // Prevent JS access
                 cookie.setSecure(false);       // ✅ In dev, must be false (unless using HTTPS with localhost)
@@ -469,11 +469,11 @@ public class AuthService {
                   cookie.setSecure(true);         // ✅ Required for HTTPS
                   cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
                   cookie.setMaxAge(3600);         // ✅ 1 hour
-                  cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
+                  cookie.setDomain(".friendsmobile.info"); // ✅ Share across subdomains
 // Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
 
                   response.addHeader("Set-Cookie",
-                          "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
+                          "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.friendsmobile.info; Max-Age=36000");
               } else {
                   cookie.setHttpOnly(true);      // Prevent JS access
                   cookie.setSecure(true);       // Don't require HTTPS in dev

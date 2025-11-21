@@ -17,11 +17,13 @@ public class InvoiceDetails {
 	    private List<OrderItem> items;
 	    private double totalAmount; // subtotal before GST/discount
 	    private boolean paid;
+        private String customerGstin;
         private double paidAmount;
         private double dueAmount;
 	    private String customerName;
 	    private double gstRate;      // e.g., 0.18 for 18%
 	    private double discountRate;
+        private String gstNumber;
 	    private String customerEmail;
 	    private String customerPhone;
         private String customerGstNumber;

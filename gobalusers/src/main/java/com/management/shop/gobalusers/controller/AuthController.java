@@ -47,7 +47,7 @@ public class AuthController {
         return serv.addUser(userInfo);
     }
 
-    @PostMapping("auth/new/welcome")
+    @GetMapping("auth/new/welcome")
     public ResponseEntity<String> welcome(@RequestBody UserInfo userInfo) {
         return ResponseEntity.status(HttpStatus.OK).body("welcome to the app");
 

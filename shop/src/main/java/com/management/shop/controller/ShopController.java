@@ -461,6 +461,7 @@ public class ShopController {
     }*/
 
     @PostMapping("api/shop/report")
+    @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<byte[]> generateReport(@RequestBody ReportRequest request) {
 
         System.out.println("The request payload for billing app is-->" + request);
@@ -613,11 +614,11 @@ public class ShopController {
             cookie.setSecure(true);         // ✅ Required for HTTPS
             cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
             cookie.setMaxAge(0);         // ✅ 1 hour
-            cookie.setDomain(".clearbill.store"); // ✅ Share across subdomains
+            cookie.setDomain(".friendsmobile.info"); // ✅ Share across subdomains
 // Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
 
             httpResponse.addHeader("Set-Cookie",
-                    "jwt=" + null + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbill.store; Max-Age=3600");
+                    "jwt=" + null + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.friendsmobile.info; Max-Age=36000");
         } else {
             cookie.setHttpOnly(true);      // Prevent JS access
             cookie.setSecure(false);       // ✅ In dev, must be false (unless using HTTPS with localhost)

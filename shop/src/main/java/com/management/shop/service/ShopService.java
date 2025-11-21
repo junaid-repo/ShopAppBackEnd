@@ -228,6 +228,7 @@ public class ShopService {
             try {
                 salesCacheService.evictUserCustomers(extractUsername());
                 salesCacheService.evictsUserAnalytics(extractUsername());
+                salesCacheService.evictsReportsCache(extractUsername());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block
@@ -277,7 +278,7 @@ public class ShopService {
             try {
                 salesCacheService.evictUserCustomers(extractUsername());
                 salesCacheService.evictsUserAnalytics(extractUsername());
-
+                salesCacheService.evictsReportsCache(extractUsername());
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -705,12 +706,12 @@ public class ShopService {
               try {
                   Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
 
-                  if (Arrays.asList(environment.getActiveProfiles()).contains("prod") || Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+                  //if (Arrays.asList(environment.getActiveProfiles()).contains("prod") || Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                       CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
                               billResponse.getInvoiceNumber(), order.getCustomerName(),
                               generateGSTInvoicePdf(billResponse.getInvoiceNumber()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
                       System.out.println(futureResult);
-                  }
+                 // }
 
               } catch (MailjetException | MailjetSocketTimeoutException e) {
                   // TODO Auto-generated catch block
@@ -727,7 +728,7 @@ public class ShopService {
                 salesCacheService.evictsUserAnalytics(extractUsername());
                 salesCacheService.evictsTopSelling(extractUsername());
                 salesCacheService.evictsTopOrders(extractUsername());
-
+                salesCacheService.evictsReportsCache(extractUsername());
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -846,6 +847,7 @@ public class ShopService {
                             .total(obj.getTotalAmount())
                             .paid(obj.getPayingAmount())
                             .status(paymentStatus)
+                            .gstin(obj.getGstin())
                             .reminderCount(obj.getDueReminderCount())
                             .build();
                 })
@@ -923,6 +925,7 @@ public class ShopService {
                             .date(obj.getCreatedDate().toString())
                             .id(obj.getInvoiceNumber())
                             .total(obj.getTotalAmount())
+                            .gstin(obj.getGstin())
                             .status(paymentStatus)
                             .build();
                 })
@@ -1081,11 +1084,13 @@ public class ShopService {
                     .igst(obj.getIgst())
                     .igstPercentage(obj.getIgstPercentage())
                     .details(obj.getProductDetails())
+                    .discount(obj.getDiscountPercentage())
                     .quantity(obj.getQuantity()).build();
             return orderItems;
         }).collect(Collectors.toList());
-        var response = InvoiceDetails.builder().discountRate(0).invoiceId(orderReferenceNumber)
+        var response = InvoiceDetails.builder().discountRate(billDetails.getDiscountPercent()).invoiceId(orderReferenceNumber)
                 .paymentReferenceNumber(paymentEntity.getPaymentReferenceNumber()).items(items).gstRate(gst)
+                .gstNumber(billDetails.getGstin())
                 .customerPhone(customerEntity.getPhone()).customerEmail(customerEntity.getEmail()).orderedDate(String.valueOf(billDetails.getCreatedDate()).substring(0, 10))
                 .totalAmount(billDetails.getTotalAmount()).customerName(customerEntity.getName()).paid(paid).build();
         return response;
@@ -1129,6 +1134,8 @@ public class ShopService {
 
 
 
+
+    @Cacheable(value = "reports", keyGenerator = "userScopedKeyGenerator")
     public byte[] generateReport(ReportRequest request) {
 
         LocalDate fromDate = LocalDate.parse(request.getFromDate());
@@ -1258,6 +1265,7 @@ public class ShopService {
         try {
             salesCacheService.evictUserCustomers(extractUsername());
             salesCacheService.evictsUserAnalytics(extractUsername());
+            salesCacheService.evictsReportsCache(extractUsername());
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -2296,12 +2304,12 @@ public class ShopService {
         try {
             Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
 
-            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+            //if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                 CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
                         invoiceNumber, order.getCustomerName(),
                         generateGSTInvoicePdf(invoiceNumber), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
                 System.out.println(futureResult);
-            }
+           // }
 
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -2342,6 +2350,7 @@ public class ShopService {
             salesCacheService.evictsUserAnalytics(extractUsername());
             salesCacheService.evictsTopSelling(extractUsername());
             salesCacheService.evictsTopOrders(extractUsername());
+            salesCacheService.evictsReportsCache(extractUsername());
             return "success";
         } catch (Exception e) {
             // TODO Auto-generated catch block

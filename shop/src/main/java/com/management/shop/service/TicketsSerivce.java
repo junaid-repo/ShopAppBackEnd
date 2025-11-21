@@ -103,12 +103,12 @@ public class TicketsSerivce {
         try {
             String emailContent = emailTemplate.getTicketCreationMailConent(request, extractUsername());
 
-            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+           // if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                 CompletableFuture<String> futureResult = email.sendEmailForTicketIntimation("nadanasim3001@gmail.com",
                         request.getTicketNumber(), "Support",
                         emailContent, "ClearBill");
                 System.out.println(futureResult);
-            }
+           // }
 
         } catch (MailjetException | MailjetSocketTimeoutException e) {
             // TODO Auto-generated catch block
@@ -264,12 +264,12 @@ public class TicketsSerivce {
             }
             String emailContent = emailTemplate.generateSupportEmailHtml(extractUsername(), subject, body);
 
-            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+           // if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                 CompletableFuture<String> futureResult = email.sendSupportEmail("nadanasim3001@gmail.com",
                         subject, extractUsername(),
                         mailAttachemnt, emailContent, "Clear Bill");
                 System.out.println(futureResult);
-            }
+           // }
 
         } catch (MailjetException | MailjetSocketTimeoutException e) {
             // TODO Auto-generated catch block
