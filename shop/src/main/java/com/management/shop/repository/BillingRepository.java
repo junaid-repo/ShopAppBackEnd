@@ -480,4 +480,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "ORDER BY " +
             "    totalGst DESC", nativeQuery = true)
     List<GstByCustomerDto> findGstByCustomer(LocalDateTime fromDate, LocalDateTime toDate, String userId);
+
+    @Query(value = "select * from billing_details where invoice_number=?1", nativeQuery = true)
+    BillingEntity findOrderByJustReference(String orderReferenceNumber);
 }

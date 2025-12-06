@@ -156,6 +156,9 @@ public class ShopService {
     GlobalSearchIndexRepository globalSearchRepo;
 
     @Autowired
+    SQSUtil sqsUtil;
+
+    @Autowired
     CSVUtil csvutil;
 
     private final Random random = new Random();
@@ -163,10 +166,22 @@ public class ShopService {
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
+    public String extractUsername(String orderReferenceNumber) {
+        String username = "";
+        try {
+            username=SecurityContextHolder.getContext().getAuthentication().getName();
+        } catch (Exception e) {
+            BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+            username= billDetails.getUserId();
+        }
+        // For testing purposes, you might uncomment the line below
+        // username="junaid1";
+        return username;
+    }
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        System.out.println("Current user: " + username);
-      //  username="junaid1";
+        // For testing purposes, you might uncomment the line below
+        // username="junaid1";
         return username;
     }
     public List<String> extractRoles() {
@@ -713,6 +728,7 @@ public class ShopService {
                       System.out.println(futureResult);
                  // }
 
+
               } catch (MailjetException | MailjetSocketTimeoutException e) {
                   // TODO Auto-generated catch block
                   e.printStackTrace();
@@ -1050,31 +1066,41 @@ public class ShopService {
 
     public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
 
+String username="";
+
+if(orderReferenceNumber!=null){
+    BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+    username= billDetails.getUserId();
+}
+
+        BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber, username);
 
 
-        BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber, extractUsername());
 
-
-
-        PaymentEntity paymentEntity = salesPaymentRepo.findPaymentDetails(billDetails.getId(), extractUsername());
+        PaymentEntity paymentEntity = salesPaymentRepo.findPaymentDetails(billDetails.getId(), username);
 
         boolean paid = false;
         if (paymentEntity.getStatus().equalsIgnoreCase("Paid")) {
             paid = true;
         }
 
-        CustomerEntity customerEntity = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername());
+        CustomerEntity customerEntity = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), username);
 
-        List<ProductSalesEntity> prodSales = prodSalesRepo.findByOrderId(billDetails.getId(), extractUsername());
+        List<ProductSalesEntity> prodSales = prodSalesRepo.findByOrderId(billDetails.getId(), username);
         Double gst = 0d;
         for (ProductSalesEntity orders : prodSales) {
             gst = gst + orders.getTax();
         }
 
         List<OrderItem> items = prodSales.stream().map(obj -> {
+            String username2="";
+            if(orderReferenceNumber!=null){
+                BillingEntity billDetails2 = billRepo.findOrderByJustReference(orderReferenceNumber);
+                username2= billDetails.getUserId();
+            }
 
             System.out.println("The productId is "+obj.getProductId());
-            ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), extractUsername());
+            ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), username2);
 
             var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
                     .sgst(obj.getSgst())
@@ -1303,13 +1329,18 @@ public class ShopService {
     public byte[] generateGSTInvoicePdf(String orderId) throws Exception {
         System.out.println("Generating invoice for orderNumber-->"+ orderId);
 
+        String username="";
+        if(orderId!=null){
+            BillingEntity billDetails = billRepo.findOrderByJustReference(orderId);
+            username= billDetails.getUserId();
+        }
 
-        InvoiceData invoiceData=utils.getFullInvoiceDetails(extractUsername(), orderId);
+        InvoiceData invoiceData=utils.getFullInvoiceDetails(username, orderId);
 
         String invoiceTemplateName="gstinvoice";
 
         try {
-            SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(extractUsername());
+            SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
             if(repoEntity!=null){
                 invoiceTemplateName=repoEntity.getTemplateName();
             }
@@ -2200,7 +2231,7 @@ public class ShopService {
 
        BillingEntity billDetails= billRepo.findByInvoiceNumber(orderNo);
 
-        CustomerEntity customer=   shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername());
+        CustomerEntity customer=   shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername(orderNo));
 
         Double totalAmount=billDetails.getTotalAmount();
         Double paidAmount=billDetails.getPayingAmount();
@@ -2215,15 +2246,15 @@ public class ShopService {
       Map<String, String> response=new HashMap<>();
       response.put("status", "success");
 
-        ShopBasicEntity shopBasic= shopBasicRepo.findByUserId(extractUsername());
+        ShopBasicEntity shopBasic= shopBasicRepo.findByUserId(extractUsername(orderNo));
 
         try {
             CompletableFuture<String> futureResult =  email.sendEmailForPaymentReminder(customerEmail, orderNo, customerName, htmlTemplate, shopBasic.getShopName());
 
-            billRepo.updateReminderCount(orderNo, extractUsername(), LocalDateTime.now());
-            salesPaymentRepo.updateReminderCount(orderNo, extractUsername(), LocalDateTime.now());
-            salesCacheService.evictUserSales(extractUsername());
-            salesCacheService.evictUserPayments(extractUsername());
+            billRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
+            salesPaymentRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
+            salesCacheService.evictUserSales(extractUsername(orderNo));
+            salesCacheService.evictUserPayments(extractUsername(orderNo));
 
         } catch (MailjetException e) {
             throw new RuntimeException(e);
@@ -2232,6 +2263,25 @@ public class ShopService {
         }
 
         return null;
+    }
+
+    public Map<String, String> sendPaymentReminderToSQS(Map<String, Object> request) {
+
+System.out.println("Entered sendPaymentReminderToSQS with request "+request);
+        Map<String, String> response = new HashMap<>();
+        try {
+
+            sqsUtil.sendOrderDetailsJustAfterOrderCompletion("send-paymentReminder-email-queue", "SQS", request);
+
+            // }
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        response.put("errorData", "success");
+        return response;
+
     }
 
     @Transactional
@@ -2298,18 +2348,48 @@ public class ShopService {
         log.info("The response getPaymentHistory is " + response);
   return response;
     }
+
+
     public Map<String, Object> sendInvoiceOverEmail(String invoiceNumber) {
         InvoiceDetails order = getOrderDetails(invoiceNumber);
         Map<String, Object> response=new HashMap<>();
         try {
-            Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("invoice_number", invoiceNumber);
+
+            sqsUtil.sendOrderDetailsJustAfterOrderCompletion("send-invoice-email-queue", "SQS", body);
+
+            // }
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        response.put("errorData", "success");
+        return response;
+    }
+
+    public Map<String, Object> sendInvoiceOverEmailByListner(String invoiceNumber) {
+        System.out.println("Entered sending email by listner with refrenece Number "+invoiceNumber);
+        InvoiceDetails order = getOrderDetails(invoiceNumber);
+        Map<String, Object> response=new HashMap<>();
+        try {
+            String username="";
+            if(invoiceNumber!=null){
+                BillingEntity billDetails = billRepo.findOrderByJustReference(invoiceNumber);
+                username= billDetails.getUserId();
+            }
+            Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, username);
 
             //if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
-                CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
-                        invoiceNumber, order.getCustomerName(),
-                        generateGSTInvoicePdf(invoiceNumber), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
-                System.out.println(futureResult);
-           // }
+            CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
+                    invoiceNumber, order.getCustomerName(),
+                    generateGSTInvoicePdf(invoiceNumber), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
+            System.out.println(futureResult);
+
+
+            // }
 
         } catch (Exception e) {
             // TODO Auto-generated catch block

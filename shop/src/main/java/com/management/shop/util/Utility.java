@@ -83,12 +83,25 @@ public class Utility {
         return value == null ? "" : value;
     }
 
+    public String extractUsername(String orderReferenceNumber) {
+        String username = "";
+        try {
+            username=SecurityContextHolder.getContext().getAuthentication().getName();
+        } catch (Exception e) {
+            BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+            username= billDetails.getUserId();
+        }
+        // For testing purposes, you might uncomment the line below
+        // username="junaid1";
+        return username;
+    }
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         // For testing purposes, you might uncomment the line below
         // username="junaid1";
         return username;
     }
+
 
 
     public InvoiceData getFullInvoiceDetails(String username, String orderId) {
@@ -190,7 +203,7 @@ public class Utility {
         Boolean removeTerms=false;
 
         try {
-            UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername());
+            UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(orderId));
             printDueAmount=   userSettingsEntity.getShowPaymentStatus();
             printCustomerGst=   userSettingsEntity.getShowCustomerGstin();
             printShopPan=userSettingsEntity.getShowShopPan();
@@ -291,7 +304,7 @@ public class Utility {
         Boolean removeTerms=false;
 
         try {
-            UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername());
+            UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(order.getInvoiceId()));
             printDueAmount=   userSettingsEntity.getShowPaymentStatus();
             printCustomerGst=   userSettingsEntity.getShowCustomerGstin();
             printShopPan=userSettingsEntity.getShowShopPan();
@@ -321,7 +334,7 @@ public class Utility {
     }
 
     public UpdateUserDTO getUserProfile(String username) {
-        username = extractUsername();
+       // username = extractUsername();
 
         // Use orElse(null) or orElse(new UserInfo()) for safer handling
         UserInfo userinfo = userinfoRepo.findByUsername(username).orElse(new UserInfo());
@@ -383,7 +396,14 @@ public class Utility {
     }
 
     public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
-        String username = extractUsername();
+        String username = "";
+        String usernameArr[]={""};
+
+        if(orderReferenceNumber!=null){
+            BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+            username= billDetails.getUserId();
+            usernameArr[0]=username;
+        }
 
         // If the main billing record doesn't exist, return an empty object
         BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber, username);
@@ -410,7 +430,7 @@ public class Utility {
         List<OrderItem> items = prodSales.stream()
                 .filter(Objects::nonNull)
                 .map(obj -> {
-                    ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), username);
+                    ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), usernameArr[0]);
                     String productName = (prodRes != null) ? toEmpty(prodRes.getName()) : "Unknown Product";
 
                     return OrderItem.builder()

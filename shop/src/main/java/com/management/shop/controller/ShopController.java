@@ -614,11 +614,11 @@ public class ShopController {
             cookie.setSecure(true);         // ✅ Required for HTTPS
             cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
             cookie.setMaxAge(0);         // ✅ 1 hour
-            cookie.setDomain(".friendsmobile.info"); // ✅ Share across subdomains
+            cookie.setDomain(".clearbills.info"); // ✅ Share across subdomains
 // Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
 
             httpResponse.addHeader("Set-Cookie",
-                    "jwt=" + null + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.friendsmobile.info; Max-Age=36000");
+                    "jwt=" + null + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.info; Max-Age=36000");
         } else {
             cookie.setHttpOnly(true);      // Prevent JS access
             cookie.setSecure(false);       // ✅ In dev, must be false (unless using HTTPS with localhost)
@@ -885,7 +885,7 @@ public class ShopController {
     @GetMapping("api/shop/get/forGSTBilling/withCache/productsList")
     public ResponseEntity<Map<String, Object>> searchProducts(
             @RequestParam(value = "q", required = false, defaultValue = "") String query,
-            @RequestParam(value = "limit", defaultValue = "5") int limit) {
+            @RequestParam(value = "limit", defaultValue = "10") int limit) {
 
         // Call the service to perform the business logic
         List<ProductSearchDto> products = serv.findProductsByQuery(query, limit);
@@ -948,7 +948,7 @@ public class ShopController {
     @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<Map<String, String>> sendPaymentReminders(@RequestBody Map<String, Object> request){
 
-        Map<String, String> response= serv.sendPaymentReminder(request);
+        Map<String, String> response= serv.sendPaymentReminderToSQS(request);
 
         return ResponseEntity.ok(response);
     }
