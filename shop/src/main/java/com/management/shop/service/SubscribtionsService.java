@@ -236,6 +236,71 @@ public class SubscribtionsService {
         return responseList;
     }
 
+    public String testScheduler() {
+        List<UserInfo> usersList = userinfoRepo.findAllByStatus(Boolean.TRUE);
+        System.out.println("Running updateExpiredSubscription scheduler for users: " + usersList);
+
+        usersList.stream().forEach(user -> {
+            String username = user.getUsername();
+
+            List<UserSubscriptions> subsList= subsRepo.findSubListByUsername(username, "pending");
+
+            subsList.stream().forEach(  subs->{
+                LocalDateTime now = LocalDateTime.now();
+                if((subs.getEndDate().isBefore(now))&& !subs.getStatus().equals("expired")){
+
+                    System.out.println("Updating subscription to expired for user: " + username + " Subscription ID: " + subs.getId());
+                    try {
+                        subsRepo.updateById("expired", subs.getId());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                   System.out.println("Subscription expired for user: " + username + " Subscription ID: " + subs.getId());
+                }
+
+                if((subs.getStartDate().isBefore(now) || subs.getStartDate().isEqual(now))&& !subs.getStatus().equals("active")){
+
+                    System.out.println("Updating subscription to active for user: " + username + " Subscription ID: " + subs.getId());
+
+                    try {
+                        subsRepo.updateById("active", subs.getId());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    System.out.println("Subscription activated for user: " + username + " Subscription ID: " + subs.getId());
+                }
+            });
+
+
+
+        });
+
+        System.out.println("Running updateExpiredSubscriptionRoles scheduler for users: " + usersList);
+
+
+        usersList.stream().forEach(user -> {
+            String username = user.getUsername();
+
+            UserSubscriptions latestSub  = subsRepo.findLatestActiveOrUpcomingByUsername(username);
+
+
+
+            LocalDateTime now = LocalDateTime.now();
+            if(latestSub.getEndDate().isBefore(now) || latestSub.getEndDate().isEqual(now)){
+                user.setRoles("USER");
+                userinfoRepo.save(user);
+                System.out.println("User role downgraded to ROLE_USER for user: " + username + " Subscription ID: " + latestSub.getId());
+            }
+
+        });
+
+
+
+
+
+        return "ok";
+    }
+
     public void sendSubscriptionInvoice() {
 
 

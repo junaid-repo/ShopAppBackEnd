@@ -17,6 +17,7 @@ public class BillingSettings {
     private String serialNumberPattern;
     private Boolean showPartialPaymentOption;
     private Boolean showRemarksOnSummarySide;
+    private Boolean showAnonymousCustomerOption;
 
 
 }

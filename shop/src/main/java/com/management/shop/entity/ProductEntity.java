@@ -25,6 +25,7 @@ public class ProductEntity {
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)
 	private Integer id;
+    private String sku;
 	private String name;
 	private String category;
 	private String status;

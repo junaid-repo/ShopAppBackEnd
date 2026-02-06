@@ -95,9 +95,16 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
     List<ProductEntity> getAllProductForReport(Boolean isActive, String userId);
 
     @Query(
-            value = "SELECT * FROM shop_product p WHERE p.active = :isActive AND p.user_id = :username AND stock > 0 AND" +
-                    "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                    "LOWER(p.category) LIKE LOWER(CONCAT('%', :search, '%'))) LIMIT :limit",
+            value = "SELECT * FROM shop_product p WHERE p.active = :isActive " +
+                    "AND p.user_id = :username " +
+                    "AND p.stock > 0 " +
+                    "AND (" +
+                    "   :search IS NULL " +
+                    "   OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                    "   OR LOWER(p.category) LIKE LOWER(CONCAT('%', :search, '%')) " +
+                    // NEW LINE: Casts ID to string for comparison
+                    "   OR CAST(p.id AS CHAR) = :search " +
+                    ") LIMIT :limit",
             nativeQuery = true
     )
     List<ProductEntity> findAllActiveProductsForGSTBilling(

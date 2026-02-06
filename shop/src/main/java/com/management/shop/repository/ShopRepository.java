@@ -106,4 +106,7 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
             "ORDER BY " +
             "    totalOutstanding DESC", nativeQuery = true)
     List<CustomerOutstandingDto> findCustomersWithOutstandingAmount(String userId);
+
+    @Query(value = "SELECT * FROM shop_customer WHERE user_id = ?1 AND name = ?2", nativeQuery = true)
+    CustomerEntity findByNameAndId(String s, String name);
 }

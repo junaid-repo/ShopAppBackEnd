@@ -22,4 +22,5 @@ public class InvoiceSettings {
     Boolean showSupportInfoOnInvoice ;
     Boolean showRateColumn ;
     Boolean showHsnColumn ;
+    Boolean showInvoiceBarcode ;
 }

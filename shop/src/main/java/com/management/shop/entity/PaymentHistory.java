@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Entity
-@Table(name="BillingPaymentsHistory")
+@Table(name="BillingPaymentsHistory", indexes = {
+        @Index(name = "idx_user_id", columnList = "userId"),
+        @Index(name = "idx_payment_id", columnList = "paymentId")
+})
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,6 +27,8 @@ public class PaymentHistory {
     @GeneratedValue(strategy= GenerationType.AUTO)
     private Integer id;
     private Integer billingId;
+
+
     private Integer paymentId;
     private Double paidAmount;
     private String tokenNo;

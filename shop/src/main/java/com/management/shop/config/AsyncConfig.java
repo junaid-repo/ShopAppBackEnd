@@ -17,6 +17,7 @@ public class AsyncConfig {
 		ex.setMaxPoolSize(40);
 		ex.setCorePoolSize(30);
 		ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("MailAsync-");
 		ex.initialize();
 		return ex;
 

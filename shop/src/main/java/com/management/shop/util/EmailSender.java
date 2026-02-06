@@ -162,7 +162,8 @@ public class EmailSender {
 
     }
 
-    public CompletableFuture<String> sendEmail(String emailId, String orderId, String name, byte[] pdfStream, String htmlContent, String shopName) throws MailjetException, MailjetSocketTimeoutException {
+    @Async("mailAsync")
+    public CompletableFuture<String> sendEmail(String emailId, String orderId, String name, byte[] pdfStream, String htmlContent, String shopName)   {
         // Assume you have a ByteArrayOutputStream named 'pdfStream'
         // This stream would contain the PDF data, for example, from a PDF generator library.
         // ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
@@ -213,9 +214,16 @@ public class EmailSender {
                                                 .put("Filename", orderId+".pdf")
                                                 .put("Base64Content", base64Content)))));
 
-        response = client.post(request);
+        try {
+            response = client.post(request);
+        } catch (MailjetException e) {
+            throw new RuntimeException(e);
+        } catch (MailjetSocketTimeoutException e) {
+            throw new RuntimeException(e);
+        }
         System.out.println(response.getStatus());
         System.out.println(response.getData());
+        System.out.println("Email sent successfully, the response is--> "+response.getData().toString());
         return CompletableFuture.completedFuture(response.getData().toString());
 
     }

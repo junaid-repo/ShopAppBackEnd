@@ -31,6 +31,7 @@ public class SubscriptionsUpdate {
 
         List<UserInfo> usersList = userinfoRepo.findAllByStatusAndRole(Boolean.TRUE, "ROLE_PREMIUM");
 
+
         System.out.println("Running updateExpiredSubscription scheduler for users: " + usersList);
 
         usersList.stream().forEach(user -> {
@@ -91,7 +92,7 @@ public class SubscriptionsUpdate {
 
                 LocalDateTime now = LocalDateTime.now();
                 if(latestSub.getEndDate().isBefore(now) || latestSub.getEndDate().isEqual(now)){
-
+                    user.setRoles("USER");
                      userinfoRepo.save(user);
                      log.info("User role downgraded to ROLE_USER for user: " + username + " Subscription ID: " + latestSub.getId());
                 }

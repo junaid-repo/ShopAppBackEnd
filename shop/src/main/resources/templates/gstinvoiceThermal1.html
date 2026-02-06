@@ -266,7 +266,7 @@
         </table>
     </div>
 
-    <div class="customer-info">
+    <div class="customer-info" th:if="${customerName != 'Anonymous'}">
         <div class="separator"></div>
         <h4>Customer Details:</h4>
         <p><strong th:text="${customerName}"></strong></p>
@@ -354,11 +354,11 @@
     <table class="payment-summary"
            th:if="${showDueAmount and ((paidAmount != null && paidAmount > 0) || (dueAmount != null && dueAmount > 0))}">
         <tbody>
-        <tr th:if="${paidAmount != null && paidAmount > 0}">
+        <tr th:if="${paidAmount != null and paidAmount > 0}">
             <td class="label">Paid Amount:</td>
             <td class="value" th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></td>
         </tr>
-        <tr th:if="${dueAmount != null && dueAmount > 0}">
+        <tr th:if="${dueAmount != null and dueAmount > 0}">
             <td class="label due">DUE AMOUNT:</td>
             <td class="value due" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></td>
         </tr>

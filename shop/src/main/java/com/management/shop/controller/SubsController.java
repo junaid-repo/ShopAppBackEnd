@@ -78,4 +78,12 @@ public class SubsController {
         return ResponseEntity.ok(response);
 
     }
+
+    @GetMapping("api/shop/subscription/testDetails")
+    ResponseEntity<String> testScheulder(){
+        String response=    serv.testScheduler();
+
+        return ResponseEntity.ok(response);
+
+    }
 }

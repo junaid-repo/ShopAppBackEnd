@@ -14,11 +14,13 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.management.shop.dto.*;
 import com.management.shop.entity.*;
+import com.management.shop.enums.CustomerEnum;
 import com.management.shop.repository.*;
 import com.management.shop.scheduler.BillingProcess;
 import com.management.shop.util.*;
@@ -161,6 +163,9 @@ public class ShopService {
     @Autowired
     CSVUtil csvutil;
 
+    @Autowired
+    EmailRecordRepo emailRecordRepo;
+
     private final Random random = new Random();
 
     @Value("${aws.s3.bucket-name}")
@@ -169,21 +174,23 @@ public class ShopService {
     public String extractUsername(String orderReferenceNumber) {
         String username = "";
         try {
-            username=SecurityContextHolder.getContext().getAuthentication().getName();
+            username = SecurityContextHolder.getContext().getAuthentication().getName();
         } catch (Exception e) {
             BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
-            username= billDetails.getUserId();
+            username = billDetails.getUserId();
         }
         // For testing purposes, you might uncomment the line below
         // username="junaid1";
         return username;
     }
+
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         // For testing purposes, you might uncomment the line below
         // username="junaid1";
         return username;
     }
+
     public List<String> extractRoles() {
         List<String> roles = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
                 .stream()
@@ -193,6 +200,7 @@ public class ShopService {
         System.out.println("Current user roles: " + roles);
         return roles;
     }
+
     private static <T, R> R getIfNotNull(T source, Function<T, R> getter) {
         return (source != null) ? getter.apply(source) : null;
     }
@@ -207,7 +215,7 @@ public class ShopService {
         System.out.println("entered into saveCustomer with" + request.toString());
         List<CustomerEntity> existingCustomer = new ArrayList<>();
 
-        if(!request.getPhone().equals("") && !(request.getPhone()==null) && !request.getPhone().equals("0000000000")) {
+        if (!request.getPhone().equals("") && !(request.getPhone() == null) && !request.getPhone().equals("0000000000")) {
             existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
         }
         CustomerEntity ent = null;
@@ -262,7 +270,7 @@ public class ShopService {
         System.out.println("entered into saveCustomer with" + request.toString());
         List<CustomerEntity> existingCustomer = new ArrayList<>();
 
-        if(!request.getPhone().equals("") && !(request.getPhone()==null) && !request.getPhone().equals("0000000000")) {
+        if (!request.getPhone().equals("") && !(request.getPhone() == null) && !request.getPhone().equals("0000000000")) {
             existingCustomer = shopRepo.findByPhone(request.getPhone(), "ACTIVE", extractUsername());
         }
         CustomerEntity ent = null;
@@ -310,7 +318,7 @@ public class ShopService {
     public List<CustomerEntity> getAllCustomer() {
         System.out.println("The extracted username is " + extractUsername());
 
-        return shopRepo.findAllActiveCustomer("ACTIVE",  extractUsername());
+        return shopRepo.findAllActiveCustomer("ACTIVE", extractUsername());
     }
 
     @Transactional
@@ -415,15 +423,15 @@ public class ShopService {
 
     public List<ProductEntity> getAllProducts() {
 
-        return prodRepo.findAllActiveProducts(Boolean.TRUE,  extractUsername());
+        return prodRepo.findAllActiveProducts(Boolean.TRUE, extractUsername());
     }
 
     public byte[] exportAllProductAsCSV() {
 
-        List<ProductEntity> productList= prodRepo.findAllActiveProducts(Boolean.TRUE,  extractUsername());
+        List<ProductEntity> productList = prodRepo.findAllActiveProducts(Boolean.TRUE, extractUsername());
 
         try {
-            return  csvutil.exportAllProductAsCSV(productList);
+            return csvutil.exportAllProductAsCSV(productList);
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -464,6 +472,7 @@ public class ShopService {
         }
 
     }
+
     @Cacheable(value = "products", keyGenerator = "userScopedKeyGenerator")
     public Page<ProductEntity> getAllProductsForBilling(String search, int page, int limit, String sort, String dir) {
         // Create Sort object based on direction and sort field
@@ -496,9 +505,9 @@ public class ShopService {
     }
 
     @Cacheable(value = "customers", keyGenerator = "userScopedKeyGenerator")
-    public Page<CustomerEntity> getCacheableCustomersList(String search, int page, int size, String sort, String dir)  {
+    public Page<CustomerEntity> getCacheableCustomersList(String search, int page, int size, String sort, String dir) {
 
-        String    sortField = sort;
+        String sortField = sort;
 
         if ("createdAt".equalsIgnoreCase(sortField)) {
             sortField = "created_date";
@@ -519,20 +528,19 @@ public class ShopService {
         Pageable pageable = PageRequest.of(page - 1, size, sortOrder);
 
         String username = extractUsername();
-        Page<CustomerEntity> response=null;
-        try{
-            response=   shopRepo.findAllCustomersWithPagination(username, search, pageable, Boolean.TRUE);
-        }
-        catch(Exception e){
+        Page<CustomerEntity> response = null;
+        try {
+            response = shopRepo.findAllCustomersWithPagination(username, search, pageable, Boolean.TRUE);
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         return response;
     }
 
-    public Page<CustomerEntity> getBillingCustomersList(String search, int page, int size, String sort)  {
+    public Page<CustomerEntity> getBillingCustomersList(String search, int page, int size, String sort) {
 
-        String    sortField = sort;
+        String sortField = sort;
 
         if ("createdAt".equalsIgnoreCase(sortField)) {
             sortField = "created_date";
@@ -545,7 +553,7 @@ public class ShopService {
         }
 
 
-        Sort.Direction direction =  Sort.Direction.DESC;
+        Sort.Direction direction = Sort.Direction.DESC;
 
         // ✅ Use mapped field name here
         Sort sortOrder = Sort.by(direction, sortField);
@@ -553,11 +561,10 @@ public class ShopService {
         Pageable pageable = PageRequest.of(page - 1, size, sortOrder);
 
         String username = extractUsername();
-        Page<CustomerEntity> response=null;
-        try{
-            response=   shopRepo.findAllCustomersWithPagination(username, search, pageable, Boolean.TRUE);
-        }
-        catch(Exception e){
+        Page<CustomerEntity> response = null;
+        try {
+            response = shopRepo.findAllCustomersWithPagination(username, search, pageable, Boolean.TRUE);
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -567,13 +574,16 @@ public class ShopService {
     @Transactional
     public BillingResponse doPayment(BillingRequest request) throws Exception {
 
+
+          checkAnonymousCustomer(request);
+
         Integer unitsSold = 0;
         for (var obj : request.getCart()) {
             unitsSold += obj.getQuantity();
         }
 
-        UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername());
-        Boolean sendInvoice=true;
+        UserSettingsEntity userSettingsEntity = userSettingsRepo.findByUsername(extractUsername());
+        Boolean sendInvoice = true;
 
         var billingEntity = BillingEntity.builder().customerId(request.getSelectedCustomer().getId())
                 .unitsSold(unitsSold).taxAmount(request.getTax()).userId(extractUsername()).totalAmount(request.getTotal())
@@ -584,24 +594,22 @@ public class ShopService {
                 .discountPercent(request.getDiscountPercentage()).remarks(request.getRemarks()).subTotalAmount(request.getTotal() - request.getTax()).createdDate(LocalDateTime.now()).build();
 
 
-
         BillingEntity billResponse = billRepo.save(billingEntity);
 
-        if(userSettingsEntity!=null){
-            sendInvoice= userSettingsEntity.getAutoSendInvoice();
-            String orderPrefix=userSettingsEntity.getSerialNumberPattern();
+        if (userSettingsEntity != null) {
+            sendInvoice = userSettingsEntity.getAutoSendInvoice();
+            String orderPrefix = userSettingsEntity.getSerialNumberPattern();
 
-            String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
 
             String sequentialPart = String.format("%04d", billResponse.getId());
-            String invoiceNumber="FMS-" + datePart + "-" + sequentialPart;
-            if(orderPrefix!=null){
-                 invoiceNumber=orderPrefix+"-" + datePart + "-" + sequentialPart;
+            String invoiceNumber = "FMS-" + datePart + "-" + sequentialPart;
+            if (orderPrefix != null) {
+                invoiceNumber = orderPrefix + "-" + datePart + "-" + sequentialPart;
 
                 billResponse.setInvoiceNumber(invoiceNumber);
                 billRepo.save(billResponse);
-            }
-            else{
+            } else {
                 billResponse.setInvoiceNumber(invoiceNumber);
                 billRepo.save(billResponse);
             }
@@ -614,22 +622,20 @@ public class ShopService {
                 ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getId(), extractUsername());
                 System.out.println("Product details " + prodRes);
                 Double tax = (prodRes.getTaxPercent() * obj.getQuantity() * obj.getPrice()) / 100;
-                Double discountedTotal=0d;
+                Double discountedTotal = 0d;
 
-                    if (obj.getDiscountPercentage() != 0) {
-                        discountedTotal = obj.getPrice() - (obj.getDiscountPercentage() * obj.getPrice()) / 100;
-                        obj.setPrice(discountedTotal);
-                    }
-
-                else
-                    discountedTotal=(double)obj.getPrice();
+                if (obj.getDiscountPercentage() != 0) {
+                    discountedTotal = obj.getPrice() - (obj.getDiscountPercentage() * obj.getPrice()) / 100;
+                    obj.setPrice(discountedTotal);
+                } else
+                    discountedTotal = (double) obj.getPrice();
 
                 Double total = (double) (obj.getQuantity() * Math.round(discountedTotal));
                 //Integer subTotal = total- tax;
-                Double profitOnCp= (discountedTotal - prodRes.getCostPrice())*obj.getQuantity();
-                totalProfitOnCP[0] = totalProfitOnCP[0] +Math.round(profitOnCp);
+                Double profitOnCp = (discountedTotal - prodRes.getCostPrice()) * obj.getQuantity();
+                totalProfitOnCP[0] = totalProfitOnCP[0] + Math.round(profitOnCp);
 
-                ProductSalesEntity gstCalc= getGSTBreakDown(request.getSelectedCustomer(), obj,prodRes,extractUsername());
+                ProductSalesEntity gstCalc = getGSTBreakDown(request.getSelectedCustomer(), obj, prodRes, extractUsername());
 
                 var productSalesEntity = ProductSalesEntity.builder().billingId(billResponse.getId())
                         .profitOnCP(profitOnCp)
@@ -654,7 +660,7 @@ public class ShopService {
 
 
                 try {
-                    String saveGSTListing= billingProcess.saveGstListing(billResponse.getInvoiceNumber(), extractUsername());
+                    String saveGSTListing = billingProcess.saveGstListing(billResponse.getInvoiceNumber(), extractUsername());
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -665,7 +671,6 @@ public class ShopService {
                 }
 
             });
-
 
 
             billResponse.setTotalProfitOnCP(totalProfitOnCP[0]);
@@ -681,15 +686,14 @@ public class ShopService {
             if (request.getPaymentMethod() != null) {
                 paymentMethod = request.getPaymentMethod();
             }
-            String payingStatus="Paid";
+            String payingStatus = "Paid";
 
-            if(request.getTotal()>request.getPayingAmount()){
-                payingStatus="SemiPaid";
+            if (request.getTotal() > request.getPayingAmount()) {
+                payingStatus = "SemiPaid";
             }
-            if(request.getPayingAmount()==0){
-                payingStatus="UnPaid";
+            if (request.getPayingAmount() == 0) {
+                payingStatus = "UnPaid";
             }
-
 
 
             var paymentEntity = PaymentEntity.builder().billingId(billResponse.getId()).createdDate(LocalDateTime.now())
@@ -703,7 +707,7 @@ public class ShopService {
             salesPaymentRepo.save(paymentEntity);
 
             try {
-                String savePaymentHistory = utils.asyncSavePaymentHistory(billResponse.getId(), paymentEntity.getId(),  request.getPayingAmount(), billResponse.getInvoiceNumber());
+                String savePaymentHistory = utils.asyncSavePaymentHistory(billResponse.getId(), paymentEntity.getId(), request.getPayingAmount(), billResponse.getInvoiceNumber());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -716,26 +720,19 @@ public class ShopService {
             }
 
 
-          if(sendInvoice) {
-              InvoiceDetails order = getOrderDetails(billResponse.getInvoiceNumber());
-              try {
-                  Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
-
-                  //if (Arrays.asList(environment.getActiveProfiles()).contains("prod") || Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
-                      CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
-                              billResponse.getInvoiceNumber(), order.getCustomerName(),
-                              generateGSTInvoicePdf(billResponse.getInvoiceNumber()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
-                      System.out.println(futureResult);
-                 // }
 
 
-              } catch (MailjetException | MailjetSocketTimeoutException e) {
-                  // TODO Auto-generated catch block
-                  e.printStackTrace();
-              }
-          }
+            if (sendInvoice && !(request.getSelectedCustomer().getName().equals("Anonymous"))) {
+
+                try {
+                    sendInoviceOverEmail(billResponse);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
             try {
-              salesCacheService.evictUserSales(extractUsername());
+                salesCacheService.evictUserSales(extractUsername());
                 salesCacheService.evictUserProducts(extractUsername());
                 salesCacheService.evictUserPayments(extractUsername());
                 salesCacheService.evictUserCustomers(extractUsername());
@@ -755,6 +752,84 @@ public class ShopService {
         }
 
         return BillingResponse.builder().status("FAILURE").build();
+    }
+
+    private void sendInoviceOverEmail(BillingEntity billResponse) {
+
+        InvoiceDetails order = getOrderDetails(billResponse.getInvoiceNumber());
+        try {
+            Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
+
+            //if (Arrays.asList(environment.getActiveProfiles()).contains("prod") || Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+String customerEmail=order.getCustomerEmail();
+String invoiceNumber=billResponse.getInvoiceNumber();
+String username=extractUsername();
+            CompletableFuture<String> emailResult=CompletableFuture.supplyAsync(()-> {
+
+
+                return email.sendEmail(customerEmail,
+                        invoiceNumber, order.getCustomerName(),
+                        generateGSTInvoicePdf(invoiceNumber, username), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
+
+
+            }).thenApply(futureResult->{
+
+                EmailRecord emailRecord= null;
+                try {
+                    emailRecord = EmailRecord.builder().emailId(customerEmail)
+                            .identifier(invoiceNumber)
+                            .username(username)
+                            .emailApiResponse(futureResult.get())
+                            .event("ORD-CREATED")
+                            .createdDate(LocalDateTime.now())
+                            .build();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+
+                EmailRecord emailRecordSave=    emailRecordRepo.save(emailRecord);
+
+                return String.valueOf(futureResult);
+
+            });
+
+         /*           CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
+                            billResponse.getInvoiceNumber(), order.getCustomerName(),
+                            generateGSTInvoicePdf(billResponse.getInvoiceNumber()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
+                    System.out.println(futureResult);*/
+            // }
+
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    private void checkAnonymousCustomer(BillingRequest request) {
+
+        if(request.getSelectedCustomer().getName().equals("Anonymous")){
+            CustomerEntity existingCustomer=shopRepo.findByNameAndId(extractUsername(), request.getSelectedCustomer().getName());
+
+            if(existingCustomer==null){
+                var customerEntity = CustomerEntity.builder().name(request.getSelectedCustomer().getName()).email(request.getSelectedCustomer().getEmail())
+                        .createdDate(LocalDateTime.now())
+                        .isActive(Boolean.TRUE)
+                        .state(request.getSelectedCustomer().getState())
+                        .city("na")
+                        .phone(request.getSelectedCustomer().getPhone())
+                        .status("ACTIVE").userId(extractUsername()).totalSpent(0d).build();
+
+                CustomerEntity ent = shopRepo.save(customerEntity);
+                System.out.println("The saved customer details is "+ent);
+                request.getSelectedCustomer().setId(ent.getId());
+            }
+            else{
+                request.getSelectedCustomer().setId(existingCustomer.getId());
+            }
+        }
     }
 
     private ProductSalesEntity getGSTBreakDown(CustomerEntity selectedCustomer, ProductBillDTO obj, ProductEntity prodRes, String username) {
@@ -789,7 +864,7 @@ public class ShopService {
         cgst *= qty;
         sgst *= qty;
         igst *= qty;
-        totalTax*= qty;
+        totalTax *= qty;
 
         return ProductSalesEntity.builder()
                 .cgstPercentage((int) Math.round(cgstPercent))
@@ -802,6 +877,7 @@ public class ShopService {
                 .subTotal(round2(basePrice))
                 .build();
     }
+
     private static double round2(double value) {
         return Math.round(value * 100.0) / 100.0;
     }
@@ -836,14 +912,13 @@ public class ShopService {
         // Follow same paging convention as getAllProducts (1-based page param)
         Pageable pageable = PageRequest.of(Math.max(0, page - 1), size, sortOrder);
 
-        Page<BillingEntity> billingPage=null;
+        Page<BillingEntity> billingPage = null;
 
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
             // Use a custom query to search by invoice number or customer name
             try {
                 billingPage = billRepo.findByUserIdAndSearchNative(username, searchTerm.trim(), pageable);
-            }
-            catch(Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         } else {
@@ -852,8 +927,14 @@ public class ShopService {
 
         List<SalesResponseDTO> dtoList = billingPage.getContent().stream()
                 .map(obj -> {
-                    String customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), username).getName();
-                    String paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
+                    String customerName = null;
+                    String paymentStatus = null;
+                    try {
+                        customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), username).getName();
+                        paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
 
                     return SalesResponseDTO.builder()
                             .customer(customerName)
@@ -956,8 +1037,8 @@ public class ShopService {
         List<BillingEntity> billList = new ArrayList<>();
         List<ProductEntity> prodList = new ArrayList<>();
 
-      List<String> roles=  extractRoles();
-        System.out.println("The user roles"+roles);
+        List<String> roles = extractRoles();
+        System.out.println("The user roles" + roles);
         Integer days = 0;
 
         if (!range.equals("today")) {
@@ -984,13 +1065,13 @@ public class ShopService {
         Integer taxCollected = 0;
         Integer totalUnitsSold = 0;
         Integer outOfStockCount = 0;
-        Integer countOfOrders=0;
+        Integer countOfOrders = 0;
 
         for (BillingEntity obj : billList) {
             monthlyRevenue = (int) (monthlyRevenue + obj.getTotalAmount());
             taxCollected = (int) (taxCollected + obj.getTaxAmount());
             totalUnitsSold = totalUnitsSold + obj.getUnitsSold();
-            countOfOrders=countOfOrders+1;
+            countOfOrders = countOfOrders + 1;
         }
         ;
         for (ProductEntity obj : prodList) {
@@ -1018,11 +1099,11 @@ public class ShopService {
                     .amount(obj.getTotal())
                     .date(String.valueOf(obj.getCreatedDate()))
                     .saleId(obj.getOrderNumber())
-                            .reminderCount(obj.getReminderCount())
+                    .reminderCount(obj.getReminderCount())
                     .method(obj.getPaymentMethod())
-                            .paid(obj.getPaid()!=null?obj.getPaid():0d)
-                            .due(obj.getToBePaid()!=null?obj.getToBePaid():0d)
-                            .status(obj.getStatus())
+                    .paid(obj.getPaid() != null ? obj.getPaid() : 0d)
+                    .due(obj.getToBePaid() != null ? obj.getToBePaid() : 0d)
+                    .status(obj.getStatus())
                     .build());
         });
 
@@ -1063,19 +1144,19 @@ public class ShopService {
     }
 
 
-
     public InvoiceDetails getOrderDetails(String orderReferenceNumber) {
 
-String username="";
+        String username = "";
 
-if(orderReferenceNumber!=null){
-    BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
-    username= billDetails.getUserId();
-}
+        if (orderReferenceNumber != null) {
+            BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+            username = billDetails.getUserId();
+        }
 
         BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber, username);
 
-
+        Double paidAmount = 0d;
+        Double dueAmount = 0d;
 
         PaymentEntity paymentEntity = salesPaymentRepo.findPaymentDetails(billDetails.getId(), username);
 
@@ -1083,8 +1164,18 @@ if(orderReferenceNumber!=null){
         if (paymentEntity.getStatus().equalsIgnoreCase("Paid")) {
             paid = true;
         }
+        paidAmount = paymentEntity.getPaid() != null ? paymentEntity.getPaid() : 0d;
+        dueAmount = paymentEntity.getPaid() != null ? paymentEntity.getToBePaid() : 0d;
+        CustomerEntity customerEntity = new CustomerEntity();
+        if (billDetails.getCustomerId() == 0) {
+            customerEntity.setId(billDetails.getCustomerId());
+            customerEntity.setName("Anonymous");
+            customerEntity.setEmail("na@na.com");
+            customerEntity.setPhone("0000000000");
+        } else {
+            customerEntity = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), username);
+        }
 
-        CustomerEntity customerEntity = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), username);
 
         List<ProductSalesEntity> prodSales = prodSalesRepo.findByOrderId(billDetails.getId(), username);
         Double gst = 0d;
@@ -1093,13 +1184,13 @@ if(orderReferenceNumber!=null){
         }
 
         List<OrderItem> items = prodSales.stream().map(obj -> {
-            String username2="";
-            if(orderReferenceNumber!=null){
+            String username2 = "";
+            if (orderReferenceNumber != null) {
                 BillingEntity billDetails2 = billRepo.findOrderByJustReference(orderReferenceNumber);
-                username2= billDetails.getUserId();
+                username2 = billDetails.getUserId();
             }
 
-            System.out.println("The productId is "+obj.getProductId());
+            System.out.println("The productId is " + obj.getProductId());
             ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), username2);
 
             var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
@@ -1118,7 +1209,10 @@ if(orderReferenceNumber!=null){
                 .paymentReferenceNumber(paymentEntity.getPaymentReferenceNumber()).items(items).gstRate(gst)
                 .gstNumber(billDetails.getGstin())
                 .customerPhone(customerEntity.getPhone()).customerEmail(customerEntity.getEmail()).orderedDate(String.valueOf(billDetails.getCreatedDate()).substring(0, 10))
-                .totalAmount(billDetails.getTotalAmount()).customerName(customerEntity.getName()).paid(paid).build();
+                .totalAmount(billDetails.getTotalAmount()).customerName(customerEntity.getName())
+                .paidAmount(paidAmount)
+                .dueAmount(dueAmount)
+                .paid(paid).build();
         return response;
     }
 
@@ -1143,7 +1237,7 @@ if(orderReferenceNumber!=null){
 
         List<OrderItem> items = prodSales.stream().map(obj -> {
 
-            System.out.println("The productId is "+obj.getProductId());
+            System.out.println("The productId is " + obj.getProductId());
             ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), extractUsername());
 
             var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
@@ -1157,8 +1251,6 @@ if(orderReferenceNumber!=null){
                 .totalAmount(billDetails.getTotalAmount()).customerName(customerEntity.getName()).paid(paid).build();
         return response;
     }
-
-
 
 
     @Cacheable(value = "reports", keyGenerator = "userScopedKeyGenerator")
@@ -1209,7 +1301,7 @@ if(orderReferenceNumber!=null){
     public String updatePassword(UserInfo userInfo) {
         System.out.println("entered updatePassword with request " + userInfo);
 
-        if(userInfo.getUsername()==null){
+        if (userInfo.getUsername() == null) {
             userInfo.setUsername(extractUsername());
         }
         System.out.println("updated updatePassword with request " + userInfo);
@@ -1303,53 +1395,81 @@ if(orderReferenceNumber!=null){
         System.out.println(orderId);
         InvoiceDetails order = getOrderDetails(orderId);
         LocalDate orderedDate = LocalDate.parse(order.getOrderedDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        UpdateUserDTO userProfile= getUserProfile(extractUsername());
-        String shopEmail="";
-        String gstNumber="";
-        String shopAddress="";
-        String shopPhone="";
-        String shopName="";
-        if(userProfile!=null){
-             gstNumber = userProfile.getGstNumber() != null ? userProfile.getGstNumber() : "sample gst number";
-             shopEmail=userProfile.getShopEmail()!=null?userProfile.getShopEmail() : "sample shop email";
-             shopPhone= userProfile.getShopPhone() != null?userProfile.getShopPhone() : "sample shop phone";
-            shopAddress= userProfile.getShopLocation()!=null?userProfile.getShopLocation() : "sample shop address";
-            shopName=userProfile.getShopName()!=null?userProfile.getShopName() : "sample shop name";
+        UpdateUserDTO userProfile = getUserProfile(extractUsername());
+        String shopEmail = "";
+        String gstNumber = "";
+        String shopAddress = "";
+        String shopPhone = "";
+        String shopName = "";
+        if (userProfile != null) {
+            gstNumber = userProfile.getGstNumber() != null ? userProfile.getGstNumber() : "sample gst number";
+            shopEmail = userProfile.getShopEmail() != null ? userProfile.getShopEmail() : "sample shop email";
+            shopPhone = userProfile.getShopPhone() != null ? userProfile.getShopPhone() : "sample shop phone";
+            shopAddress = userProfile.getShopLocation() != null ? userProfile.getShopLocation() : "sample shop address";
+            shopName = userProfile.getShopName() != null ? userProfile.getShopName() : "sample shop name";
         }
 
 // Format to new pattern
         String formattedDate = orderedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
 
         byte[] response = pdfutil.generateInvoice(order.getCustomerName(), order.getCustomerEmail(),
-                order.getCustomerPhone(), order.getInvoiceId(), order.getItems(), formattedDate, order.getTotalAmount(), order.isPaid(), order.getGstRate(), shopName ,shopAddress, shopEmail, shopPhone,gstNumber );
+                order.getCustomerPhone(), order.getInvoiceId(), order.getItems(), formattedDate, order.getTotalAmount(), order.isPaid(), order.getGstRate(), shopName, shopAddress, shopEmail, shopPhone, gstNumber);
 
         return response;
     }
 
     public byte[] generateGSTInvoicePdf(String orderId) throws Exception {
-        System.out.println("Generating invoice for orderNumber-->"+ orderId);
+        System.out.println("Generating invoice for orderNumber-->" + orderId);
 
-        String username="";
-        if(orderId!=null){
+        String username = "";
+        if (orderId != null) {
             BillingEntity billDetails = billRepo.findOrderByJustReference(orderId);
-            username= billDetails.getUserId();
+            username = billDetails.getUserId();
         }
 
-        InvoiceData invoiceData=utils.getFullInvoiceDetails(username, orderId);
+        InvoiceData invoiceData = utils.getFullInvoiceDetails(username, orderId);
 
-        String invoiceTemplateName="gstinvoice";
+        String invoiceTemplateName = "gstinvoice";
 
         try {
             SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
-            if(repoEntity!=null){
-                invoiceTemplateName=repoEntity.getTemplateName();
+            if (repoEntity != null) {
+                invoiceTemplateName = repoEntity.getTemplateName();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        byte[] response =pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName);
-        System.out.println("The full invoice Data is "+invoiceData);
+        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName);
+        System.out.println("The full invoice Data is " + invoiceData);
+
+
+        return response;
+    }
+    public byte[] generateGSTInvoicePdf(String orderId, String username)   {
+        System.out.println("Generating invoice for orderNumber-->" + orderId);
+
+      /*  String username = "";
+        if (orderId != null) {
+            BillingEntity billDetails = billRepo.findOrderByJustReference(orderId);
+            username = billDetails.getUserId();
+        }*/
+
+        InvoiceData invoiceData = utils.getFullInvoiceDetails(username, orderId);
+
+        String invoiceTemplateName = "gstinvoice";
+
+        try {
+            SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
+            if (repoEntity != null) {
+                invoiceTemplateName = repoEntity.getTemplateName();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName);
+        System.out.println("The full invoice Data is " + invoiceData);
 
 
         return response;
@@ -1358,22 +1478,22 @@ if(orderReferenceNumber!=null){
     public UpdateUserDTO getUserProfile(String username) {
 
 
-            username=extractUsername();
+        username = extractUsername();
 
 
-       // ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(username);
+        // ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(username);
 
-        ShopBasicEntity shopBasicEntity=shopBasicRepo.findByUserId(username);
+        ShopBasicEntity shopBasicEntity = shopBasicRepo.findByUserId(username);
 
-        ShopFinanceEntity shopFinanceEntity=shopFinanceRepo.findByUserId(username);
+        ShopFinanceEntity shopFinanceEntity = shopFinanceRepo.findByUserId(username);
         ShopBankEntity shopBankEntity = new ShopBankEntity();
         ShopUPIEntity shopUPIEntity = new ShopUPIEntity();
-        if(shopFinanceEntity!=null){
-             shopBankEntity=shopBankRepo.findByShopFinanceId(username);
-             shopUPIEntity=salesUPIRepo.findByShopFinanceId(username);
+        if (shopFinanceEntity != null) {
+            shopBankEntity = shopBankRepo.findByShopFinanceId(username);
+            shopUPIEntity = salesUPIRepo.findByShopFinanceId(username);
         }
 
-        ShopInvoiceTermsEnity shopInvoiceTermsEntity=shopInvoiceTermsRepo.findByUserId(username);
+        ShopInvoiceTermsEnity shopInvoiceTermsEntity = shopInvoiceTermsRepo.findByUserId(username);
 
 
         System.out.println("entered getUserProfile with request  username " + username);
@@ -1381,58 +1501,55 @@ if(orderReferenceNumber!=null){
         UserInfo userinfo = userinfoRepo.findByUsername(username).get();
 
 
+        if (shopBasicEntity != null) {
 
-        if(shopBasicEntity!=null) {
+            var response = UpdateUserDTO.builder()
+                    .username(username)
+                    .email(getIfNotNull(userinfo, UserInfo::getEmail))
+                    .name(getIfNotNull(userinfo, UserInfo::getName))
+                    .phone(getIfNotNull(userinfo, UserInfo::getPhoneNumber))
+                    .userSource(getIfNotNull(userinfo, UserInfo::getSource))
 
-          var response = UpdateUserDTO.builder()
-                  .username(username)
-                  .email(getIfNotNull(userinfo, UserInfo::getEmail))
-                  .name(getIfNotNull(userinfo, UserInfo::getName))
-                  .phone(getIfNotNull(userinfo, UserInfo::getPhoneNumber))
-                  .userSource(getIfNotNull(userinfo, UserInfo::getSource))
+                    // Fields from shopBasicEntity
+                    .address(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
+                    .shopLocation(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
+                    .shopAddress(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
+                    .shopEmail(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopEmail))
+                    .shopPhone(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopPhone))
+                    .shopName(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopName))
+                    .shopPincode(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopPincode))
+                    .shopCity(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopCity))
+                    .shopState(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopState))
+                    .shopSlogan(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopSlogan))
 
-                  // Fields from shopBasicEntity
-                  .address(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
-                  .shopLocation(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
-                  .shopAddress(getIfNotNull(shopBasicEntity, ShopBasicEntity::getAddress))
-                  .shopEmail(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopEmail))
-                  .shopPhone(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopPhone))
-                  .shopName(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopName))
-                  .shopPincode(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopPincode))
-                  .shopCity(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopCity))
-                  .shopState(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopState))
-                  .shopSlogan(getIfNotNull(shopBasicEntity, ShopBasicEntity::getShopSlogan))
+                    // Fields from shopFinanceEntity
+                    .gstNumber(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getGstin))
+                    .pan(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getPanNumber))
+                    .gstin(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getGstin))
 
-                  // Fields from shopFinanceEntity
-                  .gstNumber(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getGstin))
-                  .pan(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getPanNumber))
-                  .gstin(getIfNotNull(shopFinanceEntity, ShopFinanceEntity::getGstin))
+                    // Field from shopUPIEntity
+                    .upi(getIfNotNull(shopUPIEntity, ShopUPIEntity::getUpiId))
 
-                  // Field from shopUPIEntity
-                  .upi(getIfNotNull(shopUPIEntity, ShopUPIEntity::getUpiId))
+                    // Field from shopInvoiceTermsEntity
+                    .terms1(getIfNotNull(shopInvoiceTermsEntity, ShopInvoiceTermsEnity::getTerm))
 
-                  // Field from shopInvoiceTermsEntity
-                  .terms1(getIfNotNull(shopInvoiceTermsEntity, ShopInvoiceTermsEnity::getTerm))
+                    // Fields from shopBankEntity
+                    .bankAccount(getIfNotNull(shopBankEntity, ShopBankEntity::getAccountNumber))
+                    .bankAddress(getIfNotNull(shopBankEntity, ShopBankEntity::getBranchName))
+                    .bankHolder(getIfNotNull(shopBankEntity, ShopBankEntity::getAccountHolderName))
+                    .bankName(getIfNotNull(shopBankEntity, ShopBankEntity::getBankName))
+                    .bankIfsc(getIfNotNull(shopBankEntity, ShopBankEntity::getIfscCode))
 
-                  // Fields from shopBankEntity
-                  .bankAccount(getIfNotNull(shopBankEntity, ShopBankEntity::getAccountNumber))
-                  .bankAddress(getIfNotNull(shopBankEntity, ShopBankEntity::getBranchName))
-                  .bankHolder(getIfNotNull(shopBankEntity, ShopBankEntity::getAccountHolderName))
-                  .bankName(getIfNotNull(shopBankEntity, ShopBankEntity::getBankName))
-                  .bankIfsc(getIfNotNull(shopBankEntity, ShopBankEntity::getIfscCode))
-
-                  .build();
-          return response;
-        }
-        else{
-        var     response = UpdateUserDTO.builder().address("").email(userinfo.getEmail())
+                    .build();
+            return response;
+        } else {
+            var response = UpdateUserDTO.builder().address("").email(userinfo.getEmail())
                     .gstNumber("").name(userinfo.getName()).phone(userinfo.getPhoneNumber())
                     .shopLocation("").shopOwner("").username(username)
                     .userSource(userinfo.getSource())
                     .build();
-        return response;
+            return response;
         }
-
 
 
     }
@@ -1459,7 +1576,7 @@ if(orderReferenceNumber!=null){
             }
         } else {
             if (res.getProfilePiclink() != null) {
-                    String imageUrl = res.getProfilePiclink(); // Replace with your actual URL
+                String imageUrl = res.getProfilePiclink(); // Replace with your actual URL
                 try {
                     URL url = new URL(imageUrl);
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -1504,11 +1621,12 @@ if(orderReferenceNumber!=null){
         }
 
     }
+
     @Cacheable(value = "analytics", keyGenerator = "userScopedKeyGenerator")
     public AnalyticsResponse getAnalytics(AnalyticsRequest request) {
 
         AnalyticsResponse response = new AnalyticsResponse();
-        String userId=extractUsername();
+        String userId = extractUsername();
 
         List<String> labels = new ArrayList<>();
         List<Long> sales = new ArrayList<>();
@@ -1537,8 +1655,7 @@ if(orderReferenceNumber!=null){
                 Long count = ((Number) row[1]).longValue();
                 stocks.add(count);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         List<Object[]> resultsTaxes = billRepo.getMonthlyTaxesSummary(startDate, endDate, userId);
@@ -1546,14 +1663,13 @@ if(orderReferenceNumber!=null){
             Integer count = ((Number) row[1]).intValue();
             taxes.add(count);
         }
-        try{
-        List<Object[]> resultsCustomers = shopRepo.getMonthlyCustomerCount(startDate, endDate, userId);
-        for (Object[] row : resultsCustomers) {
-            Integer count = ((Number) row[1]).intValue();
-            customers.add(count);
-        }
-        }
-        catch (Exception e) {
+        try {
+            List<Object[]> resultsCustomers = shopRepo.getMonthlyCustomerCount(startDate, endDate, userId);
+            for (Object[] row : resultsCustomers) {
+                Integer count = ((Number) row[1]).intValue();
+                customers.add(count);
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -1567,7 +1683,7 @@ if(orderReferenceNumber!=null){
 
         for (Object[] row : resultsSales) {
             double percentage = 0.08 + (0.20 - 0.08) * random.nextDouble();
-            System.out.println("The profits on cp are "+((Number) row[2]).longValue());
+            System.out.println("The profits on cp are " + ((Number) row[2]).longValue());
             Long count = ((Number) row[1]).longValue();
             Long estimatedProfit = ((Number) row[1]).longValue();
             profits.add(((Number) row[2]).longValue());
@@ -1584,7 +1700,6 @@ if(orderReferenceNumber!=null){
     }
 
 
-
     public Map<String, String> getUserProfileDetails() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         System.out.println("Current user: " + username);
@@ -1592,7 +1707,8 @@ if(orderReferenceNumber!=null){
         response.put("username", username);
         return response;
     }
-    public UserProfileDto  getUserProfileWithRoles() {
+
+    public UserProfileDto getUserProfileWithRoles() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
 
 
@@ -1628,26 +1744,24 @@ if(orderReferenceNumber!=null){
         Pageable pageable = PageRequest.of(page - 1, limit, sortOrder);
 
         String username = extractUsername();
-        Page<MessageEntity> notificationsList=null;
+        Page<MessageEntity> notificationsList = null;
 
-        if(seen!=null && !seen.isEmpty() && !seen.equals("all")) {
+        if (seen != null && !seen.isEmpty() && !seen.equals("all")) {
 
-            Boolean isRead=false;
-            if(seen.equals("seen"))
-                isRead=true;
+            Boolean isRead = false;
+            if (seen.equals("seen"))
+                isRead = true;
             else
-                isRead=false;
+                isRead = false;
 
-            if(seen.equals("flagged")) {
-               Boolean isFlagged=true;
+            if (seen.equals("flagged")) {
+                Boolean isFlagged = true;
                 notificationsList = notiRepo.findAllNotificationsByFlaggedStatus(extractUsername(), domain, isFlagged, Boolean.FALSE, pageable);
-            }
-            else
-             notificationsList = notiRepo.findAllNotificationsByReadStatus(extractUsername(), domain, isRead, Boolean.FALSE,  pageable);
+            } else
+                notificationsList = notiRepo.findAllNotificationsByReadStatus(extractUsername(), domain, isRead, Boolean.FALSE, pageable);
 
-        }
-        else
-             notificationsList = notiRepo.findAllNotifications(extractUsername(), domain, Boolean.FALSE, pageable);
+        } else
+            notificationsList = notiRepo.findAllNotifications(extractUsername(), domain, Boolean.FALSE, pageable);
 
         for (MessageEntity obj : notificationsList) {
             notifications.add(ShopNotifications.builder().createdAt(obj.getCreatedDate()).title(obj.getTitle()).id(String.valueOf(obj.getId())).subject(obj.getSubject()).message(obj.getDetails()).seen(obj.getIsRead()).domain(obj.getDomain()).searchKey(obj.getSearchKey()).isFlagged(obj.getIsFlagged()).build());
@@ -1676,6 +1790,7 @@ if(orderReferenceNumber!=null){
         response.put("flagged", Boolean.TRUE);
         return response;
     }
+
     @Transactional
     public Map<String, Object> deleteNotifications(Integer notificationId) {
 
@@ -1688,31 +1803,31 @@ if(orderReferenceNumber!=null){
     }
 
     public Map<String, Boolean> getAvailablePaymentMethods() {
-       UserPaymentModes paymentModes= paymentModesRepo.getUserPaymentModes(extractUsername());
-        Map<String, Boolean> response= new HashMap<>();
-        System.out.println("The paymentModes are "+paymentModes);
-       if(paymentModes!=null){
-           if(paymentModes.getCard())
-               response.put("card", true);
-           else
-               response.put("card", false);
+        UserPaymentModes paymentModes = paymentModesRepo.getUserPaymentModes(extractUsername());
+        Map<String, Boolean> response = new HashMap<>();
+        System.out.println("The paymentModes are " + paymentModes);
+        if (paymentModes != null) {
+            if (paymentModes.getCard())
+                response.put("card", true);
+            else
+                response.put("card", false);
 
-           if(paymentModes.getCash())
-               response.put("cash", true);
-           else
-               response.put("cash", false);
+            if (paymentModes.getCash())
+                response.put("cash", true);
+            else
+                response.put("cash", false);
 
-           if(paymentModes.getUpi())
-               response.put("upi", true);
-           else
-               response.put("upi", false);
-       }
-       System.out.println("the getAvailablePaymentMethods response is "+response);
+            if (paymentModes.getUpi())
+                response.put("upi", true);
+            else
+                response.put("upi", false);
+        }
+        System.out.println("the getAvailablePaymentMethods response is " + response);
         return response;
     }
 
     @Transactional
-    public void updatePaymentReferenceNumber(String paymentRef, String orderRef){
+    public void updatePaymentReferenceNumber(String paymentRef, String orderRef) {
 
         salesPaymentRepo.updatePaymentReferenceNumber(paymentRef, orderRef, extractUsername());
 
@@ -1722,9 +1837,9 @@ if(orderReferenceNumber!=null){
     public List<WeeklySales> getWeeklyAnalytics(String range) {
 
 
-        String userId=extractUsername();
+        String userId = extractUsername();
 
-        List<WeeklySales> response= new ArrayList<>();
+        List<WeeklySales> response = new ArrayList<>();
 
         List<String> labels = new ArrayList<>();
         List<Long> sales = new ArrayList<>();
@@ -1740,21 +1855,21 @@ if(orderReferenceNumber!=null){
 
 
         try {
-            if(range.equals("today")){
+            if (range.equals("today")) {
                 resultsSales = billRepo.getSalesAndStocksToday(endDate, userId);
             }
 
-            if(range.equals("lastWeek")){
+            if (range.equals("lastWeek")) {
                 resultsSales = billRepo.getWeeklySalesAndStocks(endDate, userId);
             }
-            if(range.equals("lastMonth")){
+            if (range.equals("lastMonth")) {
 
-               resultsSales = billRepo.getSalesAndStocksMonthly(endDate, userId);
-           }
-            if(range.equals("lastYear")){
-               startDate = LocalDateTime.now().minusDays(365);
-               resultsSales = billRepo.getSalesAndStocksYearly(endDate, userId);
-           }
+                resultsSales = billRepo.getSalesAndStocksMonthly(endDate, userId);
+            }
+            if (range.equals("lastYear")) {
+                startDate = LocalDateTime.now().minusDays(365);
+                resultsSales = billRepo.getSalesAndStocksYearly(endDate, userId);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1774,10 +1889,9 @@ if(orderReferenceNumber!=null){
         }
 
 
-
-
         return response;
     }
+
     @Cacheable(value = "dashboard", keyGenerator = "userScopedKeyGenerator")
     public List<SalesResponseDTO> getTopNSales(int count, String range) {
 
@@ -1788,18 +1902,18 @@ if(orderReferenceNumber!=null){
 
 
             //List<BillingEntity> billingDetails = billRepo.findNNumberWithUserId(username, count);
-            List<BillingEntity> billingDetails=new ArrayList<>();
+            List<BillingEntity> billingDetails = new ArrayList<>();
 
-            if(range.equals("today")) {
+            if (range.equals("today")) {
                 billingDetails = billRepo.findTopNSalesForToday(username, count);
             }
-            if(range.equals("lastWeek")) {
+            if (range.equals("lastWeek")) {
                 billingDetails = billRepo.findTopNSalesForLastWeek(username, count);
             }
-            if(range.equals("lastMonth")) {
+            if (range.equals("lastMonth")) {
                 billingDetails = billRepo.findTopNSalesForLastMonth(username, count);
             }
-            if(range.equals("lastYear")) {
+            if (range.equals("lastYear")) {
                 billingDetails = billRepo.findTopNSalesForLastYear(username, count);
             }
 
@@ -1840,7 +1954,7 @@ if(orderReferenceNumber!=null){
             estimatedGoalsRepo.save(existingGoals);
             salesCacheService.evictsUserGoals(extractUsername());
         } else {
-            EstimatedGoalsEntity newGoals= EstimatedGoalsEntity.builder()
+            EstimatedGoalsEntity newGoals = EstimatedGoalsEntity.builder()
                     .sales(request.getEstimatedSales())
                     .userId(extractUsername())
                     .fromDate(request.getFromDate().atStartOfDay())
@@ -1858,12 +1972,11 @@ if(orderReferenceNumber!=null){
     }
 
 
-
     @Cacheable(value = "goals", keyGenerator = "userScopedKeyGenerator")
     public GoalData getTimeRangeGoalData(String range) {
 
         EstimatedGoalsEntity existingGoals = estimatedGoalsRepo.findByUserId(extractUsername());
-        System.out.println("The existing goals are "+existingGoals);
+        System.out.println("The existing goals are " + existingGoals);
         String username = extractUsername();
         List<BillingEntity> billingDetails = new ArrayList<>();
         if (range.equals("today")) {
@@ -1901,51 +2014,50 @@ if(orderReferenceNumber!=null){
                 .fromDate(fromDateStr)
                 .toDate(toDateStr)
                 .build();
-        System.out.println("response for the goals-->"+response);
+        System.out.println("response for the goals-->" + response);
 
         return response;
     }
 
     @Cacheable(value = "topSellings", keyGenerator = "userScopedKeyGenerator")
     public List<TopProductDto> getTopProducts(int count, String timeRange, String factor) {
-      LocalDateTime  endDate=LocalDateTime.now();
-      LocalDateTime startDate=LocalDateTime.now();
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = LocalDateTime.now();
 
         List<ProductPerformanceProjection> topProducts = new ArrayList<>();
-        List<TopProductDto> response=new ArrayList<>();
-        if(timeRange.equals("lastWeek")){
-            startDate=LocalDateTime.now().minusDays(7);
+        List<TopProductDto> response = new ArrayList<>();
+        if (timeRange.equals("lastWeek")) {
+            startDate = LocalDateTime.now().minusDays(7);
         }
-        if(timeRange.equals("lastMonth")){
-            startDate=LocalDateTime.now().minusMonths(1);
+        if (timeRange.equals("lastMonth")) {
+            startDate = LocalDateTime.now().minusMonths(1);
         }
-        if(timeRange.equals("lastYear")){
-            startDate=LocalDateTime.now().minusYears(1);
+        if (timeRange.equals("lastYear")) {
+            startDate = LocalDateTime.now().minusYears(1);
         }
-        if(timeRange.equals("today")){
-            startDate=LocalDateTime.now().toLocalDate().atTime(LocalTime.MIN);
-            endDate= LocalDateTime.now().toLocalDate().atTime(LocalTime.MAX);
+        if (timeRange.equals("today")) {
+            startDate = LocalDateTime.now().toLocalDate().atTime(LocalTime.MIN);
+            endDate = LocalDateTime.now().toLocalDate().atTime(LocalTime.MAX);
 
         }
 
 
-        if(factor.equals("mostSelling")) {
-            topProducts=   prodSalesRepo.findMostSellingProducts(extractUsername(), startDate, endDate, count);
+        if (factor.equals("mostSelling")) {
+            topProducts = prodSalesRepo.findMostSellingProducts(extractUsername(), startDate, endDate, count);
         }
-        if(factor.equals("topGrossing")) {
-            topProducts=  prodSalesRepo.findTopGrossingProducts(extractUsername(), startDate, endDate, count);
+        if (factor.equals("topGrossing")) {
+            topProducts = prodSalesRepo.findTopGrossingProducts(extractUsername(), startDate, endDate, count);
         }
 
-        if(topProducts.size()>0) {
-            response= topProducts.stream().map(obj -> {
+        if (topProducts.size() > 0) {
+            response = topProducts.stream().map(obj -> {
                 return TopProductDto.builder().category(obj.getCategory()).currentStock(obj.getCurrentStock())
                         .productName(obj.getProductName()).amount(obj.getRevenue()).count(obj.getUnitsSold()).build();
             }).collect(Collectors.toList());
         }
 
 
-        System.out.println("The top products are "+response);
-
+        System.out.println("The top products are " + response);
 
 
         return response;
@@ -1994,25 +2106,24 @@ if(orderReferenceNumber!=null){
 
     @Cacheable(value = "paymentBreakdowns", keyGenerator = "userScopedKeyGenerator")
     public Map<String, Double> getPaymentBreakdown(String timeRange) {
-        LocalDateTime  endDate=LocalDateTime.now();
-        LocalDateTime startDate=LocalDateTime.now();
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = LocalDateTime.now();
 
         List<ProductPerformanceProjection> topProducts = new ArrayList<>();
-        List<TopOrdersDto> response=new ArrayList<>();
-        if(timeRange.equals("lastWeek")){
-            startDate=LocalDateTime.now().minusDays(7);
+        List<TopOrdersDto> response = new ArrayList<>();
+        if (timeRange.equals("lastWeek")) {
+            startDate = LocalDateTime.now().minusDays(7);
         }
-        if(timeRange.equals("lastMonth")){
-            startDate=LocalDateTime.now().minusMonths(1);
+        if (timeRange.equals("lastMonth")) {
+            startDate = LocalDateTime.now().minusMonths(1);
         }
-        if(timeRange.equals("lastYear")){
-            startDate=LocalDateTime.now().minusYears(1);
+        if (timeRange.equals("lastYear")) {
+            startDate = LocalDateTime.now().minusYears(1);
         }
-        if(timeRange.equals("today")){
-            startDate=LocalDateTime.now().toLocalDate().atStartOfDay();
+        if (timeRange.equals("today")) {
+            startDate = LocalDateTime.now().toLocalDate().atStartOfDay();
         }
-        List<Map<String, Object>> rawData= salesPaymentRepo.getPaymentBreakdown(extractUsername(), startDate, endDate);
-
+        List<Map<String, Object>> rawData = salesPaymentRepo.getPaymentBreakdown(extractUsername(), startDate, endDate);
 
 
         Map<String, Double> result = new HashMap<>();
@@ -2022,24 +2133,48 @@ if(orderReferenceNumber!=null){
             result.put(method.toLowerCase(), count.doubleValue());
 
 
+        }
+
+        return result;
+    }
+
+    @Cacheable(value = "paymentBreakdowns", keyGenerator = "userScopedKeyGenerator")
+    public Map<String, Double> getPaymentStatusBreakdown(String timeRange) {
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = LocalDateTime.now();
+
+        List<ProductPerformanceProjection> topProducts = new ArrayList<>();
+        List<TopOrdersDto> response = new ArrayList<>();
+        if (timeRange.equals("lastWeek")) {
+            startDate = LocalDateTime.now().minusDays(7);
+        }
+        if (timeRange.equals("lastMonth")) {
+            startDate = LocalDateTime.now().minusMonths(1);
+        }
+        if (timeRange.equals("lastYear")) {
+            startDate = LocalDateTime.now().minusYears(1);
+        }
+        if (timeRange.equals("today")) {
+            startDate = LocalDateTime.now().toLocalDate().atStartOfDay();
+        }
+        List<Map<String, Object>> rawData = salesPaymentRepo.getPaymentStatusBreakdown(extractUsername(), startDate, endDate);
 
 
-
-
-
-
+        Map<String, Double> result = new HashMap<>();
+        for (Map<String, Object> row : rawData) {
+            Number totalPaid = (Number) row.get("totalPaid");
+            Number totalDue = (Number) row.get("totalDue");
+            result.put("Paid", totalPaid.doubleValue());
+            result.put("Due", totalDue.doubleValue());
         }
 
         return result;
     }
 
 
-
-
-
     public String updateShopLogo(MultipartFile shopLogo) throws IOException {
 
-    String username=extractUsername();
+        String username = extractUsername();
         System.out.println("entered saveEditableUserProfilePic with  username " + username);
 
         String keyName = shopLogo.getOriginalFilename();
@@ -2065,6 +2200,7 @@ if(orderReferenceNumber!=null){
 
         return "ok";
     }
+
     private String safe(String value) {
         return value != null ? value.trim() : "";
     }
@@ -2072,7 +2208,7 @@ if(orderReferenceNumber!=null){
     @Transactional
     public String updateBasicDetails(ShopBasicDetailsRequest request) {
 
-        System.out.println("ShopBasicDetailsRequest with request->"+ request);
+        System.out.println("ShopBasicDetailsRequest with request->" + request);
 
         shopBasicRepo.removeExistingBasicDetails(extractUsername());
 
@@ -2091,9 +2227,8 @@ if(orderReferenceNumber!=null){
                 .build();
 
 
-
         ShopBasicEntity res = shopBasicRepo.save(shopEntity);
-        if(res!=null) {
+        if (res != null) {
             var shopFinanceEntity = ShopFinanceEntity.builder()
                     .gstin(safe(request.getGstin()))
                     .panNumber(safe(request.getPanNumber()))
@@ -2179,17 +2314,17 @@ if(orderReferenceNumber!=null){
 
         byte[] content = null;
 
-            try {
-                UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+        try {
+            UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
 
-                GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(picRes.getShopLogo())
-                        .build();
-                ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(getObjectRequest);
-                content = s3Object.readAllBytes();
-            } catch (IOException e) {
-                e.printStackTrace();
-                content = null; // Or handle error appropriately
-            }
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(picRes.getShopLogo())
+                    .build();
+            ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(getObjectRequest);
+            content = s3Object.readAllBytes();
+        } catch (IOException e) {
+            e.printStackTrace();
+            content = null; // Or handle error appropriately
+        }
 
 
         return content;
@@ -2219,7 +2354,7 @@ if(orderReferenceNumber!=null){
 
         });
 
-        System.out.println("The result list for the query "+query+" is "+ response);
+        System.out.println("The result list for the query " + query + " is " + response);
 
 
         return response;
@@ -2227,29 +2362,29 @@ if(orderReferenceNumber!=null){
 
     public Map<String, String> sendPaymentReminder(Map<String, Object> request) {
 
-        String orderNo=(String)request.get("orderId");
+        String orderNo = (String) request.get("orderId");
 
-       BillingEntity billDetails= billRepo.findByInvoiceNumber(orderNo);
+        BillingEntity billDetails = billRepo.findByInvoiceNumber(orderNo);
 
-        CustomerEntity customer=   shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername(orderNo));
+        CustomerEntity customer = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername(orderNo));
 
-        Double totalAmount=billDetails.getTotalAmount();
-        Double paidAmount=billDetails.getPayingAmount();
-        Double dueAmout=billDetails.getRemainingAmount();
+        Double totalAmount = billDetails.getTotalAmount();
+        Double paidAmount = billDetails.getPayingAmount();
+        Double dueAmout = billDetails.getRemainingAmount();
 
-        String customerName=customer.getName();
-        String customerEmail=customer.getEmail();
-        String message=(String)request.get("message");
+        String customerName = customer.getName();
+        String customerEmail = customer.getEmail();
+        String message = (String) request.get("message");
 
-      String htmlTemplate=emailTemplate.getPaymentReminderEmailContent(orderNo, totalAmount, paidAmount,dueAmout,customerName, message);
+        String htmlTemplate = emailTemplate.getPaymentReminderEmailContent(orderNo, totalAmount, paidAmount, dueAmout, customerName, message);
 
-      Map<String, String> response=new HashMap<>();
-      response.put("status", "success");
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "success");
 
-        ShopBasicEntity shopBasic= shopBasicRepo.findByUserId(extractUsername(orderNo));
+        ShopBasicEntity shopBasic = shopBasicRepo.findByUserId(extractUsername(orderNo));
 
         try {
-            CompletableFuture<String> futureResult =  email.sendEmailForPaymentReminder(customerEmail, orderNo, customerName, htmlTemplate, shopBasic.getShopName());
+            CompletableFuture<String> futureResult = email.sendEmailForPaymentReminder(customerEmail, orderNo, customerName, htmlTemplate, shopBasic.getShopName());
 
             billRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
             salesPaymentRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
@@ -2267,7 +2402,7 @@ if(orderReferenceNumber!=null){
 
     public Map<String, String> sendPaymentReminderToSQS(Map<String, Object> request) {
 
-System.out.println("Entered sendPaymentReminderToSQS with request "+request);
+        System.out.println("Entered sendPaymentReminderToSQS with request " + request);
         Map<String, String> response = new HashMap<>();
         try {
 
@@ -2287,9 +2422,8 @@ System.out.println("Entered sendPaymentReminderToSQS with request "+request);
     @Transactional
     public Map<String, Object> updateDuePayments(Map<String, Object> request) {
 
-        String orderNo=(String)request.get("invoiceId");
-        Double amount=  Double.parseDouble((String)request.get("amount"));
-
+        String orderNo = (String) request.get("invoiceId");
+        Double amount = Double.parseDouble((String) request.get("amount"));
 
 
         try {
@@ -2301,32 +2435,33 @@ System.out.println("Entered sendPaymentReminderToSQS with request "+request);
             throw new RuntimeException(e);
         }
 
-        PaymentEntity paymentDetails=salesPaymentRepo.findByOrderNumber(orderNo);
+        PaymentEntity paymentDetails = salesPaymentRepo.findByOrderNumber(orderNo);
 
-        try{
-            String status="SemiPaid";
-            if(paymentDetails.getToBePaid()<=0){
-                status="Paid";
+        try {
+            String status = "SemiPaid";
+            if (paymentDetails.getToBePaid() <= 0) {
+                status = "Paid";
             }
             salesPaymentRepo.updatePaymentStatus(orderNo, extractUsername(), status);
 
-            utils.asyncSavePaymentHistory(paymentDetails.getBillingId(), paymentDetails.getId(),amount,orderNo);
+            utils.asyncSavePaymentHistory(paymentDetails.getBillingId(), paymentDetails.getId(), amount, orderNo);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-      Map<String, Object> response=new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
 
-      response.put("paid",paymentDetails.getPaid());
-        response.put("due",paymentDetails.getToBePaid());
-        response.put("status",paymentDetails.getStatus());
+        response.put("paid", paymentDetails.getPaid());
+        response.put("due", paymentDetails.getToBePaid());
+        response.put("status", paymentDetails.getStatus());
 
-        log.info("The response updateDuePayments is "+response);
+        log.info("The response updateDuePayments is " + response);
 
 
         return response;
     }
+
     public List<Map<String, Object>> getPaymentHistory(Map<String, Object> request) {
 
         String orderNo = (String) request.get("orderNumber");
@@ -2346,13 +2481,13 @@ System.out.println("Entered sendPaymentReminderToSQS with request "+request);
         });
 
         log.info("The response getPaymentHistory is " + response);
-  return response;
+        return response;
     }
 
 
     public Map<String, Object> sendInvoiceOverEmail(String invoiceNumber) {
         InvoiceDetails order = getOrderDetails(invoiceNumber);
-        Map<String, Object> response=new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
         try {
 
             Map<String, Object> body = new HashMap<>();
@@ -2371,21 +2506,21 @@ System.out.println("Entered sendPaymentReminderToSQS with request "+request);
     }
 
     public Map<String, Object> sendInvoiceOverEmailByListner(String invoiceNumber) {
-        System.out.println("Entered sending email by listner with refrenece Number "+invoiceNumber);
+        System.out.println("Entered sending email by listner with refrenece Number " + invoiceNumber);
         InvoiceDetails order = getOrderDetails(invoiceNumber);
-        Map<String, Object> response=new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
         try {
-            String username="";
-            if(invoiceNumber!=null){
+            String username = "";
+            if (invoiceNumber != null) {
                 BillingEntity billDetails = billRepo.findOrderByJustReference(invoiceNumber);
-                username= billDetails.getUserId();
+                username = billDetails.getUserId();
             }
             Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, username);
 
             //if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
             CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
                     invoiceNumber, order.getCustomerName(),
-                    generateGSTInvoicePdf(invoiceNumber), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
+                    generateGSTInvoicePdf(invoiceNumber, extractUsername()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
             System.out.println(futureResult);
 
 
@@ -2402,19 +2537,19 @@ System.out.println("Entered sendPaymentReminderToSQS with request "+request);
     public List<Map<String, Object>> globalSearch(String globalSearchTerms, Integer limit) {
 
 
-       List<GlobalSearchIndex> searchList= globalSearchRepo.findActiveEntities(extractUsername(), globalSearchTerms, Boolean.TRUE);
+        List<GlobalSearchIndex> searchList = globalSearchRepo.findActiveEntities(extractUsername(), globalSearchTerms, Boolean.TRUE);
 
 
-      List<Map<String, Object>> response= searchList.stream().map(obj->{
-           Map<String, Object> responseMap=new HashMap<>();
-           responseMap.put("id", obj.getSourceId());
-           responseMap.put("displayName", obj.getDisplayName());
-           responseMap.put("sourceType", obj.getSourceType());
-           return responseMap;
+        List<Map<String, Object>> response = searchList.stream().map(obj -> {
+            Map<String, Object> responseMap = new HashMap<>();
+            responseMap.put("id", obj.getSourceId());
+            responseMap.put("displayName", obj.getDisplayName());
+            responseMap.put("sourceType", obj.getSourceType());
+            return responseMap;
 
-       }).collect(Collectors.toList());
+        }).collect(Collectors.toList());
 
-      System.out.println("The global search response is "+response);
+        System.out.println("The global search response is " + response);
 
         return response;
     }
@@ -2443,10 +2578,10 @@ System.out.println("Entered sendPaymentReminderToSQS with request "+request);
 
     public Map<String, Integer> getOrderCountForDay() {
 
-        Map<String, Integer> response=new HashMap<>();
-        String username=extractUsername();
+        Map<String, Integer> response = new HashMap<>();
+        String username = extractUsername();
         try {
-            Integer totalOrders=billRepo.countOrdersForToday(username, LocalDateTime.now().toLocalDate().atStartOfDay(), LocalDateTime.now().toLocalDate().atTime(LocalTime.MAX));
+            Integer totalOrders = billRepo.countOrdersForToday(username, LocalDateTime.now().toLocalDate().atStartOfDay(), LocalDateTime.now().toLocalDate().atTime(LocalTime.MAX));
 
             response.put("count", totalOrders);
 
@@ -2456,7 +2591,6 @@ System.out.println("Entered sendPaymentReminderToSQS with request "+request);
 
         return response;
     }
-
 
 
     public Map<String, Integer> addSubscriptions() {
@@ -2665,16 +2799,15 @@ System.out.println("Entered sendPaymentReminderToSQS with request "+request);
 
         try {
 
-                byte[] fileBytes = file.getBytes();
-
+            byte[] fileBytes = file.getBytes();
 
 
             emailList.stream().forEach(emailObj -> {
-                String template= emailTemplate.getReportEmailContent("Sir",file.getOriginalFilename(), "monthly");
+                String template = emailTemplate.getReportEmailContent("Sir", file.getOriginalFilename(), "monthly");
                 CompletableFuture<String> futureResult = null;
                 try {
                     futureResult = email.sendEmailReportWithAttachment(emailObj,
-                        subject, file.getOriginalFilename(),
+                            subject, file.getOriginalFilename(),
                             fileBytes, template, "Clear Bill");
                 } catch (MailjetException e) {
                     throw new RuntimeException(e);

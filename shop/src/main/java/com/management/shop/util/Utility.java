@@ -202,6 +202,8 @@ public class Utility {
         Boolean showSupportInfo=true;
         Boolean removeTerms=false;
 
+        Boolean showInvoiceBarcode=false;
+
         try {
             UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(orderId));
             printDueAmount=   userSettingsEntity.getShowPaymentStatus();
@@ -215,6 +217,7 @@ public class Utility {
             addDueDate=userSettingsEntity.getAddDueDate();
             showSupportInfo=userSettingsEntity.getShowSupportInfo();
             removeTerms=userSettingsEntity.getRemoveTerms();
+            showInvoiceBarcode=userSettingsEntity.getShowInvoiceBarcode();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -281,7 +284,7 @@ public class Utility {
                 .addDueDate(addDueDate)
                 .showSupportInfo(showSupportInfo)
                 .removeTerms(removeTerms)
-
+                .showInvoiceBarcode(showInvoiceBarcode)
 
                 .build();
     }
@@ -599,7 +602,6 @@ public class Utility {
 
             PaymentHistory paymentHistoryEntity= PaymentHistory.builder()
                     .billingId(billingId)
-                    .paymentId(paymentId)
                     .paidAmount(paidAmount)
                     .orderNumber(orderNumber)
                     .userId(extractUsername())

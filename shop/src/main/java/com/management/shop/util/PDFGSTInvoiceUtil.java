@@ -1,14 +1,17 @@
 package com.management.shop.util;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
 import com.management.shop.dto.InvoiceData;
 import com.management.shop.dto.OrderItemInvoice;
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import com.microsoft.playwright.Browser; // <-- ADD
-import com.microsoft.playwright.Page;      // <-- ADD
-import com.microsoft.playwright.Playwright;  // <-- ADD
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
@@ -23,7 +26,7 @@ public class PDFGSTInvoiceUtil {
         this.templateEngine = templateEngine;
     }
 
-    public byte[] generateGSTInvoice(InvoiceData data, String invoiceTemplate) throws Exception {
+    public byte[] generateGSTInvoice(InvoiceData data, String invoiceTemplate)   {
 
         // --- Core Calculations (null-safe) ---
         List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
@@ -40,13 +43,22 @@ public class PDFGSTInvoiceUtil {
         double currentBalance = grandTotal + safeGetDoubleFromPrimitive(data.getPreviousBalance()) - safeGetDoubleFromPrimitive(data.getReceivedAmount());
 
         String grandTotalInWords = NumberToWordsConverter.convert((long) Math.round(grandTotal));
-       // upi://pay?pa=<VPA>&pn=<PayeeName>&mc=<MerchantCode>&tid=<TxnId>&tr=<RefId>&tn=<Note>&am=<Amount>&cu=INR
 
+        // --- QR Code (UPI) ---
         String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+data.getGrandTotal()+"&cu=INR";
-
         String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 200, 200);
 
-        // --- Convert products to Map for template to avoid missing-getter errors ---
+        // --- Barcode Generation for Invoice ID (Conditional) ---
+        String invoiceId = nullSafeString(data.getInvoiceId());
+        String invoiceBarcodeBase64 = "";
+
+        // CHECK: Only generate if showInvoiceBarcode is TRUE and invoiceId exists
+        if (Boolean.TRUE.equals(data.getShowInvoiceBarcode()) && !invoiceId.isEmpty()) {
+            // Width: 300px, Height: 50px
+            invoiceBarcodeBase64 = generateBarcodeBase64(invoiceId, 600, 50);
+        }
+
+        // --- Convert products to Map for template ---
         List<Map<String, Object>> productsForTemplate = new ArrayList<>();
         for (OrderItemInvoice p : rawProducts) {
             Map<String, Object> m = new HashMap<>();
@@ -58,7 +70,6 @@ public class PDFGSTInvoiceUtil {
             m.put("taxAmount", safeGetDouble(p, "getTaxAmount", "getTax"));
             m.put("totalAmount", safeGetDouble(p, "getTotalAmount", "getAmount", "getTotal"));
             m.put("discountPercentage", p.getDiscountPercentage());
-            // GST breakdown on product (if present)
             m.put("igstAmount", p.getIgst());
             m.put("igstPercentage", p.getIgstPercentage());
             m.put("cgstAmount", p.getCgst());
@@ -89,7 +100,10 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("panNumber", nullSafeString(data.getPanNumber()));
 
         // Invoice Details
-        context.setVariable("invoiceId", nullSafeString(data.getInvoiceId()));
+        context.setVariable("invoiceId", invoiceId);
+        // Add the Barcode to context (will be empty string if boolean was false)
+        context.setVariable("invoiceBarcodeBase64", invoiceBarcodeBase64);
+
         context.setVariable("orderedDate", nullSafeString(data.getOrderedDate()));
         context.setVariable("dueDate", nullSafeString(data.getDueDate()));
 
@@ -101,7 +115,7 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("customerPhone", nullSafeString(data.getCustomerPhone()));
         context.setVariable("customerState", nullSafeString(data.getCustomerState()));
 
-        // Products (maps)
+        // Products
         context.setVariable("products", productsForTemplate);
 
         // Financials
@@ -129,58 +143,61 @@ public class PDFGSTInvoiceUtil {
         // Footer
         context.setVariable("termsAndConditions", data.getTermsAndConditions() != null ? data.getTermsAndConditions() : Collections.emptyList());
 
-            //Conditions to show/hide fields
+        // Conditions
         context.setVariable("showShopPanOnInvoice", data.getPrintShopPan() != null ? data.getPrintShopPan() : true);
-
         context.setVariable("showCustomerGst", data.getPrintCustomerGst() != null ? data.getPrintCustomerGst() : true);
         context.setVariable("combineAddress", data.getCombineCustomerAddresses() != null ? data.getCombineCustomerAddresses() : false);
-
         context.setVariable("showIndividualDiscountPercentage", data.getItemDiscount() != null ? data.getItemDiscount() : false);
         context.setVariable("showHsnColumn", data.getShowHsnColumn() != null ? data.getShowHsnColumn() : true);
         context.setVariable("showRateColumn", data.getShowRateColumn() != null ? data.getShowRateColumn() : true);
-
         context.setVariable("showTotalDiscountPercentage", data.getShowTotalDiscount() != null ? data.getShowTotalDiscount() : false);
         context.setVariable("showDueAmount", data.getPrintDueAmount() != null ? data.getPrintDueAmount() : false);
         context.setVariable("showDueDate", data.getAddDueDate() != null ? data.getShowTotalDiscount() : false);
-
-
         context.setVariable("showSupportInfo", data.getShowSupportInfo() != null ? data.getShowSupportInfo() : false);
         context.setVariable("removeTerms", data.getRemoveTerms() != null ? data.getRemoveTerms() : false);
 
+        System.out.println("The full data to render invoice " + context);
 
-
-
-        System.out.println("The full data to render invoice "+context);
-        // --- Generate PDF using openhtmltopdf ---
+        // --- Generate PDF ---
         String htmlContent = templateEngine.process(invoiceTemplate, context);
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch(); // Launch headless Chromium
+            Browser browser = playwright.chromium().launch();
             Page page = browser.newPage();
-
-            // Set the HTML content
-            // This is perfect for your template since images are embedded (base64)
             page.setContent(htmlContent);
 
-            // Generate the PDF
             Page.PdfOptions pdfOptions = new Page.PdfOptions()
                     .setFormat("A4")
-                    .setPrintBackground(true); // Crucial for your blue header style
+                    .setPrintBackground(true);
 
             byte[] pdfBytes = page.pdf(pdfOptions);
-
-            // Cleanup
             browser.close();
 
             return pdfBytes;
-
         } catch (Exception e) {
-            // Re-throw or handle as per your app's needs
-            throw new Exception("Error generating PDF with Playwright", e);
+            try {
+                throw new Exception("Error generating PDF with Playwright", e);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
         }
     }
 
-    // --- Helpers (unchanged from your original) ---
+    // --- Helper Method for Barcode ---
+    private String generateBarcodeBase64(String text, int width, int height) {
+        try {
+            BitMatrix bitMatrix = new MultiFormatWriter().encode(text, BarcodeFormat.CODE_128, width, height);
+            ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+            return Base64.getEncoder().encodeToString(pngOutputStream.toByteArray());
+        } catch (Exception e) {
+            System.err.println("Failed to generate barcode for text: " + text);
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    // --- Existing Helpers ---
 
     private String nullSafeString(Object o) {
         return o == null ? "" : String.valueOf(o);

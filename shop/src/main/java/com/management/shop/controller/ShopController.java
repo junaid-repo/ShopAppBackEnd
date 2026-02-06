@@ -614,11 +614,11 @@ public class ShopController {
             cookie.setSecure(true);         // ✅ Required for HTTPS
             cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
             cookie.setMaxAge(0);         // ✅ 1 hour
-            cookie.setDomain(".clearbills.info"); // ✅ Share across subdomains
+            cookie.setDomain(".clearbills.store"); // ✅ Share across subdomains
 // Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
 
             httpResponse.addHeader("Set-Cookie",
-                    "jwt=" + null + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.info; Max-Age=36000");
+                    "jwt=" + null + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.store; Max-Age=36000");
         } else {
             cookie.setHttpOnly(true);      // Prevent JS access
             cookie.setSecure(false);       // ✅ In dev, must be false (unless using HTTPS with localhost)
@@ -828,6 +828,19 @@ public class ShopController {
                 ", timeRange: " + timeRange);
         // Call the service to get the data
        Map<String, Double> response = serv.getPaymentBreakdown(timeRange);
+
+        // Return the data with a 200 OK status
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("api/shop/get/paymentsStatus/breakdown/{timeRange}")
+    public ResponseEntity<Map<String, Double>> getPaymentStatusBreakdown(@PathVariable String timeRange) {
+
+
+        System.out.println("Entered getPaymentBreakdown controller "+
+                ", timeRange: " + timeRange);
+        // Call the service to get the data
+        Map<String, Double> response = serv.getPaymentStatusBreakdown(timeRange);
 
         // Return the data with a 200 OK status
         return ResponseEntity.ok(response);

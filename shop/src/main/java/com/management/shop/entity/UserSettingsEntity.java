@@ -36,6 +36,7 @@ public class UserSettingsEntity {
     private String serialNumberPattern;
     private Boolean showPartialPaymentOption;
     private Boolean showRemarksOptions;
+    private Boolean showAnonymousCustomerOption;
 
     private Boolean addDueDate;
     private Boolean combineAddresses;
@@ -48,6 +49,7 @@ public class UserSettingsEntity {
     private Boolean showRateColumn;
     private Boolean showTotalDiscount;
     private Boolean showSupportInfo;
+    private Boolean showInvoiceBarcode;
 
     private String username;
     private String updatedBy;
