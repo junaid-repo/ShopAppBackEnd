@@ -1,13 +1,16 @@
 package com.management.shop.service;
 
 import com.management.shop.dto.*;
+import com.management.shop.entity.NotificationSetting;
 import com.management.shop.entity.UserSettingsEntity;
+import com.management.shop.repository.NotificationSettingsRepository;
 import com.management.shop.repository.UserSettingsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -16,20 +19,25 @@ public class SettingsService {
     @Autowired
     UserSettingsRepository settingsRepo;
 
+    @Autowired
+    NotificationSettingsRepository notificationSettingsRepo;
+
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         System.out.println("Current user: " + username);
         //  username="junaid1";
         return username;
     }
+
     public String saveUserUISettings(UiSettings request) {
 
         settingsRepo.updateUiSettings(request.isAutoPrintInvoice(), request.isBillingPageDefault(), request.isDarkModeDefault(), extractUsername(), LocalDateTime.now());
 
         return "saved";
     }
+
     public String saveUserSchedulerSettings(SchedulerSettings request) {
-System.out.println("The scheulder settings to be saved  "+request);
+        System.out.println("The scheulder settings to be saved  " + request);
         settingsRepo.updateSchedulerSettings(request.isLowStockAlerts(), request.getAutoDeleteNotificationsDays(), request.getAutoDeleteCustomers().isEnabled(), request.getAutoDeleteCustomers().getInactiveDays(), request.getAutoDeleteCustomers().getMinSpent(), extractUsername(), LocalDateTime.now());
 
         return "saved";
@@ -37,11 +45,11 @@ System.out.println("The scheulder settings to be saved  "+request);
 
     public ShopSettings getFullUserSettings() {
         System.out.println("Current user: " + extractUsername());
-        UserSettingsEntity userSettings=settingsRepo.findByUsername(extractUsername());
+        UserSettingsEntity userSettings = settingsRepo.findByUsername(extractUsername());
 
-        if(userSettings==null){
+        if (userSettings == null) {
             saveUserSettings(extractUsername());
-            userSettings=settingsRepo.findByUsername(extractUsername());
+            userSettings = settingsRepo.findByUsername(extractUsername());
         }
 
         System.out.println("Current user settings: " + userSettings);
@@ -86,22 +94,22 @@ System.out.println("The scheulder settings to be saved  "+request);
                         .showIndividualDiscountPercentage(userSettings != null && userSettings.getShowItemDiscount() != null ? userSettings.getShowItemDiscount() : false)
                         .showShopPanOnInvoice(userSettings != null && userSettings.getShowShopPan() != null ? userSettings.getShowShopPan() : false)
                         .showSupportInfoOnInvoice(userSettings != null && userSettings.getShowSupportInfo() != null ? userSettings.getShowSupportInfo() : false)
-                        .showRateColumn( userSettings != null && userSettings.getShowRateColumn() != null ? userSettings.getShowRateColumn() : false)
-                        .showHsnColumn( userSettings != null && userSettings.getShowHsnColumn() != null ? userSettings.getShowHsnColumn() : false)
-                        .showInvoiceBarcode( userSettings != null && userSettings.getShowInvoiceBarcode() != null ? userSettings.getShowInvoiceBarcode() : false)
+                        .showRateColumn(userSettings != null && userSettings.getShowRateColumn() != null ? userSettings.getShowRateColumn() : false)
+                        .showHsnColumn(userSettings != null && userSettings.getShowHsnColumn() != null ? userSettings.getShowHsnColumn() : false)
+                        .showInvoiceBarcode(userSettings != null && userSettings.getShowInvoiceBarcode() != null ? userSettings.getShowInvoiceBarcode() : false)
 
 
                         .build())
                 .build();
 
-       System.out.println("The full shop Settings are "+shopSettings);
+        System.out.println("The full shop Settings are " + shopSettings);
 
         return shopSettings;
     }
 
     private void saveUserSettings(String username) {
 
-        var userSettings=    UserSettingsEntity.builder()
+        var userSettings = UserSettingsEntity.builder()
                 .allowNoStockBilling(Boolean.FALSE)
                 .autoPrintInvoice(Boolean.FALSE)
                 .autoSendInvoice(Boolean.FALSE)
@@ -142,12 +150,12 @@ System.out.println("The scheulder settings to be saved  "+request);
         Boolean hideNoStockProducts = (Boolean) request.get("hideNoStockProducts");
         String serialNumberPattern = (String) request.get("serialNumberPattern");
 
-        Boolean doPartialBilling =(Boolean)request.get("showPartialPaymentOption");
-        Boolean showRemarksOption= (Boolean)request.get("showRemarksOnSummarySide");
-        Boolean showAnonymousCustomer= (Boolean)request.get("showAnonymousCustomerOption");
+        Boolean doPartialBilling = (Boolean) request.get("showPartialPaymentOption");
+        Boolean showRemarksOption = (Boolean) request.get("showRemarksOnSummarySide");
+        Boolean showAnonymousCustomer = (Boolean) request.get("showAnonymousCustomerOption");
 
 
-        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts,serialNumberPattern, extractUsername(), LocalDateTime.now() ,doPartialBilling ,showRemarksOption, showAnonymousCustomer);
+        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts, serialNumberPattern, extractUsername(), LocalDateTime.now(), doPartialBilling, showRemarksOption, showAnonymousCustomer);
 
 
         return "saved";
@@ -175,5 +183,62 @@ System.out.println("The scheulder settings to be saved  "+request);
 
 
         return "saved";
+    }
+
+    public String updateNotificationSettings(Map<String, Object> request) {
+
+        Boolean paymentReminders = (Boolean) request.get("receivePaymentReminders");
+        Boolean lowStockAlert = (Boolean) request.get("receiveLowStockAlerts");
+        Boolean systemUpdates = (Boolean) request.get("receiveSystemUpdates");
+
+        NotificationSetting notSettings = notificationSettingsRepo.findbyUsername(extractUsername());
+
+        if(notSettings!=null) {
+
+            notificationSettingsRepo.updateNoficationSettings(extractUsername(), paymentReminders, lowStockAlert, systemUpdates, LocalDateTime.now());
+
+        } else {
+
+            var   notifiSettings = NotificationSetting.builder().paymentReminders(paymentReminders)
+                    .lowStockAlert(lowStockAlert)
+                    .systemUpdates(systemUpdates)
+                    .username(extractUsername())
+                    .updatedBy(extractUsername())
+                    .updatedDate(LocalDateTime.now())
+                    .build();
+            notificationSettingsRepo.save(notifiSettings);
+
+        }
+
+        return "saved";
+    }
+
+    public Map<String, Object> getNotificationSettings() {
+
+        Map<String, Object> response = new HashMap<>();
+
+
+        NotificationSetting notSettings = notificationSettingsRepo.findbyUsername(extractUsername());
+
+        response.put("receiveLowStockAlerts", notSettings != null && notSettings.getLowStockAlert() != null ? notSettings.getLowStockAlert() : false);
+        response.put("receivePaymentReminders", notSettings != null && notSettings.getPaymentReminders() != null ? notSettings.getPaymentReminders() : false);
+        response.put("receiveSystemUpdates", notSettings != null && notSettings.getSystemUpdates() != null ? notSettings.getSystemUpdates() : false);
+
+
+        return response;
+    }
+    public Map<String, Object> getNotificationSettings(String username) {
+
+        Map<String, Object> response = new HashMap<>();
+
+
+        NotificationSetting notSettings = notificationSettingsRepo.findbyUsername(username);
+
+        response.put("receiveLowStockAlerts", notSettings != null && notSettings.getLowStockAlert() != null ? notSettings.getLowStockAlert() : false);
+        response.put("receivePaymentReminders", notSettings != null && notSettings.getPaymentReminders() != null ? notSettings.getPaymentReminders() : false);
+        response.put("receiveSystemUpdates", notSettings != null && notSettings.getSystemUpdates() != null ? notSettings.getSystemUpdates() : false);
+
+
+        return response;
     }
 }

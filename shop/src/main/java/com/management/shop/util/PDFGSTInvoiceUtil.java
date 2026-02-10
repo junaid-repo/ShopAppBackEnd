@@ -6,6 +6,8 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.management.shop.dto.InvoiceData;
 import com.management.shop.dto.OrderItemInvoice;
+import com.microsoft.playwright.options.Margin;
+import com.microsoft.playwright.options.ScreenshotType;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -163,23 +165,41 @@ public class PDFGSTInvoiceUtil {
 
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.chromium().launch();
-            Page page = browser.newPage();
+
+            // 1. Create a new Context to control the Viewport (Width/Height)
+            // We set a high height initially, but 'setFullPage(true)' later handles the actual length.
+            Browser.NewContextOptions contextOptions = new Browser.NewContextOptions();
+
+            // === UPDATED LOGIC FOR DIMENSIONS ===
+            if (invoiceTemplate != null && invoiceTemplate.toLowerCase().contains("thermal")) {
+                // Thermal: Set narrow width (approx 2 inches = ~200-280 pixels depending on DPI)
+                // 58mm thermal is roughly 220px, 80mm is roughly 300px.
+                // Let's use 280px for a "2 inch" feel, or adjust based on your specific CSS.
+                contextOptions.setViewportSize(280, 800);
+                contextOptions.setDeviceScaleFactor(2.0); // High DPI for crisper text on small prints
+            } else {
+                // Default A4-like width: A4 at 96 DPI is approx 794px wide.
+                contextOptions.setViewportSize(794, 1123);
+                contextOptions.setDeviceScaleFactor(1.0);
+            }
+            // ==========================
+
+            Page page = browser.newContext(contextOptions).newPage();
             page.setContent(htmlContent);
 
-            Page.PdfOptions pdfOptions = new Page.PdfOptions()
-                    .setFormat("A4")
-                    .setPrintBackground(true);
+            // 2. Configure Screenshot Options
+            Page.ScreenshotOptions screenshotOptions = new Page.ScreenshotOptions()
+                    .setType(ScreenshotType.PNG) // Ensure output is PNG
+                    .setFullPage(true); // Capture the full scrollable height (Essential for invoices)
 
-            byte[] pdfBytes = page.pdf(pdfOptions);
+            byte[] imageBytes = page.screenshot(screenshotOptions);
+
             browser.close();
 
-            return pdfBytes;
+            return imageBytes; // This now returns PNG bytes, not PDF bytes
         } catch (Exception e) {
-            try {
-                throw new Exception("Error generating PDF with Playwright", e);
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
+            // ... existing error handling ...
+            throw new RuntimeException("Error generating Invoice Image", e);
         }
     }
 

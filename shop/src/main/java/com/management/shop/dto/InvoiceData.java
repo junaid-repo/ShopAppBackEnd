@@ -17,6 +17,7 @@ import java.util.Map;
 public class InvoiceData {
 
     // Shop Details
+    private String templateName;
     private  String shopName;
     private  String shopSlogan;
     private  byte[] shopLogoBytes;

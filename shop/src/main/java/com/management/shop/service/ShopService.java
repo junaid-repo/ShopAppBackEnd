@@ -702,7 +702,10 @@ public class ShopService {
                     .paid(request.getPayingAmount())
                     .toBePaid(request.getRemainingAmount())
                     .reminderCount(0)
+                    .updatedBy(extractUsername())
+                    .updatedDate(LocalDateTime.now())
                     .subtotal(request.getTotal() - request.getTax()).total(request.getTotal()).build();
+
 
             salesPaymentRepo.save(paymentEntity);
 
@@ -895,7 +898,7 @@ String username=extractUsername();
         if ("id".equalsIgnoreCase(sortField)) {
             sortField = "invoice_number";
         }
-        if ("totalAmount".equalsIgnoreCase(sortField)) {
+        if ("total".equalsIgnoreCase(sortField)) {
             sortField = "total_amount";
         }
         if ("customer".equalsIgnoreCase(sortField)) {
@@ -2823,5 +2826,10 @@ String username=extractUsername();
             e.printStackTrace();
 
         }
+    }
+
+    public InvoiceData getFullInvoiceDetails(String invoiceId) {
+
+        return utils.getFullInvoiceDetails(extractUsername(), invoiceId);
     }
 }

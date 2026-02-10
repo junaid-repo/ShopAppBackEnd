@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import ch.qos.logback.core.CoreConstants;
 import com.management.shop.dto.*;
 import com.management.shop.util.Utility;
 import com.razorpay.Order;
@@ -16,6 +17,7 @@ import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.websocket.server.PathParam;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -545,7 +547,7 @@ public class ShopController {
             byte[] pdfContents = serv.generateGSTInvoicePdf(orderId);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentType(MediaType.IMAGE_PNG);
             // Instructs the browser to download the file with a specific name
             headers.setContentDispositionFormData("attachment", "invoice.pdf");
             headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
@@ -1124,6 +1126,23 @@ public class ShopController {
                 );
             }
         }
+
+    @GetMapping("api/shop/invoice/{invoiceId}/print-data")
+    public ResponseEntity<InvoiceData> getFullInvoiceDetails(@PathVariable String invoiceId) {
+
+        System.out.println("Entered getFullInvoiceDetails controller with invoiceId-->"+invoiceId);
+
+        // Call the service to perform the business logic
+        InvoiceData invoiceData = serv.getFullInvoiceDetails(invoiceId);
+
+        // Create a response structure that matches what your frontend expects (data.data)
+        Map<String, Object> response = new HashMap<>();
+
+        return ResponseEntity.ok(invoiceData);
+
+    }
+
+
 
 }
 

@@ -9,6 +9,8 @@ import com.management.shop.repository.NotificationsRepo;
 import com.management.shop.repository.ProductRepository;
 import com.management.shop.repository.SalesPaymentRepository;
 import com.management.shop.repository.UserInfoRepository;
+import com.management.shop.service.FCMService;
+import com.management.shop.service.SettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +22,8 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-
+import java.util.Map;
+import java.util.Optional;
 
 @Component
 @Slf4j
@@ -37,6 +40,12 @@ public class Notifications {
 
     @Autowired
     SalesPaymentRepository salesPaymentRepo;
+
+    @Autowired
+    SettingsService setServ;
+
+    @Autowired
+    FCMService fcmService;
 
 
     public String extractUsername() {
@@ -57,15 +66,23 @@ public class Notifications {
 
         usersList.stream().forEach(user -> {
             String username = user.getUsername();
+            if(username.equals("gadae40")){
+            Boolean stockNotificationEnabled = (Boolean) getNotificationSettings(username).getOrDefault("receiveLowStockAlerts", Boolean.FALSE);
+
+            if(stockNotificationEnabled) {
             List<ProductEntity> outOfStockProducts = prodRepo.findByStock(0, username, Boolean.TRUE);
 
 
             outOfStockProducts.stream().forEach(product -> {
 
+                String title = "Product " + product.getName() + "of " + product.getCategory() + " is out of stock.";
+                String details = "Product " + product.getName() + "of " + product.getCategory() + " is out of stock. Please restock it as soon as possible by going through the Products tabs";
+
+
                 MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("products")
                         .title("Out of Stock Alert " + product.getName())
-                        .subject("Product " + product.getName() + "of " + product.getCategory() + " is out of stock.")
-                        .details("Product " + product.getName() + "of " + product.getCategory() + " is out of stock. Please restock it as soon as possible by going through the Products tabs")
+                        .subject(title)
+                        .details(details)
                         .isDeleted(false)
                         .isDone(false)
                         .isRead(false)
@@ -78,9 +95,11 @@ public class Notifications {
                         .build();
 
                 notiRepo.save(messageEntity);
-
+                fcmService.sendNotification(title, details, username);
 
             });
+
+        }}
         });
 
     }
@@ -93,31 +112,45 @@ public class Notifications {
 
         usersList.stream().forEach(user -> {
             String username = user.getUsername();
-            List<PaymentEntity> paymenetList = salesPaymentRepo.findByUserId(username );
+
+            Boolean paymentReminder = (Boolean) getNotificationSettings(username).getOrDefault("receivePaymentReminders", Boolean.FALSE);
+
+            if(paymentReminder) {
+
+                List<PaymentEntity> paymenetList = salesPaymentRepo.findByUserId(username);
 
 
-            paymenetList.stream().forEach(payment -> {
-                Long daysBetween = ChronoUnit.DAYS.between(payment.getUpdatedDate(), LocalDateTime.now());
-                if(daysBetween>3) {
-                    MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("sales")
-                            .title("Due Amount for Order No " + payment.getOrderNumber())
-                            .subject("Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days.")
-                            .details("Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment")
-                            .isDeleted(false)
-                            .isDone(false)
-                            .isRead(false)
-                            .isFlagged(false)
-                            .userId(username)
+                paymenetList.stream().forEach(payment -> {
+                    Long daysBetween = Optional.ofNullable(payment.getUpdatedDate())
+                            .map(updatedDate -> ChronoUnit.DAYS.between(updatedDate, LocalDateTime.now()))
+                            .orElse(0l);
+                    if (daysBetween > 3) {
 
-                            .updatedBy(username)
-                            .searchKey(payment.getOrderNumber())
-                            .updatedDate(LocalDateTime.now())
-                            .build();
+                        String title = "Due Amount for Order No " + payment.getOrderNumber();
+                        String details = "Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment";
 
-                    notiRepo.save(messageEntity);
-                }
+                        MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("sales")
+                                .title(title)
+                                .subject("Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days.")
+                                .details(title)
+                                .isDeleted(false)
+                                .isDone(false)
+                                .isRead(false)
+                                .isFlagged(false)
+                                .userId(username)
 
-            });
+                                .updatedBy(username)
+                                .searchKey(payment.getOrderNumber())
+                                .updatedDate(LocalDateTime.now())
+                                .build();
+
+                        notiRepo.save(messageEntity);
+
+                        fcmService.sendNotification(title, details, username);
+                    }
+
+                });
+            }
         });
 
     }
@@ -130,5 +163,9 @@ public class Notifications {
        notiRepo.deleteOldUnflaggedDuplicates();
        notiRepo.deleteOldDeletedMessages();
 
+    }
+
+    private Map<String, Object> getNotificationSettings(String username){
+        return setServ.getNotificationSettings(username);
     }
 }

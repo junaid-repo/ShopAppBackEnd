@@ -22,59 +22,82 @@ public class SettingsController {
     SettingsService serv;
 
     @PutMapping("api/shop/settings/user/save/ui")
-    ResponseEntity<Map<String, String>> saveUserUISettings(@RequestBody UiSettings request){
+    ResponseEntity<Map<String, String>> saveUserUISettings(@RequestBody UiSettings request) {
 
-       String response=serv.saveUserUISettings(request);
+        String response = serv.saveUserUISettings(request);
 
-       Map<String,String> responseMap=new HashMap<>();
-        responseMap.put("status","success");
-        responseMap.put("message","UI settings updated");
-       return  ResponseEntity.status(HttpStatus.OK).body(responseMap);
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "success");
+        responseMap.put("message", "UI settings updated");
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
 
     }
+
     @PutMapping("api/shop/settings/user/save/scheduler")
-    ResponseEntity<Map<String, String>> saveUserSchedulerSettings(@RequestBody SchedulerSettings request){
+    ResponseEntity<Map<String, String>> saveUserSchedulerSettings(@RequestBody SchedulerSettings request) {
 
-        String response=serv.saveUserSchedulerSettings(request);
-        Map<String,String> responseMap=new HashMap<>();
-        responseMap.put("status","success");
-        responseMap.put("message","UI settings updated");
+        String response = serv.saveUserSchedulerSettings(request);
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "success");
+        responseMap.put("message", "UI settings updated");
 
 
-        return  ResponseEntity.status(HttpStatus.OK).body(responseMap);
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
 
     }
+
     @PutMapping("api/shop/settings/user/save/billing")
-    ResponseEntity<Map<String, String>> saveBillingSettings(@RequestBody Map<String, Object> request){
+    ResponseEntity<Map<String, String>> saveBillingSettings(@RequestBody Map<String, Object> request) {
 
-        String response=serv.saveBillingSettings(request);
-        Map<String,String> responseMap=new HashMap<>();
-        responseMap.put("status","success");
-        responseMap.put("message","UI settings updated");
+        String response = serv.saveBillingSettings(request);
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "success");
+        responseMap.put("message", "UI settings updated");
 
 
-        return  ResponseEntity.status(HttpStatus.OK).body(responseMap);
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
 
     }
+
     @PutMapping("api/shop/settings/user/save/invoice")
-    ResponseEntity<Map<String, String>> saveInvoice(@RequestBody Map<String, Object> request){
+    ResponseEntity<Map<String, String>> saveInvoice(@RequestBody Map<String, Object> request) {
 
-        String response=serv.saveInvoiceSetting(request);
-        Map<String,String> responseMap=new HashMap<>();
-        responseMap.put("status","success");
-        responseMap.put("message","UI settings updated");
+        String response = serv.saveInvoiceSetting(request);
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "success");
+        responseMap.put("message", "UI settings updated");
 
 
-        return  ResponseEntity.status(HttpStatus.OK).body(responseMap);
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
 
     }
+
     @GetMapping("api/shop/get/user/settings")
-    ResponseEntity<ShopSettings> getFullUserSettings(){
+    ResponseEntity<ShopSettings> getFullUserSettings() {
 
-        ShopSettings response=serv.getFullUserSettings();
+        ShopSettings response = serv.getFullUserSettings();
 
 
-        return  ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+
+    @PostMapping("api/shop/notifications/settings/save")
+    ResponseEntity<Map<String, String>> saveNotificationSettings(@RequestBody Map<String, Object> request) {
+
+        String response = serv.updateNotificationSettings(request);
+        Map<String, String> responseMap = new HashMap<>();
+        responseMap.put("status", "success");
+        responseMap.put("message", "Notification settings updated");
+
+        return ResponseEntity.status(HttpStatus.OK).body(responseMap);
+    }
+    @GetMapping("/api/shop/notifications/settings/get")
+    ResponseEntity<Map<String, Object>> getNotificationSettings() {
+
+        Map<String, Object> response = serv.getNotificationSettings();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
 }

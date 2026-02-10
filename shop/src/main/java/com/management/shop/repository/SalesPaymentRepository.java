@@ -47,13 +47,14 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
     );
 
     @Query("""
-    SELECT bp.status AS paymentMethod, 
+    SELECT bp.status AS paymentMethod,
            COUNT(bp) AS count,
-                  COALESCE(SUM(bp.paid), 0) AS totalPaid,
-                  COALESCE(SUM(bp.toBePaid), 0) AS totalDue
+           COALESCE(SUM(bp.paid), 0) AS totalPaid,
+           COALESCE(SUM(bp.toBePaid), 0) AS totalDue
     FROM PaymentEntity bp
     WHERE bp.userId = :userId
-      AND bp.createdDate BETWEEN :startDate AND :endDate
+      AND bp.createdDate >= :startDate
+      AND bp.createdDate <= :endDate
     GROUP BY bp.status
 """)
     List<Map<String, Object>> getPaymentStatusBreakdown(
@@ -61,6 +62,9 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+
+
     @Query(value = "SELECT *   "
             + "FROM billing_payments bp " + "WHERE   "
             + " bp.created_date BETWEEN :fromDate AND :toDate and user_id=:userId "

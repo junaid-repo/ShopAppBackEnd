@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title th:text="'Invoice - ' + ${invoiceId}">Receipt</title>
+    <style>
+        /* * 58mm (2-Inch) OPTIMIZED THERMAL CSS
+         * Strategy: Maximize font size by stacking elements
+         */
+        @page {
+            size: 58mm auto;
+            margin: 0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 11px; /* Large base font for 58mm */
+            line-height: 1.25;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .receipt-container {
+            width: 100%;
+            max-width: 48mm; /* Safe printable area */
+            margin: 0 auto;
+            padding: 3mm 0;
+        }
+
+        /* Utilities */
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .left { text-align: left; }
+        .bold { font-weight: bold; }
+        .uppercase { text-transform: uppercase; }
+        .break-word { word-wrap: break-word; word-break: break-all; }
+
+        /* Brand Header */
+        .header-brand {
+            text-align: center;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .header-brand h1 {
+            margin: 2px 0;
+            font-size: 15px; /* Maximum size for header */
+            font-weight: 900;
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+        .shop-logo {
+            max-width: 35mm;
+            max-height: 40px;
+            margin-bottom: 4px;
+            object-fit: contain;
+            filter: grayscale(100%);
+        }
+        .shop-details {
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        /* Invoice Meta */
+        .meta-group {
+            border-bottom: 1px dashed #000;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        /* Customer */
+        .customer-section {
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+        .cust-label { font-size: 9px; font-weight: bold; text-transform: uppercase; }
+
+        /* Items Table - Optimized for width */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+        .items-table th {
+            text-align: left;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            border-bottom: 2px solid #000;
+            padding: 3px 0;
+        }
+        .items-table td {
+            padding: 4px 0;
+            vertical-align: top;
+            font-size: 11px; /* Readable item text */
+        }
+
+        /* Column Config for 58mm
+           We squeeze Qty and Rate to give Name space
+        */
+        .col-name { width: 45%; padding-right: 2px; }
+        .col-qty { width: 10%; text-align: center; }
+        .col-rate { width: 20%; text-align: right; }
+        .col-total { width: 25%; text-align: right; font-weight: bold; }
+
+        .item-sub {
+            display: block;
+            font-size: 9px;
+            color: #444;
+            font-style: italic;
+        }
+
+        /* Totals */
+        .totals-container {
+            border-top: 1px dashed #000;
+            padding-top: 5px;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            font-size: 11px;
+        }
+
+        /* The "Black Box" Total */
+        .grand-total-box {
+            background-color: #000;
+            color: #fff;
+            padding: 6px 4px;
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .gt-label { font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .gt-val { font-size: 16px; font-weight: 900; }
+
+        /* Payment Section (Stacked for 58mm) */
+        .payment-container {
+            border: 1px solid #000;
+            padding: 5px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .bank-info {
+            font-size: 10px;
+            text-align: left;
+            margin-bottom: 5px;
+        }
+        .qr-code {
+            width: 40mm; /* Max width for QR */
+            height: 40mm;
+            margin: 0 auto;
+            display: block;
+        }
+
+        /* Footer */
+        .footer-terms {
+            margin-top: 8px;
+            font-size: 9px;
+            line-height: 1.2;
+            text-align: left;
+        }
+        .footer-terms ul { padding-left: 12px; margin: 2px 0; }
+
+        .thank-you {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 900;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+    </style>
+</head>
+
+<body>
+<div class="receipt-container">
+
+    <div class="header-brand">
+        <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" class="shop-logo"/>
+
+        <div th:unless="${shopLogoBase64}">
+            <h1 th:text="${shopLogoText != null ? shopLogoText : shopName}"></h1>
+        </div>
+        <div th:if="${shopLogoBase64}">
+            <h1 th:text="${shopName}"></h1>
+        </div>
+
+        <div class="shop-details">
+            <div th:text="${shopAddress}"></div>
+            <div>Ph: <span th:text="${shopPhone}"></span></div>
+            <div th:if="${gstNumber}" class="bold" th:text="'GSTIN: ' + ${gstNumber}"></div>
+        </div>
+    </div>
+
+    <div class="meta-group">
+        <div class="meta-row">
+            <span class="bold">Inv No:</span>
+            <span th:text="${invoiceId}"></span>
+        </div>
+        <div class="meta-row">
+            <span class="bold">Date:</span>
+            <span th:text="${orderedDate}"></span>
+        </div>
+        <div class="meta-row" th:if="${showDueDate}">
+            <span class="bold">Due:</span>
+            <span th:text="${dueDate}"></span>
+        </div>
+    </div>
+
+    <div class="customer-section" th:if="${customerName != 'Anonymous'}">
+        <div class="cust-label">Billed To</div>
+        <div class="bold" style="font-size: 12px;" th:text="${customerName}"></div>
+        <div th:text="${customerPhone}"></div>
+        <div style="font-size: 10px; line-height: 1.1;" th:text="${combineAddress} ? ${customerBillingAddress} : ${customerBillingAddress}"></div>
+        <div th:if="${showCustomerGst and !#strings.isEmpty(customerGstNumber)}" style="margin-top: 2px;">
+            <strong>GST:</strong> <span th:text="${customerGstNumber}"></span>
+        </div>
+    </div>
+
+    <table class="items-table">
+        <thead>
+        <tr>
+            <th class="col-name">Item</th>
+            <th class="col-qty">Qt</th>
+            <th class="col-rate">Rate</th>
+            <th class="col-total">Amt</th>
+        </tr>
+        </thead>
+        <tbody>
+        <th:block th:each="product : ${products}">
+            <tr>
+                <td class="col-name">
+                    <div th:text="${product['productName']}" class="bold break-word" style="line-height: 1.1;"></div>
+
+                    <span class="item-sub"
+                          th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}"
+                          th:text="${product['description']}"></span>
+
+                    <span class="item-sub" th:if="${showHsnColumn}"
+                          th:text="'HSN:'+${product['hsnCode']}"></span>
+
+                    <span class="item-sub" th:if="${showIndividualDiscountPercentage}"
+                          th:text="'Disc:' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 0)} + '%'"></span>
+                </td>
+                <td class="col-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></td>
+                <td class="col-rate" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
+                <td class="col-total" th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
+            </tr>
+            <tr th:if="${product['igstAmount'] > 0 or product['cgstAmount'] > 0}">
+                <td colspan="4" style="padding-top:0; padding-bottom:4px;">
+                    <div class="right" style="font-size: 8px; color: #666;">
+                        <span th:if="${product['igstAmount'] > 0}" th:text="'IGST:' + ${product['igstAmount']}"></span>
+                        <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST:' + ${product['cgstAmount']}"></span>
+                        <span th:if="${product['sgstAmount'] > 0}" th:text="' SGST:' + ${product['sgstAmount']}"></span>
+                    </div>
+                </td>
+            </tr>
+        </th:block>
+        </tbody>
+    </table>
+
+    <div class="totals-container">
+        <div class="total-row">
+            <span>Subtotal</span>
+            <span class="bold" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+        </div>
+
+        <div class="total-row" th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
+            <span>Discount</span>
+            <span class="bold" th:text="'-' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+        </div>
+
+        <div class="total-row" th:each="gst : ${gstSummary}">
+            <span th:text="${gst['type']} + ' (' + ${gst['percentage']} + '%)'"></span>
+            <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
+        </div>
+
+        <div class="grand-total-box">
+            <span class="gt-label">Total</span>
+            <span class="gt-val" th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
+        </div>
+
+        <div class="center" style="font-size: 9px; margin-top: 4px; color:#444;" th:text="${grandTotalInWords}"></div>
+    </div>
+
+    <div style="border-top: 1px dotted #000; padding-top: 5px; margin-top: 5px;"
+         th:if="${showDueAmount and ((paidAmount != null && paidAmount > 0) || (dueAmount != null && dueAmount > 0))}">
+        <div class="total-row" th:if="${paidAmount != null and paidAmount > 0}">
+            <span>Paid</span>
+            <span class="bold" th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+        </div>
+        <div class="total-row" th:if="${dueAmount != null and dueAmount > 0}">
+            <span class="bold">DUE</span>
+            <span class="bold" style="font-size: 12px;" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+        </div>
+    </div>
+
+    <div class="payment-container" th:if="${(bankAccountName != null and !#strings.isEmpty(bankAccountName)) or (qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64))}">
+
+        <div class="bank-info" th:if="${bankAccountName}">
+            <div class="bold uppercase" style="border-bottom: 1px solid #ccc; margin-bottom: 2px;">Bank Details</div>
+            <div th:if="${bankName}" th:text="${bankName}"></div>
+            <div th:if="${bankAccountNumber}" th:text="'A/C: ' + ${bankAccountNumber}"></div>
+            <div th:if="${bankIfscCode}" th:text="'IFSC: ' + ${bankIfscCode}"></div>
+            <div th:if="${upiId}" th:text="'UPI: ' + ${upiId}" style="margin-top: 3px; font-weight: bold;"></div>
+        </div>
+
+        <div th:if="${qrCodeBase64}" style="margin-top: 5px;">
+            <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-code"/>
+            <div style="font-size: 8px; font-weight: bold;">SCAN TO PAY</div>
+        </div>
+    </div>
+
+    <div class="footer-terms" th:unless="${removeTerms}">
+        <div class="bold">Terms & Conditions:</div>
+        <ul>
+            <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
+        </ul>
+    </div>
+
+    <div class="center" th:if="${showSupportInfo}" style="margin-top: 8px; font-size: 9px; color: #555;">
+        Support: <span th:text="${shopPhone}"></span>
+    </div>
+
+    <div class="thank-you">
+        Thank You! Visit Again!
+    </div>
+
+</div>
+</body>
+</html>
