@@ -22,5 +22,15 @@ public class AsyncConfig {
 		return ex;
 
 	}
+    @Bean("geminiAsync")
+    public Executor geminiAsyncTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setMaxPoolSize(40);
+        ex.setCorePoolSize(30);
+        ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("GeminiAsync-");
+        ex.initialize();
+        return ex;
+    }
 
 }

@@ -1,23 +1,20 @@
 package com.management.shop.controller;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
-import ch.qos.logback.core.CoreConstants;
 import com.management.shop.dto.*;
+import com.management.shop.entity.*;
 import com.management.shop.util.Utility;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.websocket.server.PathParam;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,12 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,11 +37,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.management.shop.entity.CustomerEntity;
-import com.management.shop.entity.ProductEntity;
-import com.management.shop.entity.Report;
-import com.management.shop.entity.UserInfo;
-import com.management.shop.service.JwtService;
 import com.management.shop.service.ShopService;
 
 @RestController
@@ -237,7 +224,7 @@ public class ShopController {
     }
 
     @PostMapping("api/shop/upload/productList")
-    ResponseEntity<ProductSuccessDTO> createCustomer(@RequestBody File request) {
+    ResponseEntity<ProductSuccessDTO> uploadProduct(@RequestBody File request) {
 
         ProductSuccessDTO response = serv.uploadProduct(request);
 
@@ -443,6 +430,24 @@ public class ShopController {
             return ResponseEntity.status(500).body(error("Upload failed: " + ex.getMessage()));
         }
     }
+    @PostMapping(path = "api/shop/bulk-upload-products", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('PREMIUM')")
+    public ResponseEntity<?> bulkUploadFromImage(@RequestPart("file") MultipartFile file) {
+        try {
+            List<ProductRequest> products = serv.uploadBulkProductFromImage(file);
+
+            // TODO: persist products (e.g., productService.saveAll(products));
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("count", products.size());
+            body.put("items", products);
+            return ResponseEntity.ok(body);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(error("Bad CSV: " + ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body(error("Upload failed: " + ex.getMessage()));
+        }
+    }
 
     private Map<String, String> error(String message) {
         Map<String, String> map = new HashMap<>();
@@ -450,17 +455,7 @@ public class ShopController {
         return map;
     }
 
-  /*  @GetMapping("api/shop/get/old/invoice/{orderReferenceNumber}")
-    public ResponseEntity<byte[]> downloadStyledInvoice(@PathVariable String orderReferenceNumber) {
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        baos = serv.generateOrderInvoice(orderReferenceNumber);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=invoice-" + orderReferenceNumber + ".pdf")
-                .contentType(MediaType.APPLICATION_PDF).body(baos.toByteArray());
-    }*/
 
     @PostMapping("api/shop/report")
     @PreAuthorize("hasRole('PREMIUM')")
@@ -549,7 +544,7 @@ public class ShopController {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.IMAGE_PNG);
             // Instructs the browser to download the file with a specific name
-            headers.setContentDispositionFormData("attachment", "invoice.pdf");
+            headers.setContentDispositionFormData("attachment", orderId+"invoice.png");
             headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
 
             return ResponseEntity.ok()
@@ -604,39 +599,29 @@ public class ShopController {
     }
     @PostMapping("api/user/logout")
     public ResponseEntity<Map<String, Object>> logoutUser(
-            HttpServletResponse httpResponse) {
+            HttpServletResponse httpResponse) {System.out.println("Inside the logout method");
 
-        System.out.println("Inside the logout method");
+        Map<String, Object> responseMap = new HashMap<>();
 
-        Map<String, Object> response = new HashMap<>();
-
-        Cookie cookie = new Cookie("jwt", null);
         if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
-            cookie.setHttpOnly(true);       // ✅ Prevent JS access
-            cookie.setSecure(true);         // ✅ Required for HTTPS
-            cookie.setPath("/");            // ✅ Makes cookie accessible for all paths
-            cookie.setMaxAge(0);         // ✅ 1 hour
-            cookie.setDomain(".clearbills.store"); // ✅ Share across subdomains
-// Note: cookie.setSameSite("None"); is not available directly in Servlet Cookie API
-
+            // PROD: Delete cookie with Domain and Secure flag
+            // Note: Max-Age must be 0 to expire the cookie immediately
             httpResponse.addHeader("Set-Cookie",
-                    "jwt=" + null + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.store; Max-Age=36000");
+                    "jwt=; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.store; Max-Age=0");
         } else {
-            cookie.setHttpOnly(true);      // Prevent JS access
-            cookie.setSecure(false);       // ✅ In dev, must be false (unless using HTTPS with localhost)
-            cookie.setPath("/");           // Available on all paths
-            cookie.setMaxAge(0);
-            cookie.setDomain("localhost");// 1 hour
-// Do NOT set cookie.setDomain(...)
+            // DEV (IP Address/Localhost): Delete cookie without Domain and without Secure
 
-            httpResponse.addCookie(cookie);
+            // 1. We use a manual header to ensure consistency with the Login logic
+            // 2. We set Max-Age=0 to delete it
+            // 3. We set SameSite=Lax (matches the login logic)
+            // 4. We DO NOT set Domain (matches the login logic for IP addresses)
+
+            String cookieHeader = "jwt=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
+            httpResponse.addHeader("Set-Cookie", cookieHeader);
         }
-        response.put("status", Boolean.TRUE);
 
-
-
-        return ResponseEntity.ok(response);
-    }
+        responseMap.put("status", Boolean.TRUE);
+        return ResponseEntity.ok(responseMap); }
 
     @GetMapping("api/shop/notifications/unseen")
     public ResponseEntity<Map<String, Object>> getUnseenNotifications() {
@@ -967,6 +952,15 @@ public class ShopController {
 
         return ResponseEntity.ok(response);
     }
+    @GetMapping("api/shop/payment/get-reminderList")
+    @PreAuthorize("hasRole('PREMIUM')")
+    ResponseEntity<List<ReminderCounter>> getPaymentReminderList(@RequestParam String orderId){
+
+        List<ReminderCounter> response = serv.getPaymentReminderLists(orderId);
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("api/shop/payment/update")
     ResponseEntity<Map<String, Object>> saveDuePayments(@RequestBody Map<String, Object> request){
 
@@ -1140,6 +1134,25 @@ public class ShopController {
 
         return ResponseEntity.ok(invoiceData);
 
+    }
+
+    @PostMapping("api/shop/extract-text-from-image")
+    public ResponseEntity<String> extractProductsFromImage(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: File is empty.");
+        }
+
+        try {
+            // Pass the file to the service layer for processing
+            String csvData = serv.extractTextFromImage(file);
+
+            return ResponseEntity.ok(csvData);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to extract data: " + e.getMessage());
+        }
     }
 
 

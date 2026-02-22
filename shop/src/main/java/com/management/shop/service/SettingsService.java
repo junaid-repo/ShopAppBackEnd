@@ -82,6 +82,7 @@ public class SettingsService {
                         .showRemarksOnSummarySide(userSettings != null && userSettings.getShowRemarksOptions() != null ? userSettings.getShowRemarksOptions() : false)
                         .showAnonymousCustomerOption(userSettings != null && userSettings.getShowAnonymousCustomerOption() != null ? userSettings.getShowAnonymousCustomerOption() : false)
                         .serialNumberPattern(userSettings != null && userSettings.getSerialNumberPattern() != null ? userSettings.getSerialNumberPattern() : "")
+                        .showBillToGstinOption(userSettings != null && userSettings.getShowBillToGstinOption() != null ? userSettings.getShowBillToGstinOption() : false)
                         .build())
                 .invoice(InvoiceSettings.builder()
                         .addDueDate(userSettings != null && userSettings.getAddDueDate() != null ? userSettings.getAddDueDate() : false)
@@ -135,6 +136,7 @@ public class SettingsService {
                 .showRateColumn(Boolean.TRUE)
                 .showTotalDiscount(Boolean.FALSE)
                 .showSupportInfo(Boolean.FALSE)
+                .showBillToGstinOption(Boolean.FALSE)
                 .username(username)
                 .updatedBy(username)
                 .updatedDate(LocalDateTime.now())
@@ -153,9 +155,10 @@ public class SettingsService {
         Boolean doPartialBilling = (Boolean) request.get("showPartialPaymentOption");
         Boolean showRemarksOption = (Boolean) request.get("showRemarksOnSummarySide");
         Boolean showAnonymousCustomer = (Boolean) request.get("showAnonymousCustomerOption");
+        Boolean showBillToGstinOption = (Boolean) request.get("showBillToGstinOption");
 
 
-        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts, serialNumberPattern, extractUsername(), LocalDateTime.now(), doPartialBilling, showRemarksOption, showAnonymousCustomer);
+        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts, serialNumberPattern, extractUsername(), LocalDateTime.now(), doPartialBilling, showRemarksOption, showAnonymousCustomer, showBillToGstinOption);
 
 
         return "saved";

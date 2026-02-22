@@ -34,7 +34,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = null;
         String username = null;
-
         // 1. Try to get token from Authorization Header first (Standard approach)
         String authHeader = request.getHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -50,6 +49,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
             }
         }
+        System.out.println("JwtAuthFilter: Checking for JWT token in request..."+token);
+
+
+       /* if(token ==null){
+            token="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqdW5haWQxIiwiaWF0IjoxNzcxMTY1MzgyLCJleHAiOjE3NzExODMzODJ9.jzdxedia4vMH4pgmNAOS6l-jrmN64fnkvJkQmgGbEdM";
+        }*/
 
         // 3. If a token was found, validate it
         if (token != null) {

@@ -116,4 +116,9 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
 
     @Query(value = "SELECT * FROM shop_product WHERE stock < 3 AND user_id = ?1 ORDER BY stock ASC", nativeQuery = true)
     List<ProductEntity> findLowStockProducts(String userId);
+
+    @Query("SELECT pe from ProductEntity  pe where LOWER(REPLACE(pe.name, ' ', '')) = LOWER(REPLACE(:productName, ' ', '')) AND pe.userId = :s")
+    ProductEntity findByNameAndUserId(String productName, String s);
+
+
 }

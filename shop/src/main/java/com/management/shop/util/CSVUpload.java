@@ -4,11 +4,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.management.shop.entity.ProductCategory;
+import com.management.shop.repository.ProductCategoryRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +22,15 @@ import com.management.shop.dto.ProductRequest;
 @Service
 public class CSVUpload {
 
+    @Autowired
+    private ProductCategoryRepository productCategoryRepo;
+
+    public String extractUsername() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        // For testing purposes, you might uncomment the line below
+        // username="junaid1";
+        return username;
+    }
 
     private static final List<String> EXPECTED_HEADERS = Arrays.asList(
             "selectedProductId", "name", "hsn", "category", "costPrice", "price", "stock", "tax"
@@ -182,5 +196,104 @@ public class CSVUpload {
             throw new IllegalArgumentException("Invalid Tax Percent at line " + line + ": must be one of " + VALID_TAX_SLABS + ", but found '" + tax + "'");
         }
         return tax;
+    }
+
+    public List<ProductRequest> validateDataFromImage(MultipartFile file) throws IOException {
+
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("No file uploaded.");
+        }
+
+        List<ProductRequest> products = new ArrayList<>();
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+            String header = br.readLine();
+            if (header == null) {
+                return products; // empty file
+            }
+
+            validateHeader(header);
+
+            String line;
+            int lineNumber = 1; // already read header
+            while ((line = br.readLine()) != null) {
+                lineNumber++;
+                line = line.trim();
+                if (line.isEmpty()) continue;
+
+                String[] tokens = CSV_SPLIT.split(line, -1);
+                if (tokens.length != 8) {
+                    // --- FIX: Corrected error message from 6 to 8 ---
+                    throw new IllegalArgumentException("Invalid column count at line " + lineNumber + " (expected 8)");
+                }
+
+                String selectedProductIdStr = unquote(tokens[0]);
+                String name = unquote(tokens[1]);
+
+                // --- VALIDATION 1: HSN (must be a number) ---
+                String hsn = validateHsn(unquote(tokens[2]), lineNumber);
+                // --- VALIDATION 2: Category ---
+                addCategories(unquote(tokens[3]), lineNumber);
+
+
+                 String category = unquote(tokens[3]);
+
+                Integer costPrice = parseInt(unquote(tokens[4]), "costPrice", lineNumber);
+                Integer price = parseInt(unquote(tokens[5]), "price", lineNumber);
+
+                // --- VALIDATION 3: CostPrice vs SellingPrice ---
+                if (costPrice > price) {
+                    throw new IllegalArgumentException("Validation error at line " + lineNumber +
+                            ": Cost Price (" + costPrice + ") cannot be more than Selling Price (" + price + ")");
+                }
+
+                Integer stock = parseInt(unquote(tokens[6]), "stock", lineNumber);
+                Integer taxRaw = parseInt(unquote(tokens[7]), "tax", lineNumber);
+
+                // --- VALIDATION 4: Tax Percent ---
+                Integer tax = validateTax(taxRaw, lineNumber);
+
+
+                products.add(ProductRequest.builder()
+                        .selectedProductId(parseInt(selectedProductIdStr, "selectedProductId", lineNumber)) // Also parse ID
+                        .name(name)
+                        .hsn(hsn)
+                        .costPrice(costPrice)
+                        .price(price)
+                        .category(category)
+                        .stock(stock)
+                        .tax(tax)
+                        .build());
+            }
+        }
+
+        return products;
+
+
+
+    }
+
+    private void addCategories(String unquote, int lineNumber) {
+
+        String categoryName=unquote.toLowerCase().replaceAll("\\s", "");
+
+       List<ProductCategory> prodCatList= productCategoryRepo.getCategoryName(categoryName, extractUsername());
+
+       if(prodCatList.size()==0) {
+           try {
+               var prodRepo = ProductCategory.builder().categoryName(unquote).type("product")
+                       .updatedBy(extractUsername())
+                       .username(extractUsername())
+                       .updateDate(LocalDateTime.now())
+                       .build();
+
+               productCategoryRepo.save(prodRepo);
+           } catch (Exception e) {
+
+           }
+
+       }
+
     }
 }

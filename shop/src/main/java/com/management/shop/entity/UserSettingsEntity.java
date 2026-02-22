@@ -37,6 +37,7 @@ public class UserSettingsEntity {
     private Boolean showPartialPaymentOption;
     private Boolean showRemarksOptions;
     private Boolean showAnonymousCustomerOption;
+    private Boolean showBillToGstinOption;
 
     private Boolean addDueDate;
     private Boolean combineAddresses;

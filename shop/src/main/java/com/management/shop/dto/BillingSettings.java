@@ -18,6 +18,7 @@ public class BillingSettings {
     private Boolean showPartialPaymentOption;
     private Boolean showRemarksOnSummarySide;
     private Boolean showAnonymousCustomerOption;
+    private Boolean showBillToGstinOption;
 
 
 }

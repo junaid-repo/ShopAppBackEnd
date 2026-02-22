@@ -474,15 +474,26 @@ public class AuthService {
 
                   response.addHeader("Set-Cookie",
                           "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.store; Max-Age=36000");
-              } else {
-                  cookie.setHttpOnly(true);      // Prevent JS access
-                  cookie.setSecure(true);       // Don't require HTTPS in dev
-                  cookie.setPath("/");           // Available on all paths
-                  cookie.setMaxAge(3600);        // 1 hour
-                  cookie.setDomain("localhost"); // Or remove for simpler case
+              } else {// DEVELOPMENT / IP ADDRESS ENVIRONMENT
 
-                  response.addCookie(cookie);
-              }
+                  // 1. Create the cookie
+                  // We construct the header string manually to ensure full control over SameSite/Secure
+                  // because standard Cookie objects sometimes lack SameSite support in older Servlet APIs.
+
+                  String cookieHeader = String.format(
+                          "jwt=%s; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax",
+                          token
+                  );
+
+                  // 2. IMPORTANT: If you are strictly on HTTP (not HTTPS), 'Secure' must be absent or false.
+                  // Do NOT add "; Secure" to the string above.
+
+                  response.addHeader("Set-Cookie", cookieHeader);
+
+                  // Note: I replaced the object approach (response.addCookie) with response.addHeader
+                  // to match your Prod logic and avoid issues where the standard Cookie class
+                  // might default to different behaviors.
+               }
                System.out.println("The generated token --> "+token);
               return token;
           }

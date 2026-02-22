@@ -30,6 +30,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.*;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -116,6 +117,9 @@ public class ShopService {
     private UserSettingsRepository userSettingsRepo;
 
     @Autowired
+    private ReminderCounterRepo reminderCounterRepo;
+
+    @Autowired
     CSVUpload util;
 
     @Autowired
@@ -165,6 +169,9 @@ public class ShopService {
 
     @Autowired
     EmailRecordRepo emailRecordRepo;
+
+    @Autowired
+    GeminiApiCalls geminiCalls;
 
     private final Random random = new Random();
 
@@ -342,6 +349,90 @@ public class ShopService {
                     .status(status)
                     .userId(extractUsername())
                     .stock(request.getStock())
+                    .active(true)
+                    .taxPercent(request.getTax())
+                    .price(request.getPrice())
+                    .costPrice(request.getCostPrice())
+                    .hsn(request.getHsn() == null ? "" : request.getHsn())
+                    .updatedDate(LocalDateTime.now())
+                    .updatedBy(extractUsername())
+                    .build();
+
+        } else {
+            productEntity = ProductEntity.builder()
+                    .name(request.getName() == null ? "" : request.getName())
+                    .userId(extractUsername())
+                    .category(request.getCategory() == null ? "" : request.getCategory())
+                    .active(true)
+                    .status(status)
+                    .stock(request.getStock())
+                    .taxPercent(request.getTax())
+                    .costPrice(request.getCostPrice())
+                    .price(request.getPrice())
+                    .hsn(request.getHsn() == null ? "" : request.getHsn())
+                    .createdDate(LocalDateTime.now())
+                    .updatedDate(LocalDateTime.now())
+                    .updatedBy(extractUsername())
+                    .build();
+        }
+
+
+        ProductEntity ent = prodRepo.save(productEntity);
+        if (ent.getId() != null) {
+
+            try {
+                salesCacheService.evictUserProducts(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            return ProductSuccessDTO.builder().success(true).product(request).build();
+
+
+        }
+
+        return ProductSuccessDTO.builder().success(false).product(request).build();
+
+    }
+
+    @Transactional
+    public ProductSuccessDTO saveProductFromImage(ProductRequest request) {
+
+        String status = "In Stock";
+        if (request.getStock() < 0)
+            status = "Out of Stock";
+
+        System.out.println("The new request" + request.getTax());
+
+        ProductEntity productEntity = null;
+
+        String productName=request.getName().toLowerCase().replaceAll("//s", "");
+
+        ProductEntity prodEntity=prodRepo.findByNameAndUserId(productName, extractUsername());
+        Integer updatedStock= request.getStock();
+        Integer updatedPrice= request.getPrice();
+        if(prodEntity!=null){
+            request.setSelectedProductId(prodEntity.getId());
+            updatedStock=updatedStock+prodEntity.getStock();
+
+            if(updatedPrice==0){
+                request.setPrice(prodEntity.getPrice());
+            }
+        }
+
+
+        if (request.getSelectedProductId() != null && request.getSelectedProductId() != 0) {
+// prodRepo.addProductStock(request.getSelectedProductId(), request.getStock());
+
+            productEntity = ProductEntity.builder()
+                    .id(request.getSelectedProductId())
+                    .name(request.getName() == null ? "" : request.getName())
+                    .category(request.getCategory() == null ? "" : request.getCategory())
+                    .status(status)
+                    .userId(extractUsername())
+                    .stock(updatedStock)
                     .active(true)
                     .taxPercent(request.getTax())
                     .price(request.getPrice())
@@ -1139,6 +1230,33 @@ String username=extractUsername();
             return prodList;
 
         } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public List<ProductRequest> uploadBulkProductFromImage(MultipartFile file) {
+
+        try {
+            List<ProductRequest> prodList = util.validateDataFromImage(file);
+            System.out.println(prodList);
+            prodList.stream().forEach(obj -> {
+                ProductSuccessDTO prodsaveResponse = saveProductFromImage(obj);
+                System.out.println(prodsaveResponse);
+            });
+
+            try {
+                salesCacheService.evictUserProducts(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            return prodList;
+
+        } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
@@ -2162,6 +2280,7 @@ String username=extractUsername();
         }
         List<Map<String, Object>> rawData = salesPaymentRepo.getPaymentStatusBreakdown(extractUsername(), startDate, endDate);
 
+        System.out.println("The raw payment status breakdown data is " + rawData);
 
         Map<String, Double> result = new HashMap<>();
         for (Map<String, Object> row : rawData) {
@@ -2391,6 +2510,16 @@ String username=extractUsername();
 
             billRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
             salesPaymentRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
+
+            var reminderCounter = ReminderCounter.builder().createdBy(extractUsername())
+                    .method((String)request.get("method"))
+                    .username(extractUsername())
+                    .invoiceId((String) request.get("orderId"))
+                    .message((String) request.get("message"))
+                    .createdDate(LocalDateTime.now())
+                    .build();
+
+            ReminderCounter savedCounter= reminderCounterRepo.save(reminderCounter);
             salesCacheService.evictUserSales(extractUsername(orderNo));
             salesCacheService.evictUserPayments(extractUsername(orderNo));
 
@@ -2404,9 +2533,29 @@ String username=extractUsername();
     }
 
     public Map<String, String> sendPaymentReminderToSQS(Map<String, Object> request) {
+        Map<String, String> response = new HashMap<>();
+        if(request.get("method").equals("whatsapp")){
+            String orderNo = (String) request.get("orderId");
+            salesPaymentRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
+
+            var reminderCounter = ReminderCounter.builder().createdBy(extractUsername())
+                            .method((String)request.get("method"))
+                    .username(extractUsername())
+                                    .invoiceId((String) request.get("orderId"))
+                                            .message((String) request.get("message"))
+                                                    .createdDate(LocalDateTime.now())
+                                                            .build();
+
+            ReminderCounter savedCounter= reminderCounterRepo.save(reminderCounter);
+
+            salesCacheService.evictUserSales(extractUsername());
+
+            response.put("errorData", "success");
+            return response;
+        }
 
         System.out.println("Entered sendPaymentReminderToSQS with request " + request);
-        Map<String, String> response = new HashMap<>();
+
         try {
 
             sqsUtil.sendOrderDetailsJustAfterOrderCompletion("send-paymentReminder-email-queue", "SQS", request);
@@ -2421,6 +2570,13 @@ String username=extractUsername();
         return response;
 
     }
+
+    public List<ReminderCounter> getPaymentReminderLists(String invoiceId){
+        List<ReminderCounter> paymentReminders=reminderCounterRepo.findByInvoiceIdAndUsername(invoiceId, extractUsername());
+        return paymentReminders;
+    }
+
+
 
     @Transactional
     public Map<String, Object> updateDuePayments(Map<String, Object> request) {
@@ -2831,5 +2987,24 @@ String username=extractUsername();
     public InvoiceData getFullInvoiceDetails(String invoiceId) {
 
         return utils.getFullInvoiceDetails(extractUsername(), invoiceId);
+    }
+
+   // @Async("geminiAsync")
+    public String extractTextFromImage(MultipartFile file) throws IOException {
+
+        String base64Image=Base64.getEncoder().encodeToString(file.getBytes());
+
+        String mimeType = file.getContentType(); // e.g., "image/jpeg" or "image/png"
+
+        if (mimeType == null || !mimeType.startsWith("image/")) {
+            mimeType = "image/jpeg"; // Fallback
+        }
+
+        String response =geminiCalls.geminiApiCall(base64Image, mimeType);
+
+        System.out.println("The response of textExtraction is "+response);
+
+
+      return    response;
     }
 }
