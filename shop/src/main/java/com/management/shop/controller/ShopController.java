@@ -928,6 +928,22 @@ public class ShopController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("api/shop/user/save/user/invoicePrinterType")
+    public ResponseEntity<Map<String, String>> saveInvoicePrinterForUser(@RequestBody Map<String, Object> request) {
+
+        // Call the service to perform the business logic
+
+
+        // Create a response structure that matches what your frontend expects (data.data)
+        Map<String, String> response = new HashMap<>();
+
+        response=util.saveUserInvoicePrinter(request);
+
+
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("api/shop/user/get/user/invoiceTemplate")
     public ResponseEntity<Map<String, String>> getInvoiceTempalteForUser() {
 
@@ -1153,6 +1169,14 @@ public class ShopController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to extract data: " + e.getMessage());
         }
+    }
+
+    @GetMapping("api/shop/get/categories")
+    public ResponseEntity<List<String>> getCategories() {
+
+        List<String> categories = serv.getCategories();
+
+        return ResponseEntity.ok(categories);
     }
 
 

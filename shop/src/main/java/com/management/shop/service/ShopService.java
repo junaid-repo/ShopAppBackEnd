@@ -173,6 +173,9 @@ public class ShopService {
     @Autowired
     GeminiApiCalls geminiCalls;
 
+    @Autowired
+    ProductCategoryRepository prodCatRepo;
+
     private final Random random = new Random();
 
     @Value("${aws.s3.bucket-name}")
@@ -755,11 +758,11 @@ public class ShopService {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-
+              if(!userSettingsEntity.getAllowNoStockBilling()){
                 if (prodSalesResponse.getId() != null) {
                     prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername());
 
-                }
+                }}
 
             });
 
@@ -819,7 +822,7 @@ public class ShopService {
             if (sendInvoice && !(request.getSelectedCustomer().getName().equals("Anonymous"))) {
 
                 try {
-                    sendInoviceOverEmail(billResponse);
+                    sendInvoiceOverEmail(billResponse);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -848,7 +851,7 @@ public class ShopService {
         return BillingResponse.builder().status("FAILURE").build();
     }
 
-    private void sendInoviceOverEmail(BillingEntity billResponse) {
+    private void sendInvoiceOverEmail(BillingEntity billResponse) {
 
         InvoiceDetails order = getOrderDetails(billResponse.getInvoiceNumber());
         try {
@@ -1551,17 +1554,19 @@ String username=extractUsername();
         InvoiceData invoiceData = utils.getFullInvoiceDetails(username, orderId);
 
         String invoiceTemplateName = "gstinvoice";
+        String invoicePrinter="THERMAL_2";
 
         try {
             SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
             if (repoEntity != null) {
                 invoiceTemplateName = repoEntity.getTemplateName();
+                invoicePrinter=repoEntity.getPrinterType();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName);
+        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName, invoicePrinter);
         System.out.println("The full invoice Data is " + invoiceData);
 
 
@@ -1579,17 +1584,19 @@ String username=extractUsername();
         InvoiceData invoiceData = utils.getFullInvoiceDetails(username, orderId);
 
         String invoiceTemplateName = "gstinvoice";
+        String invoicePrinter="THERMAL_2";
 
         try {
             SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
             if (repoEntity != null) {
                 invoiceTemplateName = repoEntity.getTemplateName();
+                invoicePrinter=repoEntity.getPrinterType();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName);
+        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName,invoicePrinter);
         System.out.println("The full invoice Data is " + invoiceData);
 
 
@@ -2460,7 +2467,14 @@ String username=extractUsername();
 
         String username = extractUsername();
 
-        List<ProductEntity> productList = prodRepo.findAllActiveProductsForGSTBilling(Boolean.TRUE, username, query, limit);
+        UserSettingsEntity userSettingsEntity = userSettingsRepo.findByUsername(extractUsername());
+        Integer stockCount=0;
+        if(userSettingsEntity.getAllowNoStockBilling())
+            stockCount=-99999;
+
+
+        List<ProductEntity> productList = prodRepo.findAllActiveProductsForGSTBilling(Boolean.TRUE,  username, query, limit, stockCount);
+
 
         productList.stream().forEach(obj -> {
             var prodSearch = ProductSearchDto.builder()
@@ -2644,7 +2658,7 @@ String username=extractUsername();
     }
 
 
-    public Map<String, Object> sendInvoiceOverEmail(String invoiceNumber) {
+    public Map<String, Object> sendInvoiceOverEmailByListner(String invoiceNumber) {
         InvoiceDetails order = getOrderDetails(invoiceNumber);
         Map<String, Object> response = new HashMap<>();
         try {
@@ -2664,7 +2678,7 @@ String username=extractUsername();
         return response;
     }
 
-    public Map<String, Object> sendInvoiceOverEmailByListner(String invoiceNumber) {
+    public Map<String, Object> sendInvoiceOverEmail(String invoiceNumber) {
         System.out.println("Entered sending email by listner with refrenece Number " + invoiceNumber);
         InvoiceDetails order = getOrderDetails(invoiceNumber);
         Map<String, Object> response = new HashMap<>();
@@ -2673,7 +2687,13 @@ String username=extractUsername();
             if (invoiceNumber != null) {
                 BillingEntity billDetails = billRepo.findOrderByJustReference(invoiceNumber);
                 username = billDetails.getUserId();
+
+                sendInvoiceOverEmail(BillingEntity.builder().invoiceNumber(invoiceNumber).build());
+                response.put("errorData", "success");
+                return response;
             }
+
+
             Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, username);
 
             //if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
@@ -3006,5 +3026,21 @@ String username=extractUsername();
 
 
       return    response;
+    }
+
+    public List<String> getCategories() {
+
+        List<String> response = new ArrayList<>();
+
+        List<ProductCategory> productCategoryList = prodCatRepo.getCategoryNamesList(extractUsername());
+
+        if (productCategoryList != null) {
+            response = productCategoryList.stream().map(i -> i.getCategoryName()).collect(Collectors.toList());
+            return response;
+        }
+        response.add("Products");
+        response.add("Services");
+
+        return response;
     }
 }

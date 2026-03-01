@@ -1,0 +1,323 @@
+package com.management.shop.gobalusers.service;
+
+import com.mailjet.client.MailjetResponse;
+import com.mailjet.client.errors.MailjetException;
+import com.mailjet.client.errors.MailjetSocketTimeoutException;
+import com.management.shop.gobalusers.constants.EventConstants;
+import com.management.shop.gobalusers.dto.*;
+import com.management.shop.gobalusers.entity.RegisterUserOTPEntity;
+import com.management.shop.gobalusers.entity.UserInfo;
+import com.management.shop.gobalusers.entity.UserPaymentModes;
+import com.management.shop.gobalusers.repository.UserInfoRepository;
+import com.management.shop.gobalusers.repository.UserOtpRepo;
+import com.management.shop.gobalusers.repository.UserPaymentModesRepo;
+import com.management.shop.gobalusers.util.AccountEmailTemplate;
+import com.management.shop.gobalusers.util.OTPSender;
+import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+@Service
+@Slf4j
+public class AuthPhoneService {
+
+    @Autowired
+    private UserOtpRepo otpRepo;
+
+    @Autowired
+    private OTPSender otpSender;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AccountEmailTemplate emailTemplateUtil;
+
+    @Autowired
+    private UserInfoRepository userinfoRepo;
+
+    @Autowired
+    private UserPaymentModesRepo paymentModesRepo;
+
+    @Autowired
+    private AuthService authService;
+
+
+    public RegisterResponse registerNewUserWithPhone(RegisterRequest regRequest) {
+
+        ValidateContactResponse validateContactResponse=    validatePhone(ValidateContactRequest.builder().phone(regRequest.getPhone()).email(regRequest.getEmail()).build());
+        System.out.println("The validate phone response is --> "+validateContactResponse);
+        if(validateContactResponse!=null){
+            if(!validateContactResponse.isStatus()){
+                return RegisterResponse.builder().message("Phone already registered").success(false).build();
+            }
+            else {
+
+                Random random = new Random();
+                int number = 100000 + random.nextInt(900000);
+
+                List<RegisterUserOTPEntity> res2 = otpRepo.getByPhoneNumber(regRequest.getPhone());
+                if (res2 != null) {
+
+                    res2.stream().forEach(i->{otpRepo.updateOldOTPWithPhone(regRequest.getPhone(), "stale", EventConstants.USER_REG.getEventName(), "sms");});
+
+                }
+                String smsResponse="";
+
+                    try {
+                        smsResponse  =  otpSender.sendOtpWithPhone(regRequest.getPhone(), String.valueOf(number), "30");
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                if (smsResponse.contains("success")) {
+                    var regsiterUserTemp = RegisterUserOTPEntity.builder().username(validateContactResponse.getUsername()).phoneNumber(regRequest.getPhone())
+                            .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").retries(0).event(EventConstants.USER_REG.getEventName()).source("SMS").build();
+                    otpRepo.save(regsiterUserTemp);
+                    return RegisterResponse.builder().message("User created successfully. Please verify the OTP sent to your phone to activate your account.").success(true).username(validateContactResponse.getUsername()).build();
+                } else {
+
+                    return RegisterResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+                }
+
+
+            }
+        }
+
+
+        var userInfo = UserInfo.builder().email(regRequest.getEmail()).isActive(false).name(regRequest.getFullName())
+                .password(regRequest.getPassword()).phoneNumber(regRequest.getPhone())
+                .source("phone")
+                .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+
+        userInfo.setRoles("USER");
+        userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
+        UserInfo res = userinfoRepo.save(userInfo);
+        if (res.getId() > 0) {
+            String username = res.getName().replace(" ", "").toLowerCase() + String.valueOf(res.getId());
+            userInfo.setUsername(username);
+
+            res = userinfoRepo.save(userInfo);
+
+            if (res != null) {
+
+                Random random = new Random();
+                int number = 100000 + random.nextInt(900000);
+
+                RegisterUserOTPEntity res2 = otpRepo.getByUsername(userInfo.getUsername());
+                if (res2 != null) {
+                    otpRepo.updateOldOTP(res.getId(), "stale");
+                }
+                String smsResponse="";
+
+                try {
+                    smsResponse  =  otpSender.sendOtpWithPhone(regRequest.getPhone(), String.valueOf(number), "30");
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                if (smsResponse.contains("success")) {
+                    var regsiterUserTemp = RegisterUserOTPEntity.builder().username(userInfo.getUsername()).phoneNumber(regRequest.getPhone())
+                            .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").retries(0).event(EventConstants.USER_REG.getEventName()).source("SMS").build();
+                    otpRepo.save(regsiterUserTemp);
+                    return RegisterResponse.builder().message("User created successfully. Please verify the OTP sent to your phone to activate your account.").success(true).username(userInfo.getUsername()).build();
+                } else {
+
+                    return RegisterResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+                }
+            }
+
+            //  return RegisterResponse.builder().username(res.getUsername()).build();
+
+        }
+
+        return RegisterResponse.builder().message("Something went wrong while creating the user, try after sometime.").success(false).build();
+    }
+
+    public Map<String, String> fetchRetriesForToday(String phoneNumber) {
+        List<RegisterUserOTPEntity>  res = otpRepo.getByPhoneOtpForToday(phoneNumber);
+        Integer count=res.size();
+        if (res != null) {
+            return Map.of("retryLeft", String.valueOf(5-count));
+        }
+        return Map.of("retryLeft", "0");
+    }
+
+    public ValidateContactResponse validatePhone(ValidateContactRequest userInfo) {
+
+        List<UserInfo> res = userinfoRepo.validatePhone( userInfo.getPhone());
+
+
+        if (res.size() > 0) {
+
+            for(UserInfo user:res){
+                if(user.getIsActive()){
+                    return ValidateContactResponse.builder().username(user.getUsername()).status(false).message("Phone number already registered with an active account").build();
+                }
+            }
+
+            for(UserInfo user:res){
+                if(!user.getIsActive()){
+                    return ValidateContactResponse.builder().username(user.getUsername()).status(true).message("Phone number already registered with an inactive account").build();
+                }
+            }
+
+
+        }
+
+        return null;
+
+
+    }
+
+    @Transactional
+    public OtpVerifyResponse reSendOtpPhone(OtpVerifyRequest otpVerifyReq) {
+
+        Random random = new Random();
+        int number = 100000 + random.nextInt(900000);
+
+        List<RegisterUserOTPEntity> res2 = otpRepo.getByPhoneNumber(otpVerifyReq.getPhone());
+        if (res2 != null) {
+            res2.stream().forEach(i->{otpRepo.updateOldOTPWithPhone(otpVerifyReq.getPhone(), "stale", EventConstants.USER_REG.getEventName(), "sms");});
+        }
+        String smsResponse="";
+
+        try {
+            smsResponse  =  otpSender.sendOtpWithPhone(otpVerifyReq.getPhone(), String.valueOf(number), "30");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (smsResponse.contains("success")) {
+            var regsiterUserTemp = RegisterUserOTPEntity.builder().username(otpVerifyReq.getUsername()).phoneNumber(otpVerifyReq.getPhone())
+                    .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").event(EventConstants.USER_REG.getEventName()).source("SMS").retries(0).build();
+            otpRepo.save(regsiterUserTemp);
+            return OtpVerifyResponse.builder().message("User created successfully. Please verify the OTP sent to your phone to activate your account.").success(true).username(otpVerifyReq.getUsername()).build();
+        } else {
+
+            return OtpVerifyResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+        }
+    }
+
+    @Transactional
+    public OtpVerifyResponse verifyOTP(OtpVerifyRequest otpInfo) {
+        RegisterUserOTPEntity res = otpRepo.getLatestByPhone(otpInfo.getPhone(), "fresh");
+
+        if (res.getOtp().equals(otpInfo.getOtp())) {
+
+            userinfoRepo.updateUserStatus(res.getUsername());
+            UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).get();
+
+            //paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
+
+
+
+     if(userInfo.getEmail()!=null) {
+         String htmlContent = emailTemplateUtil.registerUserSucess(userInfo.getName(), userInfo.getUsername());
+
+         try {
+             otpSender.sendEmail(userInfo.getEmail(), "support@clearbill.store", userInfo.getName(), "Clear Bill",
+                     "Account Creation Success", htmlContent);
+         } catch (MailjetException | MailjetSocketTimeoutException e) {
+             // TODO Auto-generated catch block
+             e.printStackTrace();
+         }
+
+     }
+
+
+            var response = OtpVerifyResponse.builder().success(true)
+                    .username(otpInfo.getUsername())
+                    .message("Registration complete! Your username is "+otpInfo.getUsername()+" Please login with this username and password to use the system.")
+                    .build();
+            return response;
+        }
+        var response = OtpVerifyResponse.builder().success(false)
+                .username(otpInfo.getOtp())
+                .message("Your entered OTP " + otpInfo.getOtp()+" is incorrect, please re-enter")
+                .build();
+
+
+        return response;
+    }
+
+
+    public ValidateContactResponse forgotPasswordPhone(ForgotPassRequest forgotPassRequest) {
+        List<UserInfo> res = userinfoRepo.validateUserPhone(forgotPassRequest.getPhone(), forgotPassRequest.getUserId(), true);
+
+
+        if (res.size() > 0) {
+            System.out.println(res.get(0));
+            Random random = new Random();
+            int otp = 100000 + random.nextInt(900000);
+            var otpVerifyReq = OtpVerifyRequest.builder().otp(String.valueOf(otp)).username(res.get(0).getUsername()).build();
+
+
+            RegisterUserOTPEntity res2 = otpRepo.getByUsername(res.get(0).getUsername());
+            if (res2 != null) {
+                otpRepo.removeOldOTP(res.get(0).getUsername());
+            }
+
+            String smsResponse="";
+
+            try {
+                smsResponse  =  otpSender.sendOtpWithPhone(otpVerifyReq.getPhone(), String.valueOf(otp), "30");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+
+            var regsiterUserTemp = RegisterUserOTPEntity.builder().username(res.get(0).getUsername())
+                    .createdDate(LocalDateTime.now()).otp(String.valueOf(otp)).status("fresh").event(EventConstants.PASSWORD_RESET_REQUESTED.getEventName()).source("SMS").retries(0).build();
+            otpRepo.save(regsiterUserTemp);
+
+
+            return ValidateContactResponse.builder().status(true).message("OTP sent to your Phone Number").build();
+        }
+        return ValidateContactResponse.builder().status(false).message("No user found with provided details").build();
+
+    }
+
+    public ValidateContactResponse confirmOtpAndUpdatePassword(UpdatePasswordRequest updatePassRequest) {
+        List<UserInfo> userInfo = userinfoRepo.validateUserPhone(updatePassRequest.getPhone(), updatePassRequest.getUserId(), true);
+
+        if (userInfo.size() > 0) {
+            RegisterUserOTPEntity otpedUser = otpRepo.getLatestOtp(userInfo.get(0).getUsername());
+
+            if (otpedUser != null) {
+                if (otpedUser.getOtp().equals(updatePassRequest.getOtp())) {
+
+                    LocalDateTime updatedAt=LocalDateTime.now();
+
+                    authService.updatePassword(UserInfo.builder().username(userInfo.get(0).getUsername()).password(updatePassRequest.getNewPassword()).updatedAt(updatedAt).build());
+
+                    return ValidateContactResponse.builder().status(true).message("Your password has been updated successfully").build();
+                } else {
+
+                    return ValidateContactResponse.builder().status(false).message("Your otp doesn't matched please re-enter").build();
+
+                }
+            }
+
+        }
+        return null;
+
+    }
+}

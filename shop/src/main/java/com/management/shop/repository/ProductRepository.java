@@ -97,7 +97,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
     @Query(
             value = "SELECT * FROM shop_product p WHERE p.active = :isActive " +
                     "AND p.user_id = :username " +
-                    "AND p.stock > 0 " +
+                    "AND p.stock > :stockCount " +
                     "AND (" +
                     "   :search IS NULL " +
                     "   OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
@@ -111,7 +111,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
             @Param("isActive") Boolean isActive,
             @Param("username") String username,
             @Param("search") String search,
-            @Param("limit") int count
+            @Param("limit") int count,
+            @Param("stockCount") int stockCount
     );
 
     @Query(value = "SELECT * FROM shop_product WHERE stock < 3 AND user_id = ?1 ORDER BY stock ASC", nativeQuery = true)

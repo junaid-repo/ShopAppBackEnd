@@ -23,7 +23,10 @@ public class RegisterUserOTPEntity {
 	private String otp;
 	private LocalDateTime createdDate;
 	private String username;
+    private String phoneNumber;
 	private String status;
 	private Integer retries;
+    private String event;
+    private String source;
 
 }

@@ -106,10 +106,42 @@ public class AuthService {
     public RegisterResponse registerNewUser(RegisterRequest regRequest) {
 
         ValidateContactResponse validateContactResponse=    validateContact(ValidateContactRequest.builder().phone(regRequest.getPhone()).email(regRequest.getEmail()).build());
-
+            System.out.println("The validate contact response is --> "+validateContactResponse);
         if(validateContactResponse!=null){
             if(!validateContactResponse.isStatus()){
                 return RegisterResponse.builder().message("Email/Phone already registered").success(false).build();
+            }
+            else {
+
+                Random random = new Random();
+                int number = 100000 + random.nextInt(900000);
+
+                RegisterUserOTPEntity res2 = otpRepo.getByUsername(validateContactResponse.getUsername());
+                if (res2 != null) {
+                    otpRepo.updateOldOTP(validateContactResponse.getUserId(), "stale");
+                }
+                MailjetResponse mailResponse = null;
+
+                String htmlContent=emailTemplateUtil.registerUserOTP( regRequest.getFullName(), String.valueOf(number), String.valueOf(20));
+
+                try {
+                    mailResponse =  otpSender.sendEmail(regRequest.getEmail(), "support@clearbill.store",regRequest.getFullName(), "Clear Bill",
+                            "OTP for Register of new account", htmlContent);
+                } catch (MailjetException | MailjetSocketTimeoutException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                if (mailResponse.getStatus() == 200) {
+                    var regsiterUserTemp = RegisterUserOTPEntity.builder().username(validateContactResponse.getUsername())
+                            .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").retries(0).build();
+                    otpRepo.save(regsiterUserTemp);
+                    return RegisterResponse.builder().message("User created successfully. Please verify the OTP sent to your email to activate your account.").success(true).username(validateContactResponse.getUsername()).build();
+                } else {
+                    log.error("Failed to send OTP email to " + regRequest.getEmail() + ". Mailjet response status: " + mailResponse.getStatus());
+                    return RegisterResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+                }
+
+
             }
         }
 
@@ -166,6 +198,10 @@ public class AuthService {
         return RegisterResponse.builder().message("Something went wrong while creating the user, try after sometime.").success(false).build();
     }
 
+
+
+
+
     public ValidateContactResponse validateContact(ValidateContactRequest userInfo) {
 
         List<UserInfo> res = userinfoRepo.validateContact(userInfo.getEmail(), userInfo.getPhone(), true);
@@ -173,12 +209,14 @@ public class AuthService {
 
         if (res.size() > 0) {
 
-            return ValidateContactResponse.builder().status(false).message("Email/Phone already registered").build();
+            return ValidateContactResponse.builder().userId(res.get(0).getId()).username(res.get(0).getUsername()).status(false).message("Email/Phone already registered").build();
         }
         return ValidateContactResponse.builder().status(true).message("Email/Phone already registered").build();
 
 
     }
+
+
 
     public ValidateContactResponse forgotPaswrod(ForgotPassRequest forgotPassRequest) {
         List<UserInfo> res = userinfoRepo.validateUser(forgotPassRequest.getEmailId(), forgotPassRequest.getUserId(), true);
@@ -453,10 +491,19 @@ public class AuthService {
 
     public String authAndsetCookies(AuthRequest authRequest, HttpServletResponse response){
 
+      UserInfo userInfo=  userinfoRepo.findByPhoneNumber(authRequest.getUsername(), true);
+
+      if(userInfo!=null){
+          authRequest.setUsername(userInfo.getUsername());
+      }else{
+          throw new UsernameNotFoundException("invalid user request !");
+      }
+
       String userSource=  userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
 
+
         boolean isUserActive = checkUserStatus(authRequest.getUsername());
-      if(userSource.equals("email")||authRequest.getUsername().equals("junaid1")) {
+      if(userSource.equals("phone")||authRequest.getUsername().equals("junaid1")) {
           Authentication authentication = authenticationManager.authenticate(
                   new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
           System.out.println("The authentication object is --> " + authentication);

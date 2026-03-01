@@ -20,6 +20,8 @@ public class SelectedInvoiceEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
     private String templateName;
+    @Column(name = "printer_type", columnDefinition = "varchar(255) default 'A4'")
+    private String printerType = "A4";
     private String username;
     private String updatedBy;
     private LocalDateTime updatedDate;

@@ -12,4 +12,6 @@ import lombok.NoArgsConstructor;
 public class ValidateContactResponse {
 	private boolean status;
     private String message;
+    String username;
+    Integer userId;
 }

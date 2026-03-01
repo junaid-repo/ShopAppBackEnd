@@ -3,18 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <title th:text="'Invoice - ' + ${invoiceId}">Receipt</title>
-    <style>
-        /* * MINIMALIST BOUTIQUE CSS
-         * Style: Airy, Uppercase, Elegant
-         */
-        @page {
-            size: 80mm auto;
-            margin: 0;
-        }
 
+    <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 11px;
             color: #000;
             background: #fff;
             margin: 0;
@@ -23,10 +15,12 @@
         }
 
         .container {
-            width: 100%;
-            max-width: 76mm;
+            /* 🟢 Utilizes 96% of the paper width to remove vacant space */
+            width: 96%;
+            max-width: 100%;
+            box-sizing: border-box;
             margin: 0 auto;
-            padding: 5mm 2mm;
+            padding: 5mm 0;
         }
 
         /* Utilities */
@@ -48,18 +42,17 @@
             margin-bottom: 20px;
         }
         .shop-name {
-            font-size: 14px;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 2px; /* Distinctive look */
+            letter-spacing: 2px;
             margin-bottom: 5px;
         }
         .shop-logo {
-            max-height: 50px;
             margin-bottom: 10px;
+            object-fit: contain;
+            filter: grayscale(100%);
         }
         .shop-meta {
-            font-size: 9px;
             color: #444;
         }
 
@@ -67,7 +60,6 @@
         .invoice-meta {
             display: flex;
             justify-content: space-between;
-            font-size: 10px;
             margin-bottom: 15px;
         }
 
@@ -79,7 +71,6 @@
         }
         table.items th {
             text-align: left;
-            font-size: 9px;
             text-transform: uppercase;
             color: #666;
             padding-bottom: 8px;
@@ -89,7 +80,7 @@
         table.items td {
             padding: 8px 0;
             vertical-align: top;
-            border-bottom: 1px solid #eee; /* Very faint separator */
+            border-bottom: 1px solid #eee;
         }
 
         .col-desc { width: 50%; }
@@ -99,7 +90,6 @@
 
         .item-sub {
             display: block;
-            font-size: 9px;
             color: #888;
             font-style: italic;
         }
@@ -107,7 +97,6 @@
         /* Totals */
         .totals-wrapper {
             width: 100%;
-            font-size: 11px;
         }
         .total-row {
             display: flex;
@@ -115,23 +104,22 @@
             margin-bottom: 4px;
         }
 
-        /* The "Black Bar" Total */
+        /* 🟢 UPDATED: The Total Box Styling (Bordered instead of solid black) */
         .total-bar-black {
-            background-color: #000;
-            color: #fff;
+            background-color: transparent;
+            color: #000;
+            border: 2px solid #000; /* Clean border instead of solid background */
             padding: 8px 10px;
             margin-top: 10px;
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            font-size: 14px;
             border-radius: 4px;
         }
 
         /* Footer Info */
         .footer-info {
             text-align: center;
-            font-size: 9px;
             color: #666;
             margin-top: 20px;
         }
@@ -140,13 +128,60 @@
             border: 1px solid #ccc;
             border-radius: 20px;
             padding: 5px 10px;
-            font-size: 10px;
             text-align: center;
             margin: 10px auto;
             width: 80%;
         }
 
+        .qr-img {
+            display: block;
+            margin: 10px auto;
+        }
+
     </style>
+
+    <style th:if="${printerType == null or printerType == 'THERMAL_2'}">
+        @page { size: 58mm auto; margin: 0; }
+        body { font-size: 11px; }
+        .shop-name { font-size: 14px; }
+        .shop-logo { max-height: 45px; }
+        .shop-meta, table.items th, .item-sub, .footer-info { font-size: 9px; }
+        .invoice-meta, .payment-pill { font-size: 10px; }
+        .totals-wrapper { font-size: 11px; }
+        .total-bar-black { font-size: 14px; }
+
+        /* 🟢 Increased QR Size */
+        .qr-img { width: 80px; height: 80px; }
+    </style>
+
+    <style th:if="${printerType == 'THERMAL_3'}">
+        @page { size: 80mm auto; margin: 0; }
+        body { font-size: 13px; }
+        .shop-name { font-size: 18px; }
+        .shop-logo { max-height: 60px; }
+        .shop-meta, table.items th, .item-sub, .footer-info { font-size: 11px; }
+        .invoice-meta, .payment-pill { font-size: 12px; }
+        .totals-wrapper { font-size: 13px; }
+        .total-bar-black { font-size: 18px; }
+
+        /* 🟢 Increased QR Size */
+        .qr-img { width: 120px; height: 120px; }
+    </style>
+
+    <style th:if="${printerType == 'THERMAL_4'}">
+        @page { size: 112mm auto; margin: 0; }
+        body { font-size: 16px; }
+        .shop-name { font-size: 24px; }
+        .shop-logo { max-height: 80px; }
+        .shop-meta, table.items th, .item-sub, .footer-info { font-size: 13px; }
+        .invoice-meta, .payment-pill { font-size: 15px; }
+        .totals-wrapper { font-size: 16px; }
+        .total-bar-black { font-size: 24px; }
+
+        /* 🟢 Increased QR Size */
+        .qr-img { width: 160px; height: 160px; }
+    </style>
+
 </head>
 
 <body>
@@ -157,7 +192,6 @@
         <div th:unless="${shopLogoBase64}" class="shop-name" th:text="${shopLogoText}"></div>
 
         <div th:if="${shopLogoBase64}" class="shop-name" th:text="${shopName}"></div>
-        <div th:unless="${shopLogoBase64}" class="shop-name" th:text="${shopName}"></div>
 
         <div class="shop-meta">
             <span th:text="${shopAddress}"></span><br>
@@ -177,8 +211,8 @@
         </div>
     </div>
 
-    <div th:if="${customerName != 'Anonymous'}" style="margin-bottom: 15px; font-size: 10px;">
-        <div class="uppercase" style="color: #888; font-size: 9px; margin-bottom: 2px;">Billed To</div>
+    <div th:if="${customerName != 'Anonymous'}" style="margin-bottom: 15px; font-size: 0.9em;">
+        <div class="uppercase" style="color: #888; font-size: 0.9em; margin-bottom: 2px;">Billed To</div>
         <div class="bold" th:text="${customerName}"></div>
         <div th:text="${customerPhone}"></div>
     </div>
@@ -219,7 +253,7 @@
             <span th:text="'- ' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></span>
         </div>
 
-        <div class="total-row" th:each="gst : ${gstSummary}" style="font-size: 10px;">
+        <div class="total-row" th:each="gst : ${gstSummary}" style="font-size: 0.9em;">
             <span th:text="${gst['type']} + ' (' + ${gst['percentage']} + '%)'" style="color: #666;"></span>
             <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
         </div>
@@ -245,18 +279,18 @@
             <div th:if="${qrCodeBase64}" style="margin-top: 5px;">[ QR Code Available ]</div>
         </div>
 
-        <div th:if="${qrCodeBase64}" style="text-align: center; margin: 10px 0;">
-            <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" style="width: 50px; height: 50px;"/>
+        <div th:if="${qrCodeBase64}">
+            <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-img"/>
         </div>
 
-        <div th:unless="${removeTerms}" style="margin-top: 15px; font-size: 8px; color: #888;">
+        <div th:unless="${removeTerms}" style="margin-top: 15px; font-size: 0.9em;">
             <div th:each="term : ${termsAndConditions}" th:text="${term}"></div>
         </div>
 
-        <div style="margin-top: 20px; letter-spacing: 1px;" class="uppercase bold">
+        <div style="margin-top: 20px;" class="uppercase bold">
             Thank You
         </div>
-        <div style="margin-top: 2px; font-size: 8px;">For shopping with us</div>
+        <div style="margin-top: 2px; font-size: 0.9em;">For shopping with us</div>
     </div>
 
 </div>

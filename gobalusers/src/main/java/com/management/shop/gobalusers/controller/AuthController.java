@@ -2,6 +2,7 @@ package com.management.shop.gobalusers.controller;
 
 import com.management.shop.gobalusers.dto.*;
 import com.management.shop.gobalusers.entity.UserInfo;
+import com.management.shop.gobalusers.service.AuthPhoneService;
 import com.management.shop.gobalusers.service.AuthService;
 import com.management.shop.gobalusers.service.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,14 +32,17 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final AuthService serv;
     private final JwtService jwtService;
+    private final AuthPhoneService authPhoneService;
 
     // ✅ Constructor Injection
     public AuthController(AuthenticationManager authenticationManager,
                           AuthService serv,
-                          JwtService jwtService) {
+                          JwtService jwtService,
+                          AuthPhoneService authPhoneService) {
         this.authenticationManager = authenticationManager;
         this.serv = serv;
         this.jwtService = jwtService;
+        this.authPhoneService=authPhoneService;
     }
 
 
@@ -86,6 +90,8 @@ public class AuthController {
         return serv.registerNewUser(userInfo);
     }
 
+
+
     @PostMapping("/auth/resend-otp")
     public OtpVerifyResponse reEnterOtp(@RequestBody OtpVerifyRequest userInfo) {
         System.out.println("Entered reEnterOtp with payload  " + userInfo);
@@ -97,6 +103,7 @@ public class AuthController {
         System.out.println("Entered fetchRetries with payload  " + username);
         return serv.fetchRetries(username);
     }
+
 
 
     @PostMapping("/auth/verify-otp")
@@ -111,5 +118,43 @@ public class AuthController {
         String token =serv.authAndsetCookies(authRequest, response);
        return token;
 
+    }
+
+
+    @GetMapping("auth/phone/otp-retry-count")
+    public Map<String, String> fetchRetiesForToday(@RequestParam String phone) {
+        System.out.println("Entered fetchRetries for today with payload  " + phone);
+        return authPhoneService.fetchRetriesForToday(phone);
+    }
+
+    @PostMapping("/auth/register/phone/newuser")
+    public RegisterResponse addNewThirdPartyUserWithPhone(@RequestBody RegisterRequest userInfo) {
+        System.out.println("Entered addNewThirdPartyUser with payload  " + userInfo);
+        return authPhoneService.registerNewUserWithPhone(userInfo);
+    }
+
+    @PostMapping("/auth/phone/resend-otp")
+    public OtpVerifyResponse reSendOtpPhone(@RequestBody OtpVerifyRequest userInfo) {
+        System.out.println("Entered reSendOtpPhone with payload  " + userInfo);
+        return authPhoneService.reSendOtpPhone(userInfo);
+    }
+    @PostMapping("/auth/phone/verify-otp")
+    public OtpVerifyResponse verifyOTPPhone(@RequestBody OtpVerifyRequest userInfo) {
+        System.out.println("Entered verifyOTP with payload  " + userInfo);
+        return authPhoneService.verifyOTP(userInfo);
+    }
+
+
+
+    @PostMapping("/auth/phone/forgot-password")
+    public ValidateContactResponse forgotPasswordPhone(@RequestBody ForgotPassRequest forgotPassRequest) {
+        System.out.println("Entered forgotPassword with payload  " + forgotPassRequest);
+        return authPhoneService.forgotPasswordPhone(forgotPassRequest);
+    }
+
+    @PostMapping("/auth/phone/update-password")
+    public ValidateContactResponse confirmOtpAndUpdatePasswordPhone(@RequestBody UpdatePasswordRequest updatePassRequest) {
+        System.out.println("Entered confirmOtpAndUpdatePassword with payload  " + updatePassRequest);
+        return serv.confirmOtpAndUpdatePassword(updatePassRequest);
     }
 }

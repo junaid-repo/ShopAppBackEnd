@@ -9,10 +9,29 @@ import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.mailjet.client.resource.Emailv31;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Component
 public class OTPSender {
+
+    @Value("${smsalert.apiKey}")
+    private String smsAlertApiKey;
+
+    @Value("${smsalert.baseUrl}")
+    private String smsAlertApiUrl;
+
+    @Value("${smsalert.senderId}")
+    private String smsAlertSenderId;
 
 	public MailjetResponse sendEmailForOrderConfirmations(String toEmailId, String fromEmailId, String receiptName,
 			String senderName, String subject, String content) {
@@ -57,4 +76,38 @@ public class OTPSender {
 		System.out.println(response.getData());
 		return response;
 	}
+
+    public String sendOtpWithPhone(String phoneNumber, String otp, String timing) throws IOException, InterruptedException {
+
+        HttpClient client = HttpClient.newHttpClient();
+        String msgBody = "Dear User,\n\n" +
+                "Your OTP is " + otp +
+                ". Valid for " + timing +
+                " minutes. Please do not share this OTP.\n\n" +
+                "Regards,\n" +
+                "Lumenapps";
+
+// ✅ Encode message
+        String encodedMessage =
+                URLEncoder.encode(msgBody, StandardCharsets.UTF_8);
+
+        String url = smsAlertApiUrl
+                + "?apikey=" + smsAlertApiKey
+                + "&sender=" + smsAlertSenderId
+                + "&mobileno=" + phoneNumber
+                + "&text=" + encodedMessage;
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> response=client.send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+
+        System.out.println("SMS Alert API response status code: " + response.statusCode());
+        System.out.println("SMS Alert API response body: " + response.body());
+
+        return response.body();
+
+    }
 }

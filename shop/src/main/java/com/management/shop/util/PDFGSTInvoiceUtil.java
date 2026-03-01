@@ -28,7 +28,7 @@ public class PDFGSTInvoiceUtil {
         this.templateEngine = templateEngine;
     }
 
-    public byte[] generateGSTInvoice(InvoiceData data, String invoiceTemplate)   {
+    public byte[] generateGSTInvoice(InvoiceData data, String invoiceTemplate, String printerType)   {
 
         // --- Core Calculations (null-safe) ---
         List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
@@ -158,6 +158,8 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("showSupportInfo", data.getShowSupportInfo() != null ? data.getShowSupportInfo() : false);
         context.setVariable("removeTerms", data.getRemoveTerms() != null ? data.getRemoveTerms() : false);
 
+        context.setVariable("printerType", nullSafeString(printerType)); // Pass printer type to template for conditional styling
+
         System.out.println("The full data to render invoice " + context);
 
         // --- Generate PDF ---
@@ -171,12 +173,21 @@ public class PDFGSTInvoiceUtil {
             Browser.NewContextOptions contextOptions = new Browser.NewContextOptions();
 
             // === UPDATED LOGIC FOR DIMENSIONS ===
-            if (invoiceTemplate != null && invoiceTemplate.toLowerCase().contains("thermal")) {
-                // Thermal: Set narrow width (approx 2 inches = ~200-280 pixels depending on DPI)
-                // 58mm thermal is roughly 220px, 80mm is roughly 300px.
-                // Let's use 280px for a "2 inch" feel, or adjust based on your specific CSS.
-                contextOptions.setViewportSize(280, 800);
-                contextOptions.setDeviceScaleFactor(2.0); // High DPI for crisper text on small prints
+            if (invoiceTemplate != null && invoiceTemplate.toLowerCase().contains("thermal")) {int viewportHeight = 800; // Base height (Playwright fullPage=true captures full length)
+
+                // Modern switch expression to directly assign the width
+                int viewportWidth = switch (printerType) {
+                    case "THERMAL_2" -> 280; // 58mm thermal (~2 inches)
+                    case "THERMAL_3" -> 380; // 80mm thermal (~3.14 inches)
+                    case "THERMAL_4" -> 520; // 112mm thermal (~4.4 inches)
+                    default          -> 280; // Fallback default
+                };
+
+                // Apply the dynamic viewport size
+                contextOptions.setViewportSize(viewportWidth, viewportHeight);
+
+                // Use High DPI (2.0) for crisper text and barcode rendering on small prints
+                contextOptions.setDeviceScaleFactor(2.0);
             } else {
                 // Default A4-like width: A4 at 96 DPI is approx 794px wide.
                 contextOptions.setViewportSize(794, 1123);

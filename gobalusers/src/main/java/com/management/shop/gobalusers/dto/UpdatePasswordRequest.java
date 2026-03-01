@@ -14,4 +14,5 @@ public class UpdatePasswordRequest  {
     private String newPassword;
     String emailId="";
     String userId="";
+    String phone="";
 }

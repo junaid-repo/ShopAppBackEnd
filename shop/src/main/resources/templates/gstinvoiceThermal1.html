@@ -3,31 +3,22 @@
 <head>
     <meta charset="UTF-8" />
     <title th:text="'Invoice - ' + ${invoiceId}">Receipt</title>
-    <style>
-        /* * 2-INCH (58mm) THERMAL STYLING
-         * Optimized for Legibility
-         */
-        @page {
-            /* 58mm width, variable height */
-            size: 58mm auto;
-            margin: 0;
-        }
 
+    <style>
         body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            /* Increased from 9px to 12px for better readability */
-            font-size: 12px;
             color: #000;
             background: #fff;
             margin: 0;
             padding: 0;
-            line-height: 1.2; /* Tighter line height for larger font */
+            line-height: 1.2;
         }
 
         .receipt-wrapper {
-            width: 100%;
-            /* 48mm is the safe printable area */
-            max-width: 48mm;
+            /* 🟢 Utilizes 96% of the paper width to remove vacant space while keeping a tiny safe margin */
+            width: 96%;
+            max-width: 100%;
+            box-sizing: border-box;
             margin: 0 auto;
             padding: 3mm 0;
         }
@@ -44,25 +35,21 @@
         .brand-section {
             text-align: center;
             margin-bottom: 8px;
-            border-bottom: 2px dashed #000; /* Thicker line */
+            border-bottom: 2px dashed #000;
             padding-bottom: 8px;
         }
         .logo-img {
-            max-height: 45px;
             margin-bottom: 4px;
             object-fit: contain;
             filter: grayscale(100%);
         }
         .shop-title {
-            font-size: 16px; /* Much larger */
             font-weight: 900;
             text-transform: uppercase;
-            margin: 0;
+            margin: 0 0 2px 0;
             line-height: 1;
-            margin-bottom: 2px;
         }
         .shop-sub {
-            font-size: 10px; /* Readable address */
             color: #000;
         }
 
@@ -75,7 +62,6 @@
         .info-row {
             display: flex;
             justify-content: space-between;
-            font-size: 11px; /* Bigger details */
             margin-bottom: 2px;
         }
         .info-label { font-weight: 600; }
@@ -84,11 +70,10 @@
         /* Customer Section */
         .customer-area {
             margin: 5px 0 8px 0;
-            font-size: 11px;
             line-height: 1.2;
         }
-        .cust-label { font-size: 9px; text-transform: uppercase; font-weight: bold; color: #000; }
-        .cust-name { font-size: 12px; font-weight: 800; margin-bottom: 1px;}
+        .cust-label { text-transform: uppercase; font-weight: bold; color: #000; }
+        .cust-name { font-weight: 800; margin-bottom: 1px;}
 
         /* Items Table */
         .items-table {
@@ -102,27 +87,22 @@
         }
         .items-table th {
             text-align: left;
-            font-size: 9px;
             font-weight: 800;
             padding: 4px 0;
             text-transform: uppercase;
         }
         .items-table td {
             padding: 5px 0;
-            font-size: 11px; /* Clear item text */
             vertical-align: top;
         }
 
-        /* Column Optimization for 58mm
-           We have roughly 48mm of space.
-        */
+        /* Column Optimization */
         .c-item { width: 45%; padding-right: 2px; }
-        .c-qty { width: 10%; text-align: center; } /* Qty usually needs little space */
+        .c-qty { width: 10%; text-align: center; }
         .c-price { width: 20%; text-align: right; }
         .c-total { width: 25%; text-align: right; font-weight: bold; }
 
         .sub-desc {
-            font-size: 9px;
             color: #444;
             display: block;
             margin-top: 1px;
@@ -138,23 +118,23 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 3px;
-            font-size: 11px;
         }
         .t-label { color: #000; font-weight: 600; }
 
-        /* The "PILL" - High Contrast */
+        /* 🟢 UPDATED: The "PILL" - Now a clean bordered box */
         .grand-total-pill {
-            background-color: #000;
-            color: #fff;
-            border-radius: 0; /* Square edges print sharper on thermal */
-            padding: 6px 4px;
+            background-color: transparent;
+            color: #000;
+            border: 2px solid #000;
+            border-radius: 4px; /* Optional slight curve */
+            padding: 6px 8px;
             margin-top: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .gt-label { font-size: 12px; font-weight: bold; text-transform: uppercase; }
-        .gt-value { font-size: 16px; font-weight: 900; } /* Big total */
+        .gt-label { font-weight: bold; text-transform: uppercase; }
+        .gt-value { font-weight: 900; }
 
         /* Footer */
         .footer-area {
@@ -164,7 +144,6 @@
             border-top: 1px solid #000;
         }
         .pay-info {
-            font-size: 10px;
             font-weight: bold;
             margin-bottom: 5px;
             border: 2px solid #000;
@@ -172,18 +151,57 @@
             padding: 2px 8px;
         }
         .qr-display {
-            width: 50px;
-            height: 50px;
-            margin: 5px auto;
+            display: block;
+            margin: 8px auto; /* Ensures it is always centered */
         }
         .terms-list {
-            font-size: 9px;
             color: #000;
             margin-top: 8px;
             text-align: center;
             line-height: 1.2;
         }
+    </style>
 
+    <style th:if="${printerType == null or printerType == 'THERMAL_2'}">
+        @page { size: 58mm auto; margin: 0; }
+        body { font-size: 12px; }
+        .logo-img { max-height: 45px; }
+        .shop-title { font-size: 16px; }
+        .shop-sub, .pay-info { font-size: 10px; }
+        .info-row, .customer-area, .items-table td, .t-row { font-size: 11px; }
+        .cust-label, .items-table th, .sub-desc, .terms-list { font-size: 9px; }
+        .cust-name, .gt-label { font-size: 12px; }
+        .gt-value { font-size: 16px; }
+        /* 🟢 Increased QR Size */
+        .qr-display { width: 80px; height: 80px; }
+    </style>
+
+    <style th:if="${printerType == 'THERMAL_3'}">
+        @page { size: 80mm auto; margin: 0; }
+        body { font-size: 14px; }
+        .logo-img { max-height: 65px; }
+        .shop-title { font-size: 22px; }
+        .shop-sub, .pay-info { font-size: 12px; }
+        .info-row, .customer-area, .items-table td, .t-row { font-size: 13px; }
+        .cust-label, .items-table th, .sub-desc, .terms-list { font-size: 11px; }
+        .cust-name, .gt-label { font-size: 14px; }
+        .gt-value { font-size: 20px; }
+        /* 🟢 Increased QR Size */
+        .qr-display { width: 120px; height: 120px; }
+    </style>
+
+    <style th:if="${printerType == 'THERMAL_4'}">
+        @page { size: 112mm auto; margin: 0; }
+        body { font-size: 16px; }
+        .logo-img { max-height: 85px; }
+        .shop-title { font-size: 26px; }
+        .shop-sub, .pay-info { font-size: 14px; }
+        .info-row, .customer-area, .items-table td, .t-row { font-size: 15px; }
+        .cust-label, .items-table th, .sub-desc, .terms-list { font-size: 13px; }
+        .cust-name, .gt-label { font-size: 16px; }
+        .gt-value { font-size: 26px; }
+        /* 🟢 Increased QR Size */
+        .qr-display { width: 160px; height: 160px; }
     </style>
 </head>
 
@@ -226,7 +244,7 @@
         <div class="cust-label">Billed To</div>
         <div class="cust-name" th:text="${customerName}"></div>
         <div th:text="${customerPhone}"></div>
-        <div style="font-size: 10px;" th:text="${combineAddress} ? ${customerBillingAddress} : ${customerBillingAddress}"></div>
+        <div style="font-size: 0.9em;" th:text="${combineAddress} ? ${customerBillingAddress} : ${customerBillingAddress}"></div>
     </div>
 
     <table class="items-table">
@@ -273,7 +291,7 @@
             <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
         </div>
 
-        <div class="t-row" style="margin-top: 6px; font-size: 12px; border-top: 1px dotted #000; padding-top:2px;"
+        <div class="t-row" style="margin-top: 6px; border-top: 1px dotted #000; padding-top:2px;"
              th:if="${showDueAmount and dueAmount != null and dueAmount > 0}">
             <span class="bold uppercase">Balance Due</span>
             <span class="bold" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
@@ -284,7 +302,7 @@
             <span class="gt-value" th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
         </div>
 
-        <div class="text-center" style="font-size: 9px; margin-top: 5px; color: #000; font-weight: 500;" th:text="${grandTotalInWords}"></div>
+        <div class="text-center" style="font-size: 0.8em; margin-top: 5px; color: #000; font-weight: 500;" th:text="${grandTotalInWords}"></div>
     </div>
 
     <div class="footer-area">
@@ -300,7 +318,7 @@
             <div th:each="term : ${termsAndConditions}" th:text="'• ' + ${term}"></div>
         </div>
 
-        <div style="margin-top: 12px; font-weight: 900; font-size: 11px; text-transform: uppercase;">
+        <div style="margin-top: 12px; font-weight: 900; font-size: 1.1em; text-transform: uppercase;">
             Thank you!
         </div>
     </div>

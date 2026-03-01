@@ -3,31 +3,24 @@
 <head>
     <meta charset="UTF-8" />
     <title th:text="'Invoice - ' + ${invoiceId}">Receipt</title>
+
     <style>
-        /* * Thermal Print CSS (80mm) - Modern Layout
-         * This style is designed for an 80mm thermal receipt printer.
-         * Key change: Uses a 2-column, multi-line item table.
-         */
-
-        @page {
-            size: 80mm auto;
-            margin: 2mm;
-        }
-
         body {
             font-family: 'Arial', sans-serif;
-            font-size: 11px;
-            line-height: 1.4;
             color: #000;
             background: #fff;
             margin: 0;
             padding: 0;
+            line-height: 1.4;
         }
 
         .receipt-container {
-            width: 76mm;
+            /* 🟢 Utilizes 96% of the paper width to remove vacant space */
+            width: 96%;
+            max-width: 100%;
             box-sizing: border-box;
-            margin: 0 auto; /* Centers the receipt */
+            margin: 0 auto;
+            padding: 3mm 0;
         }
 
         /* --- Text Alignment --- */
@@ -38,20 +31,17 @@
         /* --- Reusable Components --- */
         p, h4 {
             margin: 3px 0;
-            font-size: 11px;
         }
         h3 {
-            font-size: 14px;
             margin: 5px 0 3px 0;
             text-transform: uppercase;
         }
 
-        /* === MODIFIED: Changed to solid line === */
         .separator {
             border-top: 1px solid #000;
             margin: 8px 0;
         }
-        /* === MODIFIED: Made line thicker for emphasis === */
+
         .separator-solid {
             border-top: 2px solid #000;
             margin: 8px 0;
@@ -59,10 +49,9 @@
 
         /* --- Header --- */
         .shop-logo {
-            max-width: 60mm;
-            max-height: 50px;
             margin-bottom: 5px;
             object-fit: contain;
+            filter: grayscale(100%);
         }
         .shop-info p {
             margin: 1px 0;
@@ -81,9 +70,7 @@
             margin: 1px 0;
         }
 
-        /* * === NEW ITEMS TABLE STYLE ===
-         * This is a 2-column, multi-line layout
-         */
+        /* --- Items Table --- */
         .items-table {
             width: 100%;
             border-collapse: collapse;
@@ -94,48 +81,39 @@
             vertical-align: top;
         }
         .items-table thead th {
-            border-bottom: 2px solid #000; /* Thicker header line */
+            border-bottom: 2px solid #000;
             padding-bottom: 4px;
         }
 
-        /* Each row is separated by a light solid line */
         .items-table tbody tr {
             border-bottom: 1px solid #ccc;
         }
         .items-table tbody tr:last-child {
-            border-bottom: none; /* No line after the last item */
+            border-bottom: none;
         }
 
-        /* Column 1: Description (wide) */
         .items-table .col-desc {
             width: 70%;
             text-align: left;
         }
-        /* Column 2: Total (narrow) */
         .items-table .col-total {
             width: 30%;
             text-align: right;
             font-weight: bold;
-            font-size: 12px;
         }
 
-        /* Align headers */
         .items-table thead .col-desc { text-align: left; }
         .items-table thead .col-total { text-align: right; }
 
-        /* Item detail styling (inside col-desc) */
         .col-desc strong {
-            font-size: 12px; /* Make item name slightly bigger */
             display: inline;
         }
         .hsn-code {
-            font-size: 10px;
             font-style: italic;
             margin-left: 4px;
         }
         .item-desc {
             display: block;
-            font-size: 10px;
             color: #333;
             font-style: italic;
         }
@@ -145,19 +123,15 @@
             font-weight: bold;
         }
         .item-discount {
-            font-size: 10px;
             margin-left: 4px;
             font-weight: normal;
         }
         .tax-breakdown {
-            font-size: 9px;
             display: block;
             line-height: 1.2;
             font-style: italic;
             margin-top: 2px;
         }
-        /* === END NEW TABLE STYLE === */
-
 
         /* --- Totals Summary --- */
         .totals-summary {
@@ -174,22 +148,25 @@
             text-align: right;
             font-weight: bold;
         }
-        .totals-summary .grand-total td {
-            font-size: 14px;
-            font-weight: bold;
-            border-top: 2px solid #000; /* Match solid separator */
-            padding-top: 4px;
+
+        /* 🟢 UPDATED: The Total Box Styling */
+        .grand-total td {
+            border: 2px solid #000; /* Replaced black background with border */
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-top: 8px;
         }
 
         /* --- Due/Paid Summary --- */
+        .payment-summary {
+            width: 100%;
+        }
         .payment-summary td {
             padding: 3px 0;
-            font-size: 12px;
             font-weight: bold;
         }
         .payment-summary .due {
             color: #000;
-            font-size: 14px;
         }
 
         /* --- Footer --- */
@@ -198,9 +175,8 @@
             page-break-inside: avoid;
         }
         .footer-section h4 {
-            font-size: 12px;
             margin: 5px 0 3px 0;
-            border-bottom: 1px solid #000; /* Solid line */
+            border-bottom: 1px solid #000;
             padding-bottom: 3px;
         }
 
@@ -224,10 +200,9 @@
             max-width: 100%;
             height: auto;
             margin: 0 auto;
-            display: block;
+            display: block; /* Centers the image */
         }
         .qr-hint {
-            font-size: 10px;
             font-weight: bold;
             text-align: center;
             margin-top: 3px;
@@ -236,9 +211,58 @@
         .terms ul {
             padding-left: 15px;
             margin: 0;
-            font-size: 10px;
         }
+    </style>
 
+    <style th:if="${printerType == null or printerType == 'THERMAL_2'}">
+        @page { size: 58mm auto; margin: 0; }
+        body, p, h4 { font-size: 11px; }
+        h3 { font-size: 14px; }
+        .shop-logo { max-width: 48mm; max-height: 40px; }
+
+        .items-table .col-total, .col-desc strong { font-size: 12px; }
+        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 10px; }
+        .tax-breakdown { font-size: 9px; }
+
+        .totals-summary .grand-total td { font-size: 14px; }
+        .payment-summary td, .payment-summary .due { font-size: 12px; }
+
+        /* 🟢 Increased QR Size */
+        .qr-display { width: 80px; height: 80px; }
+    </style>
+
+    <style th:if="${printerType == 'THERMAL_3'}">
+        @page { size: 80mm auto; margin: 0; }
+        body, p, h4 { font-size: 13px; }
+        h3 { font-size: 18px; }
+        .shop-logo { max-width: 60mm; max-height: 50px; }
+
+        .items-table .col-total, .col-desc strong { font-size: 14px; }
+        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 12px; }
+        .tax-breakdown { font-size: 11px; }
+
+        .totals-summary .grand-total td { font-size: 16px; }
+        .payment-summary td, .payment-summary .due { font-size: 14px; }
+
+        /* 🟢 Increased QR Size */
+        .qr-display { width: 120px; height: 120px; }
+    </style>
+
+    <style th:if="${printerType == 'THERMAL_4'}">
+        @page { size: 112mm auto; margin: 0; }
+        body, p, h4 { font-size: 16px; }
+        h3 { font-size: 22px; }
+        .shop-logo { max-width: 80mm; max-height: 70px; }
+
+        .items-table .col-total, .col-desc strong { font-size: 18px; }
+        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 14px; }
+        .tax-breakdown { font-size: 12px; }
+
+        .totals-summary .grand-total td { font-size: 20px; }
+        .payment-summary td, .payment-summary .due { font-size: 16px; }
+
+        /* 🟢 Increased QR Size */
+        .qr-display { width: 160px; height: 160px; }
     </style>
 </head>
 
@@ -401,7 +425,7 @@
         </div>
 
         <div class="qr-container" th:if="${qrCodeBase64}">
-            <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code" class="qr-code"/>
+            <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code" class="qr-code qr-display"/>
             <p class="qr-hint">Scan to pay</p>
         </div>
     </div>
@@ -421,5 +445,6 @@
         Thank You! Visit Again!
     </p>
 
-</div> </body>
+</div>
+</body>
 </html>

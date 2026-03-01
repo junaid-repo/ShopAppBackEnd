@@ -11,4 +11,7 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
 
     @Query("SELECT pc FROM ProductCategory pc WHERE LOWER(REPLACE(pc.categoryName, ' ', '')) = LOWER(REPLACE(:categoryName, ' ', '')) AND pc.username = :s")
     List<ProductCategory> getCategoryName(@Param("categoryName") String categoryName, @Param("s") String s);
+
+    @Query("SELECT pc FROM ProductCategory pc WHERE pc.username = :s")
+    List<ProductCategory> getCategoryNamesList( @Param("s") String s);
 }

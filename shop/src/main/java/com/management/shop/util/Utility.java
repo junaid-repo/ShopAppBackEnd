@@ -583,6 +583,36 @@ public class Utility {
         return response;
     }
 
+    @Transactional
+    public Map<String, String> saveUserInvoicePrinter(Map<String, Object> request) {
+
+        String printerType=request.get("printerType").toString();
+
+        Map<String, String> response = new HashMap<>();
+        response.put("statusText", "success");
+
+        SelectedInvoiceEntity repoEntityCheck = invoiceRepo.findByUsername(extractUsername());
+
+        if(repoEntityCheck!=null){
+            invoiceRepo.updateSelectedPrinterType(printerType, extractUsername(), LocalDateTime.now());
+        }
+        else {
+            var selectedInvoiceEntity = SelectedInvoiceEntity.builder().printerType(printerType).username(extractUsername()).updatedBy(extractUsername()).updatedDate(LocalDateTime.now()).build();
+
+            SelectedInvoiceEntity repoEntity = invoiceRepo.save(selectedInvoiceEntity);
+            if (repoEntity != null) {
+                response.put("statusText", "success");
+            } else {
+                response.put("statusText", "some error occured");
+            }
+
+        }
+
+
+
+        return response;
+    }
+
 
 
     public Map<String, String> getInvoiceTemplate() {
@@ -590,7 +620,9 @@ public class Utility {
         SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(extractUsername());
         Map<String, String> response = new HashMap<>();
         String templateName = repoEntity.getTemplateName();
+        String printerType= repoEntity.getPrinterType();
         response.put("selectedTemplateName", templateName);
+        response.put("printerType", printerType);
 
         return response;
     }

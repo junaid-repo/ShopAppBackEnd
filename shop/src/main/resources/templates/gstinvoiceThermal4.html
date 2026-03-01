@@ -3,18 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <title th:text="'Invoice - ' + ${invoiceId}">Receipt</title>
-    <style>
-        /* * BOXED STRUCTURE THERMAL CSS
-         * Style: Organized, Boxed Sections, Clean
-         */
-        @page {
-            size: 80mm auto;
-            margin: 0;
-        }
 
+    <style>
         body {
-            font-family: 'Verdana', Geneva, sans-serif; /* Wider font for readability */
-            font-size: 10px;
+            font-family: 'Verdana', Geneva, sans-serif;
             line-height: 1.4;
             color: #000;
             background: #fff;
@@ -23,10 +15,11 @@
         }
 
         .container {
-            width: 100%;
-            max-width: 78mm; /* Slight margin for printer safe zone */
+            /* 🟢 Stretches to fill the paper while keeping a 2% margin on each side to prevent cutoff */
+            width: 96%;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 2mm;
+            padding: 2mm 0;
             box-sizing: border-box;
         }
 
@@ -53,23 +46,21 @@
             margin-bottom: 10px;
         }
         .shop-name {
-            font-size: 16px;
             font-weight: 900;
             margin: 5px 0;
             text-transform: uppercase;
         }
         .shop-logo {
-            max-height: 45px;
             object-fit: contain;
+            filter: grayscale(100%);
         }
 
         /* Meta Strip (Invoice No / Date) */
         .meta-strip {
-            background-color: #eee; /* Light gray background (dithers on thermal) */
+            background-color: #eee;
             border-top: 1px solid #000;
             border-bottom: 1px solid #000;
             padding: 4px;
-            font-size: 10px;
             font-weight: bold;
         }
 
@@ -82,7 +73,6 @@
         table.items th {
             text-align: left;
             border-bottom: 2px solid #000;
-            font-size: 9px;
             padding: 3px 0;
         }
         table.items td {
@@ -94,7 +84,7 @@
         .c-name { width: 45%; }
         .c-qty { width: 10%; text-align: center; }
         .c-rate { width: 20%; text-align: right; }
-        .c-total { width: 25%; text-align: right; }
+        .c-total { width: 25%; text-align: right; font-weight: bold; }
 
         /* Totals Area */
         .totals-area {
@@ -110,11 +100,12 @@
         /* The "Stamp" Total */
         .grand-total-box {
             border: 2px solid #000;
+            border-radius: 4px;
             padding: 8px;
             margin-top: 10px;
             text-align: center;
-            font-size: 14px;
             font-weight: bold;
+            text-transform: uppercase;
         }
 
         /* Payment Section */
@@ -126,10 +117,56 @@
             border-top: 1px dotted #000;
             padding-top: 5px;
         }
-        .qr-img {
-            width: 50px;
-            height: 50px;
+        .payment-details {
+            width: 55%;
         }
+        .qr-wrapper {
+            width: 40%;
+            text-align: center;
+        }
+        .qr-img {
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+
+    <style th:if="${printerType == null or printerType == 'THERMAL_2'}">
+        @page { size: 58mm auto; margin: 0; }
+        body { font-size: 10px; }
+        .shop-name { font-size: 14px; }
+        .shop-logo { max-height: 40px; }
+        .meta-strip { font-size: 9px; }
+        table.items th { font-size: 8px; }
+        table.items td { font-size: 10px; }
+        .grand-total-box { font-size: 14px; }
+        /* 🟢 Optimized QR for 58mm */
+        .qr-img { width: 80px; height: 80px; }
+    </style>
+
+    <style th:if="${printerType == 'THERMAL_3'}">
+        @page { size: 80mm auto; margin: 0; }
+        body { font-size: 13px; }
+        .shop-name { font-size: 18px; }
+        .shop-logo { max-height: 55px; }
+        .meta-strip { font-size: 12px; }
+        table.items th { font-size: 11px; }
+        table.items td { font-size: 13px; }
+        .grand-total-box { font-size: 18px; }
+        /* 🟢 Optimized QR for 80mm */
+        .qr-img { width: 120px; height: 120px; }
+    </style>
+
+    <style th:if="${printerType == 'THERMAL_4'}">
+        @page { size: 112mm auto; margin: 0; }
+        body { font-size: 16px; }
+        .shop-name { font-size: 24px; }
+        .shop-logo { max-height: 75px; }
+        .meta-strip { font-size: 15px; }
+        table.items th { font-size: 13px; }
+        table.items td { font-size: 16px; }
+        .grand-total-box { font-size: 24px; }
+        /* 🟢 Optimized QR for 112mm */
+        .qr-img { width: 160px; height: 160px; }
     </style>
 </head>
 
@@ -141,11 +178,10 @@
         <div th:unless="${shopLogoBase64}" class="shop-name" th:text="${shopLogoText}"></div>
 
         <div class="shop-name" th:if="${shopLogoBase64}" th:text="${shopName}"></div>
-        <div th:unless="${shopLogoBase64}" class="bold" th:text="${shopName}" style="font-size: 14px;"></div>
 
         <div th:text="${shopAddress}"></div>
         <div>Ph: <span th:text="${shopPhone}"></span></div>
-        <div th:if="${gstNumber}">GSTIN: <span th:text="${gstNumber}"></span></div>
+        <div th:if="${gstNumber}" class="bold">GSTIN: <span th:text="${gstNumber}"></span></div>
     </div>
 
     <div class="meta-strip flex">
@@ -154,7 +190,7 @@
     </div>
 
     <div class="border-box" style="margin-top: 8px;" th:if="${customerName != 'Anonymous'}">
-        <div style="font-size: 9px; text-decoration: underline; margin-bottom: 2px;">Customer Details:</div>
+        <div style="font-size: 0.9em; text-decoration: underline; margin-bottom: 2px;">Customer Details:</div>
         <div class="bold" th:text="${customerName}"></div>
         <div th:text="${customerPhone}"></div>
         <div th:text="${combineAddress} ? ${customerBillingAddress} : ${customerBillingAddress}"></div>
@@ -175,7 +211,7 @@
             <tr>
                 <td class="c-name">
                     <div class="bold" th:text="${product['productName']}"></div>
-                    <div style="font-size: 9px; color: #555;">
+                    <div style="font-size: 0.85em; color: #555;">
                         <span th:if="${showHsnColumn}" th:text="'HSN:' + ${product['hsnCode']}"></span>
                         <span th:if="${showIndividualDiscountPercentage}" th:text="' Disc:' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 0)} + '%'"></span>
                     </div>
@@ -210,7 +246,7 @@
     <div class="grand-total-box">
         TOTAL: <span th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
     </div>
-    <div class="text-center" style="font-size: 9px; margin-top: 2px;" th:text="${grandTotalInWords}"></div>
+    <div class="text-center" style="font-size: 0.85em; margin-top: 4px;" th:text="${grandTotalInWords}"></div>
 
     <div class="border-box text-center" style="margin-top: 5px; border-style: dashed;"
          th:if="${showDueAmount and dueAmount != null and dueAmount > 0}">
@@ -219,32 +255,33 @@
     </div>
 
     <div class="payment-section" th:if="${(bankAccountName != null and !#strings.isEmpty(bankAccountName)) or (qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64))}">
-        <div style="width: 70%; font-size: 9px;">
-            <div class="bold">PAYMENT INFO</div>
+        <div class="payment-details" style="font-size: 0.9em;">
+            <div class="bold" style="text-decoration: underline; margin-bottom: 2px;">PAYMENT INFO</div>
             <div th:if="${bankAccountName}">
                 <div th:if="${bankName}" th:text="${bankName}"></div>
                 <div th:if="${bankAccountNumber}" th:text="'Ac: ' + ${bankAccountNumber}"></div>
                 <div th:if="${bankIfscCode}" th:text="'IFSC: ' + ${bankIfscCode}"></div>
             </div>
-            <div th:if="${upiId}" th:text="'UPI: ' + ${upiId}"></div>
+            <div th:if="${upiId}" class="bold" style="margin-top: 4px;" th:text="'UPI: ' + ${upiId}"></div>
         </div>
 
-        <div th:if="${qrCodeBase64}">
+        <div class="qr-wrapper" th:if="${qrCodeBase64}">
             <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-img"/>
+            <div class="bold" style="font-size: 0.8em; margin-top: 2px;">SCAN & PAY</div>
         </div>
     </div>
 
-    <div style="margin-top: 15px; text-align: justify; font-size: 9px;" th:unless="${removeTerms}">
+    <div style="margin-top: 15px; text-align: justify; font-size: 0.85em;" th:unless="${removeTerms}">
         <div class="dashed-bottom"></div>
-        <div class="bold text-center" style="margin-top: 2px;">Terms & Conditions</div>
+        <div class="bold text-center" style="margin-top: 4px; margin-bottom: 2px;">Terms & Conditions</div>
         <ul style="padding-left: 15px; margin: 2px 0;">
             <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
         </ul>
     </div>
 
     <div class="text-center" style="margin-top: 15px;">
-        <div class="bold">THANK YOU!</div>
-        <div style="font-size: 9px;">Please Visit Again</div>
+        <div class="bold" style="font-size: 1.1em;">THANK YOU!</div>
+        <div style="font-size: 0.9em;">Please Visit Again</div>
     </div>
 
 </div>

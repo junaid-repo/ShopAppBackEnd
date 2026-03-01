@@ -17,4 +17,11 @@ public interface SelectedInvoiceRepository extends JpaRepository<SelectedInvoice
     void updateSelectedInvoice(String selectedTemplate, String s, LocalDateTime now);
 
 
+
+    @Modifying
+    @Transactional
+    @Query(value="update selected_invoice_entity  set printer_type=?1, updated_date=?3 where username=?2 ", nativeQuery = true)
+    void updateSelectedPrinterType(String selectedPrinterType, String s, LocalDateTime now);
+
+
 }
