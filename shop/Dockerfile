@@ -33,7 +33,6 @@ RUN apt-get update && apt-get install -y \
     fontconfig \
     libfreetype6 \
     libatk-bridge2.0-0 \
-    libatspi0 \
     libgbm1 \
     && rm -rf /var/lib/apt/lists/*
 
