@@ -7,8 +7,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class FirebaseConfig {
@@ -17,9 +19,18 @@ public class FirebaseConfig {
     public FirebaseApp firebaseApp() throws IOException {
         // Check if Firebase is already initialized to avoid conflicts during hot-reloads
         if (FirebaseApp.getApps().isEmpty()) {
-            // Load the JSON file from resources
-            ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
-            InputStream serviceAccount = resource.getInputStream();
+
+            InputStream serviceAccount;
+            String firebaseEnv = System.getenv("FIREBASE_CREDENTIALS");
+
+            // Check if we are in production (Render) and have the environment variable
+            if (firebaseEnv != null && !firebaseEnv.trim().isEmpty()) {
+                serviceAccount = new ByteArrayInputStream(firebaseEnv.getBytes(StandardCharsets.UTF_8));
+            } else {
+                // Fallback for local development using the gitignored file
+                ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
+                serviceAccount = resource.getInputStream();
+            }
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
