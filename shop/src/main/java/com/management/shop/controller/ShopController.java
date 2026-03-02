@@ -607,7 +607,7 @@ public class ShopController {
             // PROD: Delete cookie with Domain and Secure flag
             // Note: Max-Age must be 0 to expire the cookie immediately
             httpResponse.addHeader("Set-Cookie",
-                    "jwt=; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.store; Max-Age=0");
+                    "jwt=; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.info; Max-Age=0");
         } else {
             // DEV (IP Address/Localhost): Delete cookie without Domain and without Secure
 
