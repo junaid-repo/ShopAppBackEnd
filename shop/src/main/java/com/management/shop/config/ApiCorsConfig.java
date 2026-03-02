@@ -9,11 +9,11 @@ public class ApiCorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")  // Only the API routes you want to expose to the frontend
-                .allowedOrigins("http://localhost:3000")  // React frontend
-                .allowedOrigins("http://localhost:8080")
-                .allowedOrigins("http://192.168.29.241:3000")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
-                .allowCredentials(true);  // Allow cookies
+        registry.addMapping("/**")
+                .allowedOrigins("https://www.clearbills.info", "https://clearbills.info")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(7200); // <-- THIS IS THE MAGIC LINE (Caches preflight for 1 hour)
     }
 }
