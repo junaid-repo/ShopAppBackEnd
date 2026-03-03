@@ -94,7 +94,7 @@ public class AuthController {
 
     @PostMapping("/auth/resend-otp")
     public OtpVerifyResponse reEnterOtp(@RequestBody OtpVerifyRequest userInfo) {
-        System.out.println("Entered reEnterOtp with payload  " + userInfo);
+        System.out.println("Entered reEnterOtp with payload  for user" + userInfo);
         return serv.reEnterOtp(userInfo);
     }
 

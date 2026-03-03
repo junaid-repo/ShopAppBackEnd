@@ -35,7 +35,7 @@ public class SettingsController {
 
     @PutMapping("api/shop/settings/user/save/scheduler")
     ResponseEntity<Map<String, String>> saveUserSchedulerSettings(@RequestBody SchedulerSettings request) {
-
+        System.out.println("Received scheduler settings request: " + request);
         String response = serv.saveUserSchedulerSettings(request);
         Map<String, String> responseMap = new HashMap<>();
         responseMap.put("status", "success");
