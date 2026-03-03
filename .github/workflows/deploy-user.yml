@@ -6,6 +6,7 @@ on:
     # THIS IS THE MAGIC: Only run if files in the user folder change!
     paths:
       - 'gobalusers/**'
+  workflow_dispatch: #
 
 jobs:
   deploy:

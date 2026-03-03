@@ -6,6 +6,7 @@ on:
     # Only run if files in the shop folder change!
     paths:
       - 'shop/**'
+  workflow_dispatch: #
 
 jobs:
   deploy:
