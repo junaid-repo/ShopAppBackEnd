@@ -53,7 +53,7 @@ public class SubsController {
                 // 3. If signature is valid, call your billing service!
                 System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_payment_id());
                 System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_order_id());
-                System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_signature());
+                System.out.println("Payment verified.  Proceeding to save the bill." + request.getRazorpay_signature());
 
                 // This replaces the direct call to /api/shop/do/billing
                 String billingResponse = serv.updateSubsription(request);
