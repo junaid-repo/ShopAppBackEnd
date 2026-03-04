@@ -6,14 +6,12 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.management.shop.dto.InvoiceData;
 import com.management.shop.dto.OrderItemInvoice;
+import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.Margin;
 import com.microsoft.playwright.options.ScreenshotType;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
@@ -166,48 +164,60 @@ public class PDFGSTInvoiceUtil {
         String htmlContent = templateEngine.process(invoiceTemplate, context);
 
         try (Playwright playwright = Playwright.create()) {
-            Browser browser = playwright.chromium().launch();
 
-            // 1. Create a new Context to control the Viewport (Width/Height)
-            // We set a high height initially, but 'setFullPage(true)' later handles the actual length.
-            Browser.NewContextOptions contextOptions = new Browser.NewContextOptions();
+            // === ADDED LINUX SERVER LAUNCH OPTIONS ===
+            BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
+                    .setHeadless(true)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox"));
 
-            // === UPDATED LOGIC FOR DIMENSIONS ===
-            if (invoiceTemplate != null && invoiceTemplate.toLowerCase().contains("thermal")) {int viewportHeight = 800; // Base height (Playwright fullPage=true captures full length)
+            // Wrapped Browser in try-with-resources to guarantee memory is freed on crash
+            try (Browser browser = playwright.chromium().launch(launchOptions)) {
 
-                // Modern switch expression to directly assign the width
-                int viewportWidth = switch (printerType) {
-                    case "THERMAL_2" -> 280; // 58mm thermal (~2 inches)
-                    case "THERMAL_3" -> 380; // 80mm thermal (~3.14 inches)
-                    case "THERMAL_4" -> 520; // 112mm thermal (~4.4 inches)
-                    default          -> 280; // Fallback default
-                };
+                // 1. Create a new Context to control the Viewport (Width/Height)
+                Browser.NewContextOptions contextOptions = new Browser.NewContextOptions();
 
-                // Apply the dynamic viewport size
-                contextOptions.setViewportSize(viewportWidth, viewportHeight);
+                // === EXISTING LOGIC FOR DIMENSIONS ===
+                if (invoiceTemplate != null && invoiceTemplate.toLowerCase().contains("thermal")) {
+                    int viewportHeight = 800; // Base height (Playwright fullPage=true captures full length)
 
-                // Use High DPI (2.0) for crisper text and barcode rendering on small prints
-                contextOptions.setDeviceScaleFactor(2.0);
-            } else {
-                // Default A4-like width: A4 at 96 DPI is approx 794px wide.
-                contextOptions.setViewportSize(794, 1123);
-                contextOptions.setDeviceScaleFactor(1.0);
+                    // Modern switch expression to directly assign the width
+                    int viewportWidth = switch (printerType) {
+                        case "THERMAL_2" -> 280; // 58mm thermal (~2 inches)
+                        case "THERMAL_3" -> 380; // 80mm thermal (~3.14 inches)
+                        case "THERMAL_4" -> 520; // 112mm thermal (~4.4 inches)
+                        default          -> 280; // Fallback default
+                    };
+
+                    // Apply the dynamic viewport size
+                    contextOptions.setViewportSize(viewportWidth, viewportHeight);
+
+                    // Use High DPI (2.0) for crisper text and barcode rendering on small prints
+                    contextOptions.setDeviceScaleFactor(2.0);
+                } else {
+                    // Default A4-like width: A4 at 96 DPI is approx 794px wide.
+                    contextOptions.setViewportSize(794, 1123);
+                    contextOptions.setDeviceScaleFactor(1.0);
+                }
+                // ==========================
+
+                // Wrapped Context and Page in try-with-resources
+                try (BrowserContext context2 = browser.newContext(contextOptions);
+                     Page page = context2.newPage()) {
+
+                    page.setContent(htmlContent);
+
+                    // 2. Configure Screenshot Options
+                    Page.ScreenshotOptions screenshotOptions = new Page.ScreenshotOptions()
+                            .setType(ScreenshotType.PNG) // Ensure output is PNG
+                            .setFullPage(true); // Capture the full scrollable height (Essential for invoices)
+
+                    byte[] imageBytes = page.screenshot(screenshotOptions);
+
+                    // browser.close(); <--- REMOVED: try-with-resources handles this automatically now!
+
+                    return imageBytes;
+                }
             }
-            // ==========================
-
-            Page page = browser.newContext(contextOptions).newPage();
-            page.setContent(htmlContent);
-
-            // 2. Configure Screenshot Options
-            Page.ScreenshotOptions screenshotOptions = new Page.ScreenshotOptions()
-                    .setType(ScreenshotType.PNG) // Ensure output is PNG
-                    .setFullPage(true); // Capture the full scrollable height (Essential for invoices)
-
-            byte[] imageBytes = page.screenshot(screenshotOptions);
-
-            browser.close();
-
-            return imageBytes; // This now returns PNG bytes, not PDF bytes
         } catch (Exception e) {
             // ... existing error handling ...
             throw new RuntimeException("Error generating Invoice Image", e);
