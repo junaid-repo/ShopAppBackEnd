@@ -1173,7 +1173,7 @@ public class ShopController {
 
     @GetMapping("api/shop/get/categories")
     public ResponseEntity<List<String>> getCategories() {
-
+     System.out.println("Entered getCategories controller");
         List<String> categories = serv.getCategories();
 
         return ResponseEntity.ok(categories);

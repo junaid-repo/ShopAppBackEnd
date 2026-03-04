@@ -100,7 +100,7 @@ public class AuthController {
 
     @GetMapping("auth/otp-retry-count")
     public Map<String, String> fetchRetries(@RequestParam String username) {
-        System.out.println("Entered fetchRetries with payload  " + username);
+        System.out.println("Entered fetchRetries with payload  from frontend" + username);
         return serv.fetchRetries(username);
     }
 
