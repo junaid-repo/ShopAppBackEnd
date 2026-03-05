@@ -158,7 +158,7 @@ public class PDFGSTInvoiceUtil {
 
         context.setVariable("printerType", nullSafeString(printerType)); // Pass printer type to template for conditional styling
 
-        System.out.println("The full data to render invoice " + context);
+        System.out.println("The full data to render invoice -->" + context);
 
         // --- Generate PDF ---
         String htmlContent = templateEngine.process(invoiceTemplate, context);

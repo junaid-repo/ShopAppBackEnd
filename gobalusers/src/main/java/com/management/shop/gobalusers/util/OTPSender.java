@@ -135,7 +135,7 @@ public class OTPSender {
         );
 
         System.out.println("SMS Alert API response status code: " + response.statusCode());
-        System.out.println("SMS Alert API response body: " + response.body());
+        System.out.println("SMS Alert API response body:-> " + response.body());
 
         return response.body();
 
