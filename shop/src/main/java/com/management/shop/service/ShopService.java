@@ -138,8 +138,8 @@ public class ShopService {
     @Autowired
     EmailSender email;
 
-    @Autowired
-    private S3Client s3Client;
+ /*   @Autowired
+    private S3Client s3Client;*/
 
     @Autowired
     private OTPSender otpSender;
@@ -1482,7 +1482,7 @@ String username=extractUsername();
         return request;
     }
 
-    public String saveEditableUserProfilePic(MultipartFile profilePic, String username) throws IOException {
+  /*  public String saveEditableUserProfilePic(MultipartFile profilePic, String username) throws IOException {
         System.out.println("entered saveEditableUserProfilePic with  username " + username);
 
         String keyName = profilePic.getOriginalFilename();
@@ -1506,7 +1506,7 @@ String username=extractUsername();
         }
 
         return "ok";
-    }
+    }*/
 
 
 // ... inside your service class ...
@@ -1729,7 +1729,7 @@ String username=extractUsername();
 
     }
 
-    public byte[] getProfilePic(String username) throws IOException {
+    /*public byte[] getProfilePic(String username) throws IOException {
 
         System.out.println("entered getProfilePic with request  username " + username);
 
@@ -1779,7 +1779,7 @@ String username=extractUsername();
         }
 
         return content;
-    }
+    }*/
 
     public byte[] getProfilePicOracle(String username) throws IOException {
 
@@ -2401,7 +2401,7 @@ String username=extractUsername();
     }
 
 
-    public String updateShopLogo(MultipartFile shopLogo) throws IOException {
+    /*public String updateShopLogo(MultipartFile shopLogo) throws IOException {
 
         String username = extractUsername();
         System.out.println("entered saveEditableUserProfilePic with  username " + username);
@@ -2428,7 +2428,7 @@ String username=extractUsername();
         }
 
         return "ok";
-    }
+    }*/
 
     public String updateShopLogoOracle(MultipartFile shopLogo) throws IOException {
 
@@ -2574,7 +2574,7 @@ String username=extractUsername();
     }
 
 
-    public byte[] getShopLogo(String username) throws IOException {
+   /* public byte[] getShopLogo(String username) throws IOException {
 
         System.out.println("entered getProfilePic with request  username " + username);
 
@@ -2597,7 +2597,7 @@ String username=extractUsername();
 
 
         return content;
-    }
+    }*/
 
 
     public byte[] getShopLogoOracle(String username) throws IOException {
@@ -2725,44 +2725,7 @@ String username=extractUsername();
         return null;
     }
 
-    public Map<String, String> sendPaymentReminderToSQS(Map<String, Object> request) {
-        Map<String, String> response = new HashMap<>();
-        if(request.get("method").equals("whatsapp")){
-            String orderNo = (String) request.get("orderId");
-            salesPaymentRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
 
-            var reminderCounter = ReminderCounter.builder().createdBy(extractUsername())
-                            .method((String)request.get("method"))
-                    .username(extractUsername())
-                                    .invoiceId((String) request.get("orderId"))
-                                            .message((String) request.get("message"))
-                                                    .createdDate(LocalDateTime.now())
-                                                            .build();
-
-            ReminderCounter savedCounter= reminderCounterRepo.save(reminderCounter);
-
-            salesCacheService.evictUserSales(extractUsername());
-
-            response.put("errorData", "success");
-            return response;
-        }
-
-        System.out.println("Entered sendPaymentReminderToSQS with request " + request);
-
-        try {
-
-            sqsUtil.sendOrderDetailsJustAfterOrderCompletion("send-paymentReminder-email-queue", "SQS", request);
-
-            // }
-
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        response.put("errorData", "success");
-        return response;
-
-    }
 
     public List<ReminderCounter> getPaymentReminderLists(String invoiceId){
         List<ReminderCounter> paymentReminders=reminderCounterRepo.findByInvoiceIdAndUsername(invoiceId, extractUsername());

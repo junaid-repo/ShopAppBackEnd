@@ -1,3 +1,4 @@
+/*
 package com.management.shop.config;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -29,3 +30,4 @@ public class S3Config {
                 .build();
     }
 }
+*/

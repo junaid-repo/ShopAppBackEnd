@@ -969,7 +969,7 @@ public class ShopController {
     @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<Map<String, String>> sendPaymentReminders(@RequestBody Map<String, Object> request){
 
-        Map<String, String> response= serv.sendPaymentReminderToSQS(request);
+        Map<String, String> response= serv.sendPaymentReminder(request);
 
         return ResponseEntity.ok(response);
     }
