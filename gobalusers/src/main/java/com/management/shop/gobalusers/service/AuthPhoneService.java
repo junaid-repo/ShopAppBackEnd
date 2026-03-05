@@ -74,7 +74,7 @@ public class AuthPhoneService {
                 String smsResponse="";
 
                     try {
-                        smsResponse  =  otpSender.sendOtpWithPhone(regRequest.getPhone(), String.valueOf(number), "30");
+                        smsResponse  =  otpSender.sendOtpWithPhoneForReg(regRequest.getPhone(), String.valueOf(number), "30");
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     } catch (InterruptedException e) {
@@ -122,7 +122,7 @@ public class AuthPhoneService {
                 String smsResponse="";
 
                 try {
-                    smsResponse  =  otpSender.sendOtpWithPhone(regRequest.getPhone(), String.valueOf(number), "30");
+                    smsResponse  =  otpSender.sendOtpWithPhoneForReg(regRequest.getPhone(), String.valueOf(number), "30");
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (InterruptedException e) {
@@ -196,7 +196,7 @@ public class AuthPhoneService {
         String smsResponse="";
 
         try {
-            smsResponse  =  otpSender.sendOtpWithPhone(otpVerifyReq.getPhone(), String.valueOf(number), "30");
+            smsResponse  =  otpSender.sendOtpWithPhoneForReg(otpVerifyReq.getPhone(), String.valueOf(number), "30");
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
@@ -278,7 +278,7 @@ public class AuthPhoneService {
             String smsResponse="";
 
             try {
-                smsResponse  =  otpSender.sendOtpWithPhone(forgotPassRequest.getPhone(), String.valueOf(otp), "30");
+                smsResponse  =  otpSender.sendOtpWithPhoneForPasswordReset(forgotPassRequest.getPhone(), String.valueOf(otp), "30");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {

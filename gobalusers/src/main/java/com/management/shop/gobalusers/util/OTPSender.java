@@ -77,15 +77,45 @@ public class OTPSender {
 		return response;
 	}
 
-    public String sendOtpWithPhone(String phoneNumber, String otp, String timing) throws IOException, InterruptedException {
+    public String sendOtpWithPhoneForReg(String phoneNumber, String otp, String timing) throws IOException, InterruptedException {
 
         HttpClient client = HttpClient.newHttpClient();
         String msgBody = "Dear User,\n\n" +
-                "Your OTP is " + otp +
-                ". Valid for " + timing +
-                " minutes. Please do not share this OTP.\n\n" +
+                "Please use " + otp + " to register with ClearBills. This OTP is valid for " + timing + " minutes. Please don't share this OTP.\n\n" +
                 "Regards,\n" +
-                "Lumenapps";
+                "ClearBills from Lumenapps";
+
+// ✅ Encode message
+        String encodedMessage =
+                URLEncoder.encode(msgBody, StandardCharsets.UTF_8);
+
+        String url = smsAlertApiUrl
+                + "?apikey=" + smsAlertApiKey
+                + "&sender=" + smsAlertSenderId
+                + "&mobileno=" + phoneNumber
+                + "&text=" + encodedMessage;
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> response=client.send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+
+        System.out.println("SMS Alert API response status code: " + response.statusCode());
+        System.out.println("SMS Alert API response body: " + response.body());
+
+        return response.body();
+
+    }
+
+    public String sendOtpWithPhoneForPasswordReset(String phoneNumber, String otp, String timing) throws IOException, InterruptedException {
+
+        HttpClient client = HttpClient.newHttpClient();
+        String msgBody = "Dear User,\n\n" +
+                "Please use " + otp + " to reset your password in ClearBills. This OTP is valid for " + timing + " minutes. Please don't share this OTP.\n\n" +
+                "Regards,\n" +
+                "ClearBills from Lumenapps";
 
 // ✅ Encode message
         String encodedMessage =
