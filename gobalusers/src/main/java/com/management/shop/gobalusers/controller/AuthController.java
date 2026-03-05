@@ -155,6 +155,6 @@ public class AuthController {
     @PostMapping("/auth/phone/update-password")
     public ValidateContactResponse confirmOtpAndUpdatePasswordPhone(@RequestBody UpdatePasswordRequest updatePassRequest) {
         System.out.println("Entered confirmOtpAndUpdatePassword with payload  " + updatePassRequest);
-        return serv.confirmOtpAndUpdatePassword(updatePassRequest);
+        return authPhoneService.confirmOtpAndUpdatePasswordPhone(updatePassRequest);
     }
 }

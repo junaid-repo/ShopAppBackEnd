@@ -5,11 +5,11 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.mailjet.client.MailjetResponse;
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
+import com.management.shop.gobalusers.constants.EventConstants;
 import com.management.shop.gobalusers.dto.*;
 import com.management.shop.gobalusers.entity.RegisterUserOTPEntity;
 import com.management.shop.gobalusers.entity.UserInfo;
 import com.management.shop.gobalusers.entity.UserPaymentModes;
-import com.management.shop.gobalusers.entity.UserSettingsEntity;
 import com.management.shop.gobalusers.repository.*;
 import com.management.shop.gobalusers.util.AccountEmailTemplate;
 import com.management.shop.gobalusers.util.OTPSender;
@@ -334,7 +334,7 @@ public class AuthService {
         List<UserInfo> userInfo = userinfoRepo.validateUser(updatePassRequest.getEmailId(), updatePassRequest.getUserId(), true);
 
         if (userInfo.size() > 0) {
-            RegisterUserOTPEntity otpedUser = otpRepo.getLatestOtp(userInfo.get(0).getUsername());
+            RegisterUserOTPEntity otpedUser = otpRepo.getLatestOtp(userInfo.get(0).getUsername(), "fresh", EventConstants.PASSWORD_RESET_REQUESTED.getEventName(), userInfo.get(0).getUsername());
 
             if (otpedUser != null) {
                 if (otpedUser.getOtp().equals(updatePassRequest.getOtp())) {

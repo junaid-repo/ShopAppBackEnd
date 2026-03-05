@@ -28,8 +28,8 @@ public interface UserOtpRepo extends JpaRepository<RegisterUserOTPEntity, Intege
     @Query(value = "DELETE FROM newuo WHERE username = ?1", nativeQuery = true)
     void removeOldOTP(String username);
 
-    @Query(value = "SELECT * FROM newuo WHERE username = ?1 ORDER BY created_date DESC LIMIT 1", nativeQuery = true)
-    RegisterUserOTPEntity getLatestOtp(String username);
+    @Query(value = "SELECT * FROM newuo WHERE username = ?1 and status=?2 and event=?3 and source=?4 ORDER BY created_date DESC LIMIT 1", nativeQuery = true)
+    RegisterUserOTPEntity getLatestOtp(String s, String fresh, String eventName, String source);
     @Transactional
     @Modifying
     @Query(value = "DELETE FROM newuo WHERE id = ?1", nativeQuery = true)

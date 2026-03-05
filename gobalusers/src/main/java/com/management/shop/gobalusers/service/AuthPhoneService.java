@@ -268,15 +268,17 @@ public class AuthPhoneService {
             var otpVerifyReq = OtpVerifyRequest.builder().otp(String.valueOf(otp)).username(res.get(0).getUsername()).build();
 
 
-            RegisterUserOTPEntity res2 = otpRepo.getByUsername(res.get(0).getUsername());
+            List<RegisterUserOTPEntity> res2 = otpRepo.getByPhoneNumber(forgotPassRequest.getPhone());
             if (res2 != null) {
-                otpRepo.removeOldOTP(res.get(0).getUsername());
+
+                res2.stream().forEach(i->{otpRepo.updateOldOTPWithPhone(forgotPassRequest.getPhone(), "stale", EventConstants.PASSWORD_RESET_REQUESTED.getEventName(), "sms");});
+
             }
 
             String smsResponse="";
 
             try {
-                smsResponse  =  otpSender.sendOtpWithPhone(otpVerifyReq.getPhone(), String.valueOf(otp), "30");
+                smsResponse  =  otpSender.sendOtpWithPhone(forgotPassRequest.getPhone(), String.valueOf(otp), "30");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {
@@ -285,7 +287,7 @@ public class AuthPhoneService {
 
 
             var regsiterUserTemp = RegisterUserOTPEntity.builder().username(res.get(0).getUsername())
-                    .createdDate(LocalDateTime.now()).otp(String.valueOf(otp)).status("fresh").event(EventConstants.PASSWORD_RESET_REQUESTED.getEventName()).source("SMS").retries(0).build();
+                    .createdDate(LocalDateTime.now()).otp(String.valueOf(otp)).status("fresh").event(EventConstants.PASSWORD_RESET_REQUESTED.getEventName()).phoneNumber(forgotPassRequest.getPhone()).source("SMS").retries(0).build();
             otpRepo.save(regsiterUserTemp);
 
 
@@ -295,11 +297,11 @@ public class AuthPhoneService {
 
     }
 
-    public ValidateContactResponse confirmOtpAndUpdatePassword(UpdatePasswordRequest updatePassRequest) {
+    public ValidateContactResponse confirmOtpAndUpdatePasswordPhone(UpdatePasswordRequest updatePassRequest) {
         List<UserInfo> userInfo = userinfoRepo.validateUserPhone(updatePassRequest.getPhone(), updatePassRequest.getUserId(), true);
 
         if (userInfo.size() > 0) {
-            RegisterUserOTPEntity otpedUser = otpRepo.getLatestOtp(userInfo.get(0).getUsername());
+            RegisterUserOTPEntity otpedUser = otpRepo.getLatestOtp(userInfo.get(0).getUsername(), "fresh", EventConstants.PASSWORD_RESET_REQUESTED.getEventName(), "sms");
 
             if (otpedUser != null) {
                 if (otpedUser.getOtp().equals(updatePassRequest.getOtp())) {
