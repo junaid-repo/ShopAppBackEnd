@@ -843,7 +843,7 @@ public class ShopController {
     // 1️⃣ Upload Shop Logo
     @PutMapping("api/shop/user/edit/details/shopLogo")
     public ResponseEntity<String> updateShopLogo(@RequestParam("shopLogo") MultipartFile shopLogo) throws IOException {
-        String response=    serv.updateShopLogo(shopLogo);
+        String response=    serv.updateShopLogoOracle(shopLogo);
         return ResponseEntity.ok("Shop logo updated successfully");
     }
 
