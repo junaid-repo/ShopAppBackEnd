@@ -109,4 +109,6 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
 
     @Query(value = "SELECT * FROM shop_customer WHERE user_id = ?1 AND name = ?2", nativeQuery = true)
     CustomerEntity findByNameAndId(String s, String name);
+
+    //List<Object[]> getMonthlyNewCustomerCount(LocalDateTime startDate, LocalDateTime endDate, String userId);
 }

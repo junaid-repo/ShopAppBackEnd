@@ -149,4 +149,16 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             "ORDER BY " +
             "    monthYear ASC", nativeQuery = true)
     List<MonthlyGstSummaryDto> findMonthlyGstSummary(LocalDateTime fromDate, LocalDateTime toDate, String userId);
-}
+
+    @Query(value = "SELECT COALESCE(sp.category, 'Uncategorized') AS category_name, " +
+            "SUM(ps.total) AS total_revenue " +
+            "FROM product_sales ps " +
+            "LEFT JOIN shop_product sp ON ps.product_id = sp.id " +
+            "WHERE ps.user_id = :userId " +
+            "AND ps.updated_at >= :startDate AND ps.updated_at <= :endDate " +
+            "GROUP BY sp.category " +
+            "ORDER BY total_revenue DESC",
+            nativeQuery = true)
+    List<Object[]> getRevenueByCategory(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate,
+                                        @Param("userId") String userId);}

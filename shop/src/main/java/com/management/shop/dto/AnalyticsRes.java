@@ -19,9 +19,14 @@ public class AnalyticsRes {
     Double totalProfit;
     List<PieAnalyticsMap> salesAndRevenue;
     List<PieAnalyticsMap> monthlyStockSold;
+    List<PieAnalyticsMap> monthlyNewCustomers;
+    List<PieAnalyticsMap> peakHours;
+    List<PieAnalyticsMap> categoryRevenue;
+    List<PieAnalyticsMap> paymentMethods;
     Double totalRevenue;
     Double totalStockSold;
     List<PieAnalyticsMap> topProducts;
     List<PieAnalyticsMap> monthlySales;
     Double totalSales;
+
 }

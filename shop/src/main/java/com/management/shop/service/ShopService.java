@@ -2924,120 +2924,77 @@ String username=extractUsername();
     @Cacheable(value = "analytics", keyGenerator = "userScopedKeyGenerator")
     public AnalyticsRes getSuperAnalytics(AnalyticsRequest request) {
         String userId = extractUsername();
-        YearMonth startYm = YearMonth.parse(request.getStartDate()); // e.g. "2025-05"
-        YearMonth endYm = YearMonth.parse(request.getEndDate());     // e.g. "2025-11"
+        YearMonth startYm = YearMonth.parse(request.getStartDate());
+        YearMonth endYm = YearMonth.parse(request.getEndDate());
 
-        // Start of the first day of the month
         LocalDateTime startDate = startYm.atDay(1).atStartOfDay();
-
-        // End of the last day of the month (23:59:59.999999999)
         LocalDateTime endDate = endYm.atEndOfMonth().atTime(LocalTime.MAX);
 
         AnalyticsRes superResponse = new AnalyticsRes();
 
         // --- 1 & 2. Combined Payment and Invoice Status ---
         List<Object[]> combinedResults = salesPaymentRepo.getCombinedPaymentSummary(startDate, endDate, userId);
-
         List<PieAnalyticsMap> paymentStatusList = new ArrayList<>();
         List<PieAnalyticsMap> invoiceStatusList = new ArrayList<>();
 
         if (combinedResults != null) {
             for (Object[] row : combinedResults) {
-                // Check for null row or null status name
-                if (row == null || row[0] == null) {
-                    continue;
-                }
-
+                if (row == null || row[0] == null) continue;
                 String statusName = row[0].toString();
 
-                // --- 1. Payment Status (SUM from row[1]) ---
-                double paymentValue = 0.0;
-                if (row[1] != null) {
-                    paymentValue = ((Number) row[1]).doubleValue();
-                }
+                double paymentValue = (row[1] != null) ? ((Number) row[1]).doubleValue() : 0.0;
                 PieAnalyticsMap paymentMap = new PieAnalyticsMap();
                 paymentMap.setName(statusName);
                 paymentMap.setValue(paymentValue);
                 paymentStatusList.add(paymentMap);
 
-                // --- 2. Invoice Status (COUNT from row[2]) ---
-                double invoiceCount = 0.0;
-                if (row[2] != null) {
-                    invoiceCount = ((Number) row[2]).doubleValue();
-                }
+                double invoiceCount = (row[2] != null) ? ((Number) row[2]).doubleValue() : 0.0;
                 PieAnalyticsMap invoiceMap = new PieAnalyticsMap();
                 invoiceMap.setName(statusName);
                 invoiceMap.setValue(invoiceCount);
                 invoiceStatusList.add(invoiceMap);
             }
         }
-
-// Set both responses. The final response structure is identical.
         superResponse.setPaymentStatus(paymentStatusList);
         superResponse.setInvoiceStatus(invoiceStatusList);
 
-        // --- 3. Monthly Profits ---
+        // --- 3. Monthly Profits, Revenue, Stock, and Sales ---
         List<Object[]> billingResults = billRepo.getMonthlyBillingSummary(startDate, endDate, userId);
-
-// Initialize all lists and totals
         List<PieAnalyticsMap> monthlyProfitsList = new ArrayList<>();
         List<PieAnalyticsMap> monthlyRevenueList = new ArrayList<>();
         List<PieAnalyticsMap> monthlyStockList = new ArrayList<>();
         List<PieAnalyticsMap> monthlySalesList = new ArrayList<>();
 
-        double totalProfit = 0.0;
-        double totalRevenue = 0.0;
-        Double totalStockSold = 0d;
-        Double totalSales = 0d;
+        double totalProfit = 0.0, totalRevenue = 0.0;
+        Double totalStockSold = 0d, totalSales = 0d;
 
         if (billingResults != null) {
-            // Process all data in a single loop
             for (Object[] row : billingResults) {
-                // Check for null row or null month
-                if (row == null || row[0] == null) {
-                    continue;
-                }
-
+                if (row == null || row[0] == null) continue;
                 String month = row[0].toString();
 
-                // --- 1. Profit (from row[1]) ---
-                double profitValue = 0.0;
-                if (row[1] != null) {
-                    profitValue = ((Number) row[1]).doubleValue();
-                }
+                double profitValue = (row[1] != null) ? ((Number) row[1]).doubleValue() : 0.0;
                 PieAnalyticsMap profitMap = new PieAnalyticsMap();
                 profitMap.setName(month);
                 profitMap.setValue(profitValue);
                 monthlyProfitsList.add(profitMap);
                 totalProfit += profitValue;
 
-                // --- 2. Revenue (from row[2]) ---
-                double revenueValue = 0.0;
-                if (row[2] != null) {
-                    revenueValue = ((Number) row[2]).doubleValue();
-                }
+                double revenueValue = (row[2] != null) ? ((Number) row[2]).doubleValue() : 0.0;
                 PieAnalyticsMap revenueMap = new PieAnalyticsMap();
                 revenueMap.setName(month);
                 revenueMap.setValue(revenueValue);
                 monthlyRevenueList.add(revenueMap);
                 totalRevenue += revenueValue;
 
-                // --- 3. Stock Sold (from row[3]) ---
-                double stockValue = 0.0;
-                if (row[3] != null) {
-                    stockValue = ((Number) row[3]).doubleValue();
-                }
+                double stockValue = (row[3] != null) ? ((Number) row[3]).doubleValue() : 0.0;
                 PieAnalyticsMap stockMap = new PieAnalyticsMap();
                 stockMap.setName(month);
                 stockMap.setValue(stockValue);
                 monthlyStockList.add(stockMap);
                 totalStockSold += stockValue;
 
-                // --- 4. Sales Count (from row[4]) ---
-                double salesCountValue = 0.0;
-                if (row[4] != null) {
-                    salesCountValue = ((Number) row[4]).doubleValue();
-                }
+                double salesCountValue = (row[4] != null) ? ((Number) row[4]).doubleValue() : 0.0;
                 PieAnalyticsMap salesMap = new PieAnalyticsMap();
                 salesMap.setName(month);
                 salesMap.setValue(salesCountValue);
@@ -3045,76 +3002,103 @@ String username=extractUsername();
                 totalSales += salesCountValue;
             }
         }
-
-// Set all four responses for the superResponse
         superResponse.setMonthlyProfits(monthlyProfitsList);
         superResponse.setTotalProfit(totalProfit);
-
         superResponse.setSalesAndRevenue(monthlyRevenueList);
         superResponse.setTotalRevenue(totalRevenue);
-
         superResponse.setMonthlyStockSold(monthlyStockList);
         superResponse.setTotalStockSold(totalStockSold);
-
         superResponse.setMonthlySales(monthlySalesList);
         superResponse.setTotalSales(totalSales);
-        // --- 7. Top Sold Products ---
-        Integer n = 6; // Set N to whatever you want
-        List<Object[]> topProductsResults = prodSalesRepo.getTopSoldProducts(
-                startDate,
-                endDate,
-                userId,
-                n
-        );
-        List<PieAnalyticsMap> topProductsList = new ArrayList<>();
 
+        // --- 4. NEW: Monthly New Customers ---
+        List<Object[]> newCustomerResults = shopRepo.getMonthlyCustomerCount(startDate, endDate, userId);
+        List<PieAnalyticsMap> monthlyNewCustomers = new ArrayList<>();
+        if (newCustomerResults != null) {
+            for (Object[] row : newCustomerResults) {
+                if (row == null || row[0] == null) continue;
+                PieAnalyticsMap map = new PieAnalyticsMap();
+                map.setName(row[0].toString()); // Month Name
+                map.setValue(((Number) row[1]).doubleValue()); // Count
+                monthlyNewCustomers.add(map);
+            }
+        }
+        superResponse.setMonthlyNewCustomers(monthlyNewCustomers);
+
+        // --- 5. NEW: Peak Hours (Hourly order distribution) ---
+        List<Object[]> peakHourResults = billRepo.getPeakPurchaseHours(startDate, endDate, userId);
+        List<PieAnalyticsMap> peakHours = new ArrayList<>();
+        if (peakHourResults != null) {
+            for (Object[] row : peakHourResults) {
+                if (row == null || row[0] == null) continue;
+                PieAnalyticsMap map = new PieAnalyticsMap();
+                map.setName(row[0].toString() + ":00"); // e.g., "14:00"
+                map.setValue(((Number) row[1]).doubleValue()); // Order Count
+                peakHours.add(map);
+            }
+        }
+        superResponse.setPeakHours(peakHours);
+
+        // --- 6. NEW: Category Revenue ---
+        List<Object[]> categoryResults = prodSalesRepo.getRevenueByCategory(startDate, endDate, userId);
+        List<PieAnalyticsMap> categoryRevenue = new ArrayList<>();
+        if (categoryResults != null) {
+            for (Object[] row : categoryResults) {
+                if (row == null || row[0] == null) continue;
+                PieAnalyticsMap map = new PieAnalyticsMap();
+                map.setName(row[0].toString()); // Category Name
+                map.setValue(((Number) row[1]).doubleValue()); // Total Revenue
+                categoryRevenue.add(map);
+            }
+        }
+        superResponse.setCategoryRevenue(categoryRevenue);
+
+        // --- 7. NEW: Payment Methods (Cash, Card, UPI) ---
+        List<Object[]> paymentMethodResults = salesPaymentRepo.getPaymentMethodSummary(startDate, endDate, userId);
+        List<PieAnalyticsMap> paymentMethods = new ArrayList<>();
+        if (paymentMethodResults != null) {
+            for (Object[] row : paymentMethodResults) {
+                if (row == null || row[0] == null) continue;
+                PieAnalyticsMap map = new PieAnalyticsMap();
+                map.setName(row[0].toString()); // Method Name
+                map.setValue(((Number) row[1]).doubleValue()); // Amount
+                paymentMethods.add(map);
+            }
+        }
+        superResponse.setPaymentMethods(paymentMethods);
+
+        // --- 8. Top Sold Products ---
+        Integer n = 6;
+        List<Object[]> topProductsResults = prodSalesRepo.getTopSoldProducts(startDate, endDate, userId, n);
+        List<PieAnalyticsMap> topProductsList = new ArrayList<>();
         if (topProductsResults != null) {
             for (Object[] row : topProductsResults) {
-                if (row == null || row[0] == null) {
-                    continue;
-                }
-
-                double value = 0.0;
-                if (row[1] != null) {
-                    value = ((Number) row[1]).doubleValue();
-                }
-
+                if (row == null || row[0] == null) continue;
                 PieAnalyticsMap pieMap = new PieAnalyticsMap();
-                pieMap.setName(row[0].toString()); // e.g., "Product A"
-                pieMap.setValue(value);
+                pieMap.setName(row[0].toString());
+                pieMap.setValue(((Number) row[1]).doubleValue());
                 topProductsList.add(pieMap);
             }
         }
         superResponse.setTopProducts(topProductsList);
 
-        // --- 8. Customer GST Summary (COUNT) ---
+        // --- 9. Customer GST Summary ---
         List<Object[]> gstResults = shopRepo.getCustomerGstSummary(startDate, endDate, userId);
         List<PieAnalyticsMap> customerGstList = new ArrayList<>();
-
         if (gstResults != null) {
             for (Object[] row : gstResults) {
-                if (row == null || row[0] == null) {
-                    continue;
-                }
-
-                double value = 0.0;
-                if (row[1] != null) {
-                    value = ((Number) row[1]).doubleValue();
-                }
-
+                if (row == null || row[0] == null) continue;
                 PieAnalyticsMap pieMap = new PieAnalyticsMap();
-                pieMap.setName(row[0].toString()); // e.g., "With GST"
-                pieMap.setValue(value);
+                pieMap.setName(row[0].toString());
+                pieMap.setValue(((Number) row[1]).doubleValue());
                 customerGstList.add(pieMap);
             }
         }
         superResponse.setCustomerGst(customerGstList);
 
-        log.info("The response getSuperAnalytics is " + superResponse);
-
+        log.info("SuperAnalytics processing complete for user: {}", userId);
         return superResponse;
     }
-
     public void sendReportEmail(MultipartFile file, String subject, List<String> emailList) {
 
 

@@ -483,4 +483,15 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
 
     @Query(value = "select * from billing_details where invoice_number=?1", nativeQuery = true)
     BillingEntity findOrderByJustReference(String orderReferenceNumber);
+
+    @Query(value = "SELECT HOUR(created_date) AS hour_of_day, COUNT(id) AS order_count " +
+            "FROM billing_details " +
+            "WHERE user_id = :userId " +
+            "AND created_date >= :startDate AND created_date <= :endDate " +
+            "GROUP BY HOUR(created_date) " +
+            "ORDER BY hour_of_day ASC",
+            nativeQuery = true)
+    List<Object[]> getPeakPurchaseHours(@Param("startDate") LocalDateTime startDate,
+                                        @Param("endDate") LocalDateTime endDate,
+                                        @Param("userId") String userId);
 }

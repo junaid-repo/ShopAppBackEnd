@@ -161,4 +161,25 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
             "ORDER BY " +
             "    totalAmount DESC", nativeQuery = true)
     List<PaymentSummaryDto> findPaymentSummaryByStatus(LocalDateTime fromDate, LocalDateTime toDate, String userId);
+
+
+
+// ... inside your Repository interface ...
+
+    /**
+     * Gets the total amount paid grouped by payment method (e.g., UPI, Cash, Card).
+     * row[0] = Payment Method (String)
+     * row[1] = Total amount paid via that method (Double)
+     */
+    @Query(value = "SELECT COALESCE(payment_method, 'Unspecified') AS method_name, " +
+            "SUM(paid) AS total_amount " +
+            "FROM billing_payments " +
+            "WHERE user_id = :userId " +
+            "AND created_date >= :startDate AND created_date <= :endDate " +
+            "GROUP BY payment_method " +
+            "ORDER BY total_amount DESC",
+            nativeQuery = true)
+    List<Object[]> getPaymentMethodSummary(@Param("startDate") LocalDateTime startDate,
+                                           @Param("endDate") LocalDateTime endDate,
+                                           @Param("userId") String userId);
 }
