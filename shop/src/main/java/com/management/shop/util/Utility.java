@@ -19,6 +19,9 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -70,15 +73,16 @@ public class Utility {
     @Autowired
     SelectedInvoiceRepository invoiceRepo;
 
-    @Value("${aws.s3.bucket-name}")
+  /*  @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
     @Autowired
-    private S3Client s3Client;
+    private S3Client s3Client;*/
 
     /**
      * Helper method to convert a null string to an empty string.
      */
+    private final String LOGO_UPLOAD_DIR = "/home/ubuntu/clearbills/uploads/logos/";
     private String toEmpty(String value) {
         return value == null ? "" : value;
     }
@@ -121,7 +125,7 @@ public class Utility {
 
         byte[] shopLogoBytes = null;
         try {
-            shopLogoBytes = getShopLogo(username);
+            shopLogoBytes = getShopLogoOracle(username);
         } catch (Exception e) {
             System.out.println(e.getMessage());
             shopLogoBytes = null;
@@ -477,7 +481,7 @@ public class Utility {
                 .build();
     }
 
-    public byte[] getShopLogo(String username) {
+    /*public byte[] getShopLogo(String username) {
 
         System.out.println("entered getProfilePic with request  username " + username);
 
@@ -498,6 +502,44 @@ public class Utility {
             content = null; // Or handle error appropriately
         }
 
+
+        return content;
+    }*/
+
+    public byte[] getShopLogoOracle(String username) throws IOException {
+
+        // Fixed the print statement typo (was saying getProfilePic)
+        System.out.println("Entered getShopLogo with request username " + username);
+
+        // Safer retrieval to prevent server crashes on bad usernames
+        UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
+                new RuntimeException("User not found: " + username));
+
+        byte[] content = null;
+
+        try {
+            UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+
+            // Crucial null checks before trying to read from the hard drive
+            if (picRes != null && picRes.getShopLogo() != null) {
+
+                // Combine the directory path with the saved logo filename
+                Path logoPath = Paths.get(LOGO_UPLOAD_DIR, picRes.getShopLogo());
+
+                // Only attempt to read if the file physically exists on the server
+                if (Files.exists(logoPath)) {
+                    content = Files.readAllBytes(logoPath);
+                } else {
+                    System.out.println("Shop logo file not found on server: " + logoPath.toString());
+                }
+            } else {
+                System.out.println("No shop logo assigned for user: " + username);
+            }
+
+        } catch (IOException e) {
+            System.err.println("Error reading local shop logo: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         return content;
     }
