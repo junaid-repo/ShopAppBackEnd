@@ -938,7 +938,12 @@ String username=extractUsername();
 
     private ProductSalesEntity getGSTBreakDown(CustomerEntity selectedCustomer, ProductBillDTO obj, ProductEntity prodRes, String username) {
         String customerState = selectedCustomer.getState();
-        String shopState = shopBasicRepo.findByUserId(username).getShopState();
+        String shopState = "";
+        try {
+            shopState=   shopBasicRepo.findByUserId(username).getShopState();
+        } catch (Exception e) {
+            shopState="West Bengal";
+        }
 
         double taxPercent = prodRes.getTaxPercent(); // e.g., 18
         double qty = obj.getQuantity();
