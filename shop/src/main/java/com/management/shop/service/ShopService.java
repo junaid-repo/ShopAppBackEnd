@@ -7,6 +7,10 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -180,6 +184,9 @@ public class ShopService {
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
+
+    private final String UPLOAD_DIR = "/home/ubuntu/clearbills/uploads/profiles/";
+    private final String LOGO_UPLOAD_DIR = "/home/ubuntu/clearbills/uploads/logos/";
 
     public String extractUsername(String orderReferenceNumber) {
         String username = "";
@@ -1501,6 +1508,46 @@ String username=extractUsername();
         return "ok";
     }
 
+
+// ... inside your service class ...
+
+    // Define the absolute path on your Ubuntu server where images will live
+
+
+    public String saveEditableUserProfilePicInOracleCloud(MultipartFile profilePic, String username) throws Exception {
+        System.out.println("entered saveEditableUserProfilePic with username " + username);
+
+        // 1. Create a unique filename (e.g., "junaid_profile.jpg")
+        String originalFilename = profilePic.getOriginalFilename();
+        String safeFilename = username + "_" + System.currentTimeMillis() + "_" + originalFilename;
+
+        // 2. Ensure the directory exists on the server
+        Path uploadPath = Paths.get(UPLOAD_DIR);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        // 3. Save the file to the Ubuntu hard drive
+        Path filePath = uploadPath.resolve(safeFilename);
+        Files.copy(profilePic.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        // 4. Save the filename to your Database (Exactly as you did before)
+        UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+        if (picRes != null) {
+            picRes.setProfilePic(safeFilename); // Save the new unique filename
+            picRes.setUpdated_date(LocalDateTime.now());
+            userProfilePicRepo.save(picRes);
+        } else {
+            UserProfilePicEntity picResNew = new UserProfilePicEntity();
+            picResNew.setUpdated_date(LocalDateTime.now());
+            picResNew.setUsername(username);
+            picResNew.setProfilePic(safeFilename);
+            userProfilePicRepo.save(picResNew);
+        }
+
+        return "ok";
+    }
+
     @Transactional
     public void deleteCustomer(Integer id) {
         shopRepo.updateStatus(id, "IN-ACTIVE", extractUsername(), Boolean.FALSE);
@@ -1727,6 +1774,59 @@ String username=extractUsername();
                 } catch (IOException e) {
                     e.printStackTrace();
                     content = null; // Or handle error appropriately
+                }
+            }
+        }
+
+        return content;
+    }
+
+    public byte[] getProfilePicOracle(String username) throws IOException {
+
+        System.out.println("entered getProfilePic with request username " + username);
+
+        UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
+                new RuntimeException("User not found: " + username));
+
+        byte[] content = null;
+
+        if (!"google".equals(res.getSource())) {
+            // === 1. LOCAL UBUNTU SERVER RETRIEVAL (Replaces AWS S3) ===
+            try {
+                UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+
+                if (picRes != null && picRes.getProfilePic() != null) {
+                    // Combine the directory path with the saved filename
+                    Path imagePath = Paths.get(UPLOAD_DIR, picRes.getProfilePic());
+
+                    // Only try to read if the file actually exists on the hard drive
+                    if (Files.exists(imagePath)) {
+                        content = Files.readAllBytes(imagePath);
+                    } else {
+                        System.out.println("File not found on server: " + imagePath.toString());
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading local profile picture: " + e.getMessage());
+                e.printStackTrace();
+            }
+
+        } else {
+            // === 2. GOOGLE URL RETRIEVAL ===
+            if (res.getProfilePiclink() != null) {
+                try {
+                    URL url = new URL(res.getProfilePiclink());
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+
+                    // Using try-with-resources ensures the network connection closes automatically
+                    try (InputStream inputStream = connection.getInputStream()) {
+                        // Java 17 magic: readAllBytes() replaces your entire buffer loop!
+                        content = inputStream.readAllBytes();
+                    }
+                } catch (IOException e) {
+                    System.err.println("Error fetching Google profile picture: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         }
@@ -2330,6 +2430,46 @@ String username=extractUsername();
         return "ok";
     }
 
+    public String updateShopLogoOracle(MultipartFile shopLogo) throws IOException {
+
+        String username = extractUsername();
+        System.out.println("entered updateShopLogo with username " + username);
+
+        // 1. Create a unique filename (e.g., "junaid_logo_16789..._logo.png")
+        String originalFilename = shopLogo.getOriginalFilename();
+        String safeFilename = username + "_logo_" + System.currentTimeMillis() + "_" + originalFilename;
+
+        // 2. Ensure the directory exists on the server
+        Path uploadPath = Paths.get(LOGO_UPLOAD_DIR);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        // 3. Save the file to the Ubuntu hard drive
+        Path filePath = uploadPath.resolve(safeFilename);
+        Files.copy(shopLogo.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        // 4. Update the Database
+        UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+        if (picRes != null) {
+            picRes.setShopLogo(safeFilename);
+            picRes.setUpdated_date(LocalDateTime.now());
+            userProfilePicRepo.save(picRes);
+        } else {
+            UserProfilePicEntity picResNew = new UserProfilePicEntity();
+            picResNew.setUsername(username);
+
+            // BUG FIX: Your original code accidentally saved this to setProfilePic!
+            // Changed it to setShopLogo to ensure it goes into the correct column.
+            picResNew.setShopLogo(safeFilename);
+
+            picResNew.setUpdated_date(LocalDateTime.now());
+            userProfilePicRepo.save(picResNew);
+        }
+
+        return "ok";
+    }
+
     private String safe(String value) {
         return value != null ? value.trim() : "";
     }
@@ -2455,6 +2595,45 @@ String username=extractUsername();
             content = null; // Or handle error appropriately
         }
 
+
+        return content;
+    }
+
+
+    public byte[] getShopLogoOracle(String username) throws IOException {
+
+        // Fixed the print statement typo (was saying getProfilePic)
+        System.out.println("Entered getShopLogo with request username " + username);
+
+        // Safer retrieval to prevent server crashes on bad usernames
+        UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
+                new RuntimeException("User not found: " + username));
+
+        byte[] content = null;
+
+        try {
+            UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+
+            // Crucial null checks before trying to read from the hard drive
+            if (picRes != null && picRes.getShopLogo() != null) {
+
+                // Combine the directory path with the saved logo filename
+                Path logoPath = Paths.get(LOGO_UPLOAD_DIR, picRes.getShopLogo());
+
+                // Only attempt to read if the file physically exists on the server
+                if (Files.exists(logoPath)) {
+                    content = Files.readAllBytes(logoPath);
+                } else {
+                    System.out.println("Shop logo file not found on server: " + logoPath.toString());
+                }
+            } else {
+                System.out.println("No shop logo assigned for user: " + username);
+            }
+
+        } catch (IOException e) {
+            System.err.println("Error reading local shop logo: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         return content;
     }
@@ -3034,7 +3213,7 @@ String username=extractUsername();
 
         List<ProductCategory> productCategoryList = prodCatRepo.getCategoryNamesList(extractUsername());
 
-        if (productCategoryList != null) {
+        if (productCategoryList != null && productCategoryList.size()!=0) {
             response = productCategoryList.stream().map(i -> i.getCategoryName()).collect(Collectors.toList());
             return response;
         }

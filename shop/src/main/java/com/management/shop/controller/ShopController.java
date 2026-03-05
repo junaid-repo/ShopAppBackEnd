@@ -507,7 +507,12 @@ public class ShopController {
             @PathVariable String userId,
             @RequestPart(value = "profilePic", required = false) MultipartFile profilePic) throws IOException {
 
-        String response = serv.saveEditableUserProfilePic(profilePic, userId);
+        String response = null;
+        try {
+            response = serv.saveEditableUserProfilePicInOracleCloud(profilePic, userId);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -522,7 +527,7 @@ public class ShopController {
     @GetMapping("api/shop/user/{username}/profile-pic")
     public ResponseEntity<byte[]> getProfilePic(@PathVariable String username) throws IOException {
 
-        byte[] imageBytes = serv.getProfilePic(username);
+        byte[] imageBytes = serv.getProfilePicOracle(username);
 
         if (imageBytes == null || imageBytes.length == 0) {
             return ResponseEntity.notFound().build();
@@ -869,7 +874,7 @@ public class ShopController {
     @GetMapping("api/shop/user/{username}/shop-logo")
     public ResponseEntity<byte[]> getShopLogo(@PathVariable String username) throws IOException {
 
-        byte[] imageBytes = serv.getShopLogo(username);
+        byte[] imageBytes = serv.getShopLogoOracle(username);
 
         if (imageBytes == null || imageBytes.length == 0) {
             return ResponseEntity.notFound().build();
