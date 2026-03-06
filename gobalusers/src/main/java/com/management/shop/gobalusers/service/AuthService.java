@@ -326,7 +326,6 @@ public class AuthService {
         return Map.of("retryLeft", "0");
     }
 
-    // 🟢 UPDATED: Added HttpServletRequest to get dynamic domain
     public GoogleAuthResponse googleLogin(GoogleLoginRequest loginRequest, HttpServletRequest request, HttpServletResponse httpServletResponse) throws Exception {
         GoogleAuthResponse response = new GoogleAuthResponse();
         try {
@@ -393,7 +392,6 @@ public class AuthService {
         return response;
     }
 
-    // 🟢 UPDATED: Added HttpServletRequest and dynamic domain check
     public String authAndsetCookiesGoogle(AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
 
         String userSource = userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
@@ -430,7 +428,6 @@ public class AuthService {
         }
     }
 
-    // 🟢 UPDATED: Added HttpServletRequest and dynamic domain check
     public String authAndsetCookies(AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
 
         UserInfo userInfo = userinfoRepo.findByPhoneNumber(authRequest.getUsername(), true);
@@ -463,8 +460,9 @@ public class AuthService {
                         targetDomain = ".clearbill.store";
                     }
 
+                    // 🟢 FIXED: Domain parameter properly added here as well, and SameSite set to None
                     response.addHeader("Set-Cookie",
-                            "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=36000");
+                            "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
                 } else {
                     String cookieHeader = String.format(
                             "jwt=%s; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax",
