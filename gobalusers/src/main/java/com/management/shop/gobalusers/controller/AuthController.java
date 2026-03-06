@@ -5,6 +5,7 @@ import com.management.shop.gobalusers.entity.UserInfo;
 import com.management.shop.gobalusers.service.AuthPhoneService;
 import com.management.shop.gobalusers.service.AuthService;
 import com.management.shop.gobalusers.service.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import jakarta.servlet.http.Cookie;
@@ -113,10 +114,11 @@ public class AuthController {
     }
 
     @PostMapping("/auth/authenticate")
-    public String authenticateAndGetToken(@RequestBody AuthRequest authRequest, HttpServletResponse response) {
+    public String authenticateAndGetToken(@RequestBody AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
 
-        String token =serv.authAndsetCookies(authRequest, response);
-       return token;
+        // 🟢 Passed 'request' so the service can determine the correct domain (.info or .store)
+        String token = serv.authAndsetCookies(authRequest, request, response);
+        return token;
 
     }
 

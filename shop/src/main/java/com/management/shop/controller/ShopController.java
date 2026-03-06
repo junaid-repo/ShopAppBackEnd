@@ -14,6 +14,7 @@ import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -53,7 +54,6 @@ public class ShopController {
     private Utility util;
 
 
-
     @Value("${razorpay.key.secret}")
     private String keySecret;
     @Value("${razorpay.key.id}")
@@ -62,24 +62,27 @@ public class ShopController {
 
     @PostMapping("api/shop/user/updatepassword")
     public String addUpdatePassword(@RequestBody UserInfo userInfo) {
-        System.out.println("inside addUpdatePassword with details "+userInfo.toString());
+        System.out.println("inside addUpdatePassword with details " + userInfo.toString());
         return serv.updatePassword(userInfo);
     }
+
     @PostMapping("auth/new/welcome")
     public ResponseEntity<String> addNewUser(@RequestBody UserInfo userInfo) {
-          return ResponseEntity.status(HttpStatus.OK).body("welcome to the app");
+        return ResponseEntity.status(HttpStatus.OK).body("welcome to the app");
 
     }
+
     @GetMapping("api/shop/user/profile")
     public ResponseEntity<AuthRequest> userProfile() {
 
         Map<String, String> servResponse = serv.getUserProfileDetails();
 
-        AuthRequest response=new AuthRequest();
+        AuthRequest response = new AuthRequest();
         response.setUsername(servResponse.get("username"));
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+
     @GetMapping("api/shop/user/profileWithRole")
     public ResponseEntity<UserProfileDto> userProfileWithRole() {
 
@@ -116,6 +119,7 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+
     @GetMapping("api/shopd/get/cacheable/customersList")
     ResponseEntity<List<CustomerEntity>> getCustomersListCacheable() {
 
@@ -133,12 +137,12 @@ public class ShopController {
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "desc") String dir) {
 
-        System.out.println("Entered into getCustomersListCacheable with search term "+search);
+        System.out.println("Entered into getCustomersListCacheable with search term " + search);
 
         try {
             // Call the updated service method
-            Page<CustomerEntity> customerPage =  serv.getCacheableCustomersList(search, page, limit, sort, dir);
-            System.out.println("Exiting from getCustomersListCacheable with result  "+customerPage);
+            Page<CustomerEntity> customerPage = serv.getCacheableCustomersList(search, page, limit, sort, dir);
+            System.out.println("Exiting from getCustomersListCacheable with result  " + customerPage);
 
             // Build the response map to match the frontend's expected structure
             Map<String, Object> response = new HashMap<>();
@@ -146,7 +150,7 @@ public class ShopController {
             response.put("totalPages", customerPage.getTotalPages());
             response.put("totalCount", customerPage.getTotalElements());
             response.put("currentPage", customerPage.getNumber() + 1); // Send back the current page
-            System.out.println("Exiting from getCustomersListCacheable with result  "+response);
+            System.out.println("Exiting from getCustomersListCacheable with result  " + response);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -163,12 +167,12 @@ public class ShopController {
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "desc") String dir) {
 
-        System.out.println("Entered into getCustomersListCacheable with search term "+search);
+        System.out.println("Entered into getCustomersListCacheable with search term " + search);
 
         try {
             // Call the updated service method
-            Page<CustomerEntity> customerPage =  serv.getBillingCustomersList(search, page, limit, sort );
-            System.out.println("Exiting from getCustomersListCacheable with result  "+customerPage);
+            Page<CustomerEntity> customerPage = serv.getBillingCustomersList(search, page, limit, sort);
+            System.out.println("Exiting from getCustomersListCacheable with result  " + customerPage);
 
             // Build the response map to match the frontend's expected structure
             Map<String, Object> response = new HashMap<>();
@@ -176,7 +180,7 @@ public class ShopController {
             response.put("totalPages", customerPage.getTotalPages());
             response.put("totalCount", customerPage.getTotalElements());
             response.put("currentPage", customerPage.getNumber() + 1); // Send back the current page
-            System.out.println("Exiting from getCustomersListCacheable with result  "+response);
+            System.out.println("Exiting from getCustomersListCacheable with result  " + response);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -194,6 +198,7 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body("Success");
 
     }
+
     @PutMapping("api/shop/update/customer")
     ResponseEntity<CustomerSuccessDTO> editCustomer(@RequestBody CustomerRequest request) {
         System.out.println("entered editCustomer");
@@ -249,10 +254,11 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+
     @GetMapping("api/shop/export/products")
     ResponseEntity<byte[]> exportFullProductList() {
 
-        byte[] csvData  = serv.exportAllProductAsCSV();
+        byte[] csvData = serv.exportAllProductAsCSV();
 
         DateFormat dateFormatter = new SimpleDateFormat("yyyyMMdd_HHmm");
         String currentDateTime = dateFormatter.format(new Date());
@@ -265,9 +271,8 @@ public class ShopController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=REP-" +".csv")
+                        "attachment; filename=REP-" + ".csv")
                 .contentType(MediaType.APPLICATION_PDF).body(csvData);
-
 
 
     }
@@ -302,6 +307,7 @@ public class ShopController {
             return ResponseEntity.internalServerError().body(null);
         }
     }
+
     @GetMapping("api/shop/get/forBilling/withCache/productsList")
     public ResponseEntity<Map<String, Object>> getBillingProductsList(
             @RequestParam(defaultValue = "1") int page,
@@ -371,6 +377,7 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+
     @GetMapping("api/shop/get/count/sales")
     ResponseEntity<List<SalesResponseDTO>> getLastNSales(@RequestParam(defaultValue = "3") int count) {
 
@@ -381,17 +388,17 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
+
     @GetMapping("api/shop/get/top/sales/{range}")
     ResponseEntity<List<SalesResponseDTO>> getLastTopSales(@RequestParam(defaultValue = "3") int count, @PathVariable String range) {
 
-      System.out.println("Entered getLastTopSales with the range param is -->" + range);
+        System.out.println("Entered getLastTopSales with the range param is -->" + range);
         List<SalesResponseDTO> response = serv.getTopNSales(count, range);
 
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
-
 
 
     @GetMapping("api/shop/get/dashboardDetails/{range}")
@@ -430,6 +437,7 @@ public class ShopController {
             return ResponseEntity.status(500).body(error("Upload failed: " + ex.getMessage()));
         }
     }
+
     @PostMapping(path = "api/shop/bulk-upload-products", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('PREMIUM')")
     public ResponseEntity<?> bulkUploadFromImage(@RequestPart("file") MultipartFile file) {
@@ -454,7 +462,6 @@ public class ShopController {
         map.put("message", message);
         return map;
     }
-
 
 
     @PostMapping("api/shop/report")
@@ -549,7 +556,7 @@ public class ShopController {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.IMAGE_PNG);
             // Instructs the browser to download the file with a specific name
-            headers.setContentDispositionFormData("attachment", orderId+"invoice.png");
+            headers.setContentDispositionFormData("attachment", orderId + "invoice.png");
             headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
 
             return ResponseEntity.ok()
@@ -602,17 +609,31 @@ public class ShopController {
 
         return ResponseEntity.ok(response);
     }
-    @PostMapping("api/user/logout")
+
+    @PostMapping("api/user/logout") // Or "/auth/logout" depending on your actual mapping
     public ResponseEntity<Map<String, Object>> logoutUser(
-            HttpServletResponse httpResponse) {System.out.println("Inside the logout method");
+            HttpServletRequest request,
+            HttpServletResponse httpResponse) {
+
+        System.out.println("Inside the logout method");
 
         Map<String, Object> responseMap = new HashMap<>();
 
         if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
-            // PROD: Delete cookie with Domain and Secure flag
+            // 1. Determine the correct domain dynamically based on the request Origin or Host
+            String origin = request.getHeader("Origin");
+            String host = request.getHeader("Host");
+            String targetDomain = ".clearbills.info"; // Default fallback
+
+            if ((origin != null && origin.contains("clearbill.store")) ||
+                    (host != null && host.contains("clearbill.store"))) {
+                targetDomain = ".clearbill.store";
+            }
+
+            // PROD: Delete cookie with dynamic Domain and Secure flag
             // Note: Max-Age must be 0 to expire the cookie immediately
             httpResponse.addHeader("Set-Cookie",
-                    "jwt=; Path=/; HttpOnly; Secure; SameSite=None; Domain=.clearbills.info; Max-Age=0");
+                    "jwt=; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=0");
         } else {
             // DEV (IP Address/Localhost): Delete cookie without Domain and without Secure
 
@@ -626,7 +647,8 @@ public class ShopController {
         }
 
         responseMap.put("status", Boolean.TRUE);
-        return ResponseEntity.ok(responseMap); }
+        return ResponseEntity.ok(responseMap);
+    }
 
     @GetMapping("api/shop/notifications/unseen")
     public ResponseEntity<Map<String, Object>> getUnseenNotifications() {
@@ -675,28 +697,29 @@ public class ShopController {
         serv.updateNotificationStatus(request);
         return ResponseEntity.ok("Notification status updated successfully");
     }
+
     @PostMapping("/api/shop/notifications/flag/{notificationId}")
     public ResponseEntity<Map<String, Object>> flagNotifications(
             @PathVariable Integer notificationId,
-    @RequestBody Map<String, Boolean> requestBody)
-    {
+            @RequestBody Map<String, Boolean> requestBody) {
 
-        Boolean flagged= requestBody.get("flagged");
-       System.out.println(flagged);
-        Map<String, Object> response= serv.flagNotifications(notificationId,flagged);
+        Boolean flagged = requestBody.get("flagged");
+        System.out.println(flagged);
+        Map<String, Object> response = serv.flagNotifications(notificationId, flagged);
         return ResponseEntity.ok(response);
     }
+
     @PostMapping("/api/shop/notifications/delete/{notificationId}")
     public ResponseEntity<Map<String, Object>> deleteNotifications(
-            @PathVariable Integer notificationId)
-    {
-        Map<String, Object> response= serv.deleteNotifications(notificationId);
+            @PathVariable Integer notificationId) {
+        Map<String, Object> response = serv.deleteNotifications(notificationId);
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/api/shop/availablePaymentMethod")
     public ResponseEntity<Map<String, Boolean>> getPaymentMethods() {
 
-        Map<String, Boolean> response=serv.getAvailablePaymentMethods();
+        Map<String, Boolean> response = serv.getAvailablePaymentMethods();
 
         return ResponseEntity.ok(response);
     }
@@ -740,7 +763,7 @@ public class ShopController {
                 // This replaces the direct call to /api/shop/do/billing
                 BillingResponse billingResponse = serv.doPayment(request.billingDetails);
 
-                if(billingResponse!=null && request.getRazorpay_payment_id()!=null){
+                if (billingResponse != null && request.getRazorpay_payment_id() != null) {
                     serv.updatePaymentReferenceNumber(request.getRazorpay_payment_id(), billingResponse.getInvoiceNumber());
                 }
 
@@ -763,27 +786,27 @@ public class ShopController {
         List<WeeklySales> response = serv.getWeeklyAnalytics(range);
 
 
-
-
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("api/shop/update/goals")
     public ResponseEntity<String> updateSalesEstimates(@RequestBody GoalRequest goalRequest) {
 
-        System.out.println("Entered updateSalesEstimates controller with payload-->"+goalRequest);
+        System.out.println("Entered updateSalesEstimates controller with payload-->" + goalRequest);
 
         String response = serv.updateEstimatedGoals(goalRequest);
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("api/shop/get/dashboard/goals/{timeRange}")
     public ResponseEntity<GoalData> getGoalData(@PathVariable String timeRange) {
 
-        System.out.println("Entered getGoalData controller with payload-->"+timeRange);
+        System.out.println("Entered getGoalData controller with payload-->" + timeRange);
 
         GoalData goalData = serv.getTimeRangeGoalData(timeRange);
         return ResponseEntity.ok(goalData);
     }
+
     @GetMapping("api/shop/get/top/products")
     public ResponseEntity<List<TopProductDto>> getTopProducts(
             @RequestParam(name = "count", defaultValue = "3") int count,
@@ -798,6 +821,7 @@ public class ShopController {
         // Return the data with a 200 OK status
         return ResponseEntity.ok(topProducts);
     }
+
     @GetMapping("api/shop/get/top/orders")
     public ResponseEntity<List<TopOrdersDto>> getTopOrders(
             @RequestParam(name = "count", defaultValue = "3") int count,
@@ -816,10 +840,10 @@ public class ShopController {
     public ResponseEntity<Map<String, Double>> getPaymentBreakdown(@PathVariable String timeRange) {
 
 
-        System.out.println("Entered getPaymentBreakdown controller "+
+        System.out.println("Entered getPaymentBreakdown controller " +
                 ", timeRange: " + timeRange);
         // Call the service to get the data
-       Map<String, Double> response = serv.getPaymentBreakdown(timeRange);
+        Map<String, Double> response = serv.getPaymentBreakdown(timeRange);
 
         // Return the data with a 200 OK status
         return ResponseEntity.ok(response);
@@ -829,7 +853,7 @@ public class ShopController {
     public ResponseEntity<Map<String, Double>> getPaymentStatusBreakdown(@PathVariable String timeRange) {
 
 
-        System.out.println("Entered getPaymentBreakdown controller "+
+        System.out.println("Entered getPaymentBreakdown controller " +
                 ", timeRange: " + timeRange);
         // Call the service to get the data
         Map<String, Double> response = serv.getPaymentStatusBreakdown(timeRange);
@@ -839,36 +863,34 @@ public class ShopController {
     }
 
 
-
     // 1️⃣ Upload Shop Logo
     @PutMapping("api/shop/user/edit/details/shopLogo")
     public ResponseEntity<String> updateShopLogo(@RequestParam("shopLogo") MultipartFile shopLogo) throws IOException {
-        String response=    serv.updateShopLogoOracle(shopLogo);
+        String response = serv.updateShopLogoOracle(shopLogo);
         return ResponseEntity.ok("Shop logo updated successfully");
     }
 
     // 2️⃣ Update Basic Details
     @PutMapping("api/shop/user/edit/details/basic")
     public ResponseEntity<String> updateBasicDetails(@RequestBody ShopBasicDetailsRequest request) {
-       String response= serv.updateBasicDetails(request);
+        String response = serv.updateBasicDetails(request);
         return ResponseEntity.ok("Basic details updated successfully");
     }
 
     // 3️⃣ Update Finance Details
     @PutMapping("api/shop/user/edit/details/finance")
     public ResponseEntity<String> updateFinanceDetails(@RequestBody ShopFinanceDetailsRequest request) {
-        String response=  serv.updateFinanceDetails(request);
+        String response = serv.updateFinanceDetails(request);
         return ResponseEntity.ok("Finance details updated successfully");
     }
 
     // 4️⃣ Update Other Details
     @PutMapping("api/shop/user/edit/details/others")
     public ResponseEntity<String> updateOtherDetails(@RequestBody ShopInvoiceTerms request) {
-        System.out.println("Entered updateOtherDetails controller with payload-->"+request);
-        String response=  serv.updateOtherDetails(request);
+        System.out.println("Entered updateOtherDetails controller with payload-->" + request);
+        String response = serv.updateOtherDetails(request);
         return ResponseEntity.ok("Other details updated successfully");
     }
-
 
 
     @GetMapping("api/shop/user/{username}/shop-logo")
@@ -901,6 +923,7 @@ public class ShopController {
 
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("api/shop/gstBilling/sanityCheck")
     public ResponseEntity<Map<String, Object>> getSanityCheck() {
 
@@ -910,8 +933,7 @@ public class ShopController {
         // Create a response structure that matches what your frontend expects (data.data)
         Map<String, Object> response = new HashMap<>();
 
-        response=util.gstBillingSanity();
-
+        response = util.gstBillingSanity();
 
 
         return ResponseEntity.ok(response);
@@ -926,8 +948,7 @@ public class ShopController {
         // Create a response structure that matches what your frontend expects (data.data)
         Map<String, String> response = new HashMap<>();
 
-        response=util.saveUserInvoiceTemplate(request);
-
+        response = util.saveUserInvoiceTemplate(request);
 
 
         return ResponseEntity.ok(response);
@@ -942,8 +963,7 @@ public class ShopController {
         // Create a response structure that matches what your frontend expects (data.data)
         Map<String, String> response = new HashMap<>();
 
-        response=util.saveUserInvoicePrinter(request);
-
+        response = util.saveUserInvoicePrinter(request);
 
 
         return ResponseEntity.ok(response);
@@ -958,8 +978,7 @@ public class ShopController {
         // Create a response structure that matches what your frontend expects (data.data)
         Map<String, String> response = new HashMap<>();
 
-        response=util.getInvoiceTemplate();
-
+        response = util.getInvoiceTemplate();
 
 
         return ResponseEntity.ok(response);
@@ -967,15 +986,16 @@ public class ShopController {
 
     @PostMapping("api/shop/payment/send-reminder")
     @PreAuthorize("hasRole('PREMIUM')")
-    ResponseEntity<Map<String, String>> sendPaymentReminders(@RequestBody Map<String, Object> request){
+    ResponseEntity<Map<String, String>> sendPaymentReminders(@RequestBody Map<String, Object> request) {
 
-        Map<String, String> response= serv.sendPaymentReminder(request);
+        Map<String, String> response = serv.sendPaymentReminder(request);
 
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("api/shop/payment/get-reminderList")
     @PreAuthorize("hasRole('PREMIUM')")
-    ResponseEntity<List<ReminderCounter>> getPaymentReminderList(@RequestParam String orderId){
+    ResponseEntity<List<ReminderCounter>> getPaymentReminderList(@RequestParam String orderId) {
 
         List<ReminderCounter> response = serv.getPaymentReminderLists(orderId);
 
@@ -983,41 +1003,43 @@ public class ShopController {
     }
 
     @PostMapping("api/shop/payment/update")
-    ResponseEntity<Map<String, Object>> saveDuePayments(@RequestBody Map<String, Object> request){
+    ResponseEntity<Map<String, Object>> saveDuePayments(@RequestBody Map<String, Object> request) {
 
-        Map<String, Object> response= serv.updateDuePayments(request);
+        Map<String, Object> response = serv.updateDuePayments(request);
 
         return ResponseEntity.ok(response);
     }
+
     @PostMapping("api/shop/payment/history")
-    ResponseEntity<List<Map<String, Object>>> getPaymentHistory(@RequestBody Map<String, Object> request){
+    ResponseEntity<List<Map<String, Object>>> getPaymentHistory(@RequestBody Map<String, Object> request) {
 
-        List<Map<String, Object>> response= serv.getPaymentHistory(request);
+        List<Map<String, Object>> response = serv.getPaymentHistory(request);
 
         return ResponseEntity.ok(response);
     }
+
     @PostMapping("api/shop/send-invoice-email/{invoiceNumber}")
     @PreAuthorize("hasRole('PREMIUM')")
-    ResponseEntity<Map<String, Object>> sendInvoiceOverEmail(@PathVariable String invoiceNumber){
+    ResponseEntity<Map<String, Object>> sendInvoiceOverEmail(@PathVariable String invoiceNumber) {
 
-        Map<String, Object> response= serv.sendInvoiceOverEmail(invoiceNumber);
+        Map<String, Object> response = serv.sendInvoiceOverEmail(invoiceNumber);
 
         return ResponseEntity.ok(response);
     }
 
-   /* @PostMapping("api/shop/getGlobalSearchTerms/{globalSearchTerms}")
-    ResponseEntity<List<Map<String, Object>>> getGlobalSearch(@PathVariable String globalSearchTerms){
+    /* @PostMapping("api/shop/getGlobalSearchTerms/{globalSearchTerms}")
+     ResponseEntity<List<Map<String, Object>>> getGlobalSearch(@PathVariable String globalSearchTerms){
 
-        List<Map<String, Object>> response= serv.globalSearch(globalSearchTerms, 7);
+         List<Map<String, Object>> response= serv.globalSearch(globalSearchTerms, 7);
 
-        return ResponseEntity.ok(response);
-    }*/
+         return ResponseEntity.ok(response);
+     }*/
     @GetMapping("api/shop/getGlobalSearchTerms")
     public ResponseEntity<List<Map<String, Object>>> globalSearch(
             @RequestParam String term,
             @RequestParam(defaultValue = "10") int limit) {
 
-        List<Map<String, Object>> response= serv.globalSearch(term, 7);
+        List<Map<String, Object>> response = serv.globalSearch(term, 7);
 
         // Uses the fast, indexed prefix-search
         return ResponseEntity.ok(response);
@@ -1027,26 +1049,26 @@ public class ShopController {
     @PostMapping("api/shop/refreshbackendcache")
     public ResponseEntity<String> clearServerSideCache() {
 
-        String response= serv.clearServerSideCache();
+        String response = serv.clearServerSideCache();
 
         if (response.equals("success")) {
             return ResponseEntity.ok(response);
-        }
-        else {
+        } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to clear cache");
         }
         // Uses the fast, indexed prefix-search
 
 
     }
+
     @GetMapping("api/shop/billing/daily-count")
     public ResponseEntity<Map<String, Integer>> getOrderCountForDay() {
 
 
-        Map<String, Integer> response= serv.getOrderCountForDay();
-       // Map<String, Integer> response=new HashMap<>();
+        Map<String, Integer> response = serv.getOrderCountForDay();
+        // Map<String, Integer> response=new HashMap<>();
 
-            return ResponseEntity.ok(response);
+        return ResponseEntity.ok(response);
 
 
         // Uses the fast, indexed prefix-search
@@ -1058,7 +1080,7 @@ public class ShopController {
     public ResponseEntity<Map<String, Integer>> updateUserRole() {
 
 
-        Map<String, Integer> response= serv.addSubscriptions();
+        Map<String, Integer> response = serv.addSubscriptions();
         // Map<String, Integer> response=new HashMap<>();
 
         return ResponseEntity.ok(response);
@@ -1068,11 +1090,12 @@ public class ShopController {
 
 
     }
+
     @PostMapping("api/shop/user/superAnalytics")
     @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<AnalyticsRes> getSuperAnalytics(@RequestBody AnalyticsRequest request) {
 
-        System.out.println("Entered super analytic controller with request-->"+request);
+        System.out.println("Entered super analytic controller with request-->" + request);
 
         AnalyticsRes response = serv.getSuperAnalytics(request);
 
@@ -1080,72 +1103,72 @@ public class ShopController {
 
     }
 
-        @PostMapping("api/shop/report/email")
-        public ResponseEntity<Map<String, String>> sendReportEmail(
-                @RequestParam("file") MultipartFile file,
-                @RequestParam("subject") String subject,
-                @RequestParam("to") String toEmails) {
+    @PostMapping("api/shop/report/email")
+    public ResponseEntity<Map<String, String>> sendReportEmail(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("subject") String subject,
+            @RequestParam("to") String toEmails) {
 
-            Map<String, String> response = new HashMap<>();
-            // 1. Validate input
-            if (file.isEmpty()) {
-                response.put("message", "File is missing.");
-                return new ResponseEntity<>(
-                        response,
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            if (toEmails == null || toEmails.trim().isEmpty()) {
-
-                response.put("message", "No recipient emails provided.");
-                return new ResponseEntity<>(
-                        response,
-                        HttpStatus.BAD_REQUEST
-                );
-
-
-            }
-
-            // 2. Process the "to" string into a list or array
-            List<String> emailList = Arrays.asList(toEmails.split(","));
-
-            try {
-
-                serv.sendReportEmail(file, subject, emailList);
-
-                // 3. Call your email service
-                // This is a placeholder for your actual email logic.
-
-                // emailService.sendEmailWithAttachment(
-                //     emailList,
-                //     subject,
-                //     "Please find the attached report.",
-                //     file.getBytes(),
-                //     file.getOriginalFilename()
-                // );
-
-                // 4. Return success response using a Map
-                response.put("message", "Report Send Succesfully.");
-                return new ResponseEntity<>(
-                        response,
-                        HttpStatus.OK
-                );
-            } catch (Exception e) {
-                // 5. Return error response using a Map
-                e.printStackTrace(); // Log the actual error
-                response.put("message", "File is missing.");
-                return new ResponseEntity<>(
-                        response,
-                        HttpStatus.BAD_REQUEST
-                );
-            }
+        Map<String, String> response = new HashMap<>();
+        // 1. Validate input
+        if (file.isEmpty()) {
+            response.put("message", "File is missing.");
+            return new ResponseEntity<>(
+                    response,
+                    HttpStatus.BAD_REQUEST
+            );
         }
+
+        if (toEmails == null || toEmails.trim().isEmpty()) {
+
+            response.put("message", "No recipient emails provided.");
+            return new ResponseEntity<>(
+                    response,
+                    HttpStatus.BAD_REQUEST
+            );
+
+
+        }
+
+        // 2. Process the "to" string into a list or array
+        List<String> emailList = Arrays.asList(toEmails.split(","));
+
+        try {
+
+            serv.sendReportEmail(file, subject, emailList);
+
+            // 3. Call your email service
+            // This is a placeholder for your actual email logic.
+
+            // emailService.sendEmailWithAttachment(
+            //     emailList,
+            //     subject,
+            //     "Please find the attached report.",
+            //     file.getBytes(),
+            //     file.getOriginalFilename()
+            // );
+
+            // 4. Return success response using a Map
+            response.put("message", "Report Send Succesfully.");
+            return new ResponseEntity<>(
+                    response,
+                    HttpStatus.OK
+            );
+        } catch (Exception e) {
+            // 5. Return error response using a Map
+            e.printStackTrace(); // Log the actual error
+            response.put("message", "File is missing.");
+            return new ResponseEntity<>(
+                    response,
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+    }
 
     @GetMapping("api/shop/invoice/{invoiceId}/print-data")
     public ResponseEntity<InvoiceData> getFullInvoiceDetails(@PathVariable String invoiceId) {
 
-        System.out.println("Entered getFullInvoiceDetails controller with invoiceId-->"+invoiceId);
+        System.out.println("Entered getFullInvoiceDetails controller with invoiceId-->" + invoiceId);
 
         // Call the service to perform the business logic
         InvoiceData invoiceData = serv.getFullInvoiceDetails(invoiceId);
@@ -1178,12 +1201,11 @@ public class ShopController {
 
     @GetMapping("api/shop/get/categories")
     public ResponseEntity<List<String>> getCategories() {
-     System.out.println("Entered getCategories controller");
+        System.out.println("Entered getCategories controller");
         List<String> categories = serv.getCategories();
 
         return ResponseEntity.ok(categories);
     }
-
 
 
 }

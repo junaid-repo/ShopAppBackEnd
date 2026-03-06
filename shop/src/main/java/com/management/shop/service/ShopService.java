@@ -1457,7 +1457,7 @@ String username=extractUsername();
         UserInfo userinfo = userinfoRepo.findByUsername(username).get();
 
         userinfo.setName(request.getName());
-        userinfo.setPhoneNumber(request.getPhone());
+        //userinfo.setPhoneNumber(request.getPhone());
         userinfo.setEmail(request.getEmail());
         userinfoRepo.save(userinfo);
 

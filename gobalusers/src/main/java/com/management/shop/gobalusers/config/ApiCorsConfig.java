@@ -10,7 +10,7 @@ public class ApiCorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("https://www.clearbills.info", "https://clearbills.info")
+                .allowedOrigins("https://www.clearbills.info","https://www.clearbill.store", "https://clearbills.info")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
