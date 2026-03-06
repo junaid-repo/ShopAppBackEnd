@@ -4,117 +4,158 @@
     <meta charset="UTF-8" />
     <title th:text="'Receipt - ' + ${invoiceId}">Receipt</title>
     <style>
+        /* 1. Fixes the blank page / long gap issue */
         @page {
-            size: 80mm;
-            margin: 2mm;
+            margin: 0;
+            size: 80mm auto;
         }
+
+        /* 2. Standardize box sizing */
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Monospace', 'Courier New', Courier, monospace;
             font-size: 10px;
             color: #000;
-            width: 100%;
-            margin: 0;
-            padding: 0;
+            width: 80mm; /* Force exact width for printer */
+            margin: 0 auto;
+            padding: 4mm; /* Moved margin to padding to avoid page breaks */
             background: #fff;
         }
+
         .receipt-container {
             width: 100%;
-            box-sizing: border-box;
+            /* Prevents elements from breaking awkwardly */
+            page-break-inside: avoid;
+            padding-bottom: 10mm; /* Extra space at the bottom for the paper cut */
         }
+
         .header-main {
             text-align: center;
             border-bottom: 1px dashed #000;
             padding-bottom: 5px;
             margin-bottom: 5px;
         }
+
         .header-main .shop-name {
             font-size: 16px;
             font-weight: bold;
             margin: 0;
         }
+
         .header-main p {
             margin: 2px 0;
             font-size: 9px;
             line-height: 1.4;
         }
+
         .meta-info {
             width: 100%;
             margin: 5px 0;
         }
+
         .meta-info td {
             font-size: 9px;
-            padding: 1px 0;
+            padding: 2px 0;
         }
+
         .meta-info td:last-child {
             text-align: right;
+            font-weight: bold;
         }
+
         .customer-info {
             border-top: 1px dashed #000;
             border-bottom: 1px dashed #000;
             padding: 5px 0;
             margin-bottom: 5px;
         }
+
         .customer-info h4 {
-            margin: 0 0 5px 0;
+            margin: 0 0 4px 0;
             text-align: center;
             font-size: 11px;
         }
+
         .customer-info p {
-            margin: 2px 0;
+            margin: 3px 0;
             font-size: 10px;
+            line-height: 1.3;
         }
+
         .items-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 9px;
+            margin-bottom: 5px;
         }
+
+        /* Enforce column widths so alignment stays clean */
+        .items-table th:nth-child(1) { width: 40%; text-align: left; }
+        .items-table th:nth-child(2) { width: 20%; text-align: right; }
+        .items-table th:nth-child(3) { width: 20%; text-align: right; }
+        .items-table th:nth-child(4) { width: 20%; text-align: right; }
+
         .items-table thead th {
-            text-align: left;
-            padding: 5px 2px;
+            padding: 5px 0;
             border-bottom: 1px solid #000;
             font-size: 10px;
         }
+
         .items-table tbody td {
-            padding: 4px 2px;
+            padding: 5px 0;
             vertical-align: top;
         }
+
         .items-table .item-name {
             font-weight: bold;
             font-size: 10px;
+            display: block; /* Ensures text wraps nicely if long */
         }
+
         .text-right { text-align: right; }
+
         .totals-summary {
-            margin-top: 5px;
             padding-top: 5px;
             border-top: 1px dashed #000;
         }
+
         .summary-item {
             display: flex;
             justify-content: space-between;
             padding: 2px 0;
             font-size: 10px;
         }
+
         .summary-item.total {
             font-weight: bold;
             font-size: 14px;
             padding-top: 5px;
+            margin-top: 3px;
             border-top: 1px solid #000;
         }
+
         .amount-in-words {
             margin: 5px 0;
             padding: 5px 0;
             border-top: 1px dashed #000;
             border-bottom: 1px dashed #000;
             font-size: 10px;
+            line-height: 1.3;
         }
+
         .amount-in-words strong {
             display: block;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
+
         .footer-info {
             margin-top: 10px;
             text-align: center;
             font-size: 9px;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -122,7 +163,6 @@
 <body>
 <div class="receipt-container">
 
-    <!-- a) App name and details at the top -->
     <header class="header-main">
         <h3 class="shop-name" th:text="${appName}">Clear Bill</h3>
         <p th:text="${appAddress}">123 Business Avenue, Ranchi, JH</p>
@@ -130,29 +170,30 @@
         <p th:text="'Phone: ' + ${appPhone}">Phone: +91 98765 43210</p>
     </header>
 
-    <!-- b) Invoice number and then date -->
     <table class="meta-info">
         <tr>
-            <td><strong>Invoice:</strong></td>
+            <td>Invoice No:</td>
             <td th:text="${invoiceId}">SUB-001</td>
         </tr>
         <tr>
-            <td><strong>Date:</strong></td>
+            <td>Date:</td>
             <td th:text="${invoiceDate}">04-Nov-2025</td>
         </tr>
     </table>
 
-    <!-- c) Combine bill to and ship to -->
     <div class="customer-info">
         <h4>BILL TO</h4>
         <p><strong th:text="${userName}">User Name</strong></p>
-        <p th:text="'Ph: ' + ${userPhone}">Ph: 9998887770</p>
-        <p th:text="${userAddress}">User Address</p>
-        <p th:if="${userGstin != null and !userGstin.isEmpty()}"
-           th:text="'GSTIN: ' + ${userGstin}">User GSTIN</p>
+
+        <p th:if="${userAddress != null and !userAddress.isEmpty()}" th:text="${userAddress}">User Address</p>
+
+        <p th:text="${userCity} + ', ' + ${userState} + ' - ' + ${userPincode}">Kolkata, West Bengal - 700001</p>
+
+        <p th:text="'Ph: ' + ${userPhone} + ', Email: ' + ${userEmail}">Ph: 9998887770, Email: email@email.com</p>
+
+        <p th:if="${userGstin != null and !userGstin.isEmpty()}" th:text="'GSTIN: ' + ${userGstin}">User GSTIN</p>
     </div>
 
-    <!-- d) Product list with just one row -->
     <table class="items-table">
         <thead>
         <tr>
@@ -174,27 +215,25 @@
         </tbody>
     </table>
 
-    <!-- e) Total column details -->
     <div class="totals-summary">
         <div class="summary-item">
             <span>Subtotal</span>
-            <span th:text="' ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}">168.64</span>
+            <span th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}">168.64</span>
         </div>
 
-        <!-- Loop for GST Summary -->
         <div class="summary-item" th:each="entry : ${gstSummary}">
             <span th:text="${entry.key}">CGST @9%</span>
-            <span th:text="' ' + ${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">15.18</span>
+            <span th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">15.18</span>
         </div>
 
         <div class="summary-item total">
             <span>TOTAL</span>
-            <span th:text="' ' + ${#numbers.formatDecimal(totalAmount, 1, 'COMMA', 2, 'POINT')}">199.00</span>
+            <span th:text="${#numbers.formatDecimal(totalAmount, 1, 'COMMA', 2, 'POINT')}">199.00</span>
         </div>
     </div>
 
     <div class="amount-in-words">
-        <strong>Amount:</strong>
+        <strong>Amount in words:</strong>
         <span th:text="${amountInWords}">One Hundred Ninety-Nine Rupees Only</span>
     </div>
 

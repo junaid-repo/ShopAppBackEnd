@@ -40,8 +40,10 @@ public class SubscriptionInvoiceUtil {
         context.setVariable("userName", data.getUserName());
         context.setVariable("userEmail", data.getUserEmail());
         context.setVariable("userAddress", data.getUserAddress());
-        context.setVariable("userGstin", data.getUserGstin());
         context.setVariable("userPhone", data.getUserPhone());
+        context.setVariable("userCity", data.getCity());
+        context.setVariable("userState", data.getState());
+        context.setVariable("userPincode", data.getPincode());
 
         // Line Item & Summary
         context.setVariable("planName", data.getPlanName());

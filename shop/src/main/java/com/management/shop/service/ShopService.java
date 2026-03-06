@@ -1943,9 +1943,10 @@ String username=extractUsername();
 
     public UserProfileDto getUserProfileWithRoles() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
+                new RuntimeException("User not found: " + username));
 
-
-        UserProfileDto response = UserProfileDto.builder().username(username).email("na@na.com").roles(extractRoles()).build();
+        UserProfileDto response = UserProfileDto.builder().username(username).phoneNumber(res.getPhoneNumber()).name(res.getName()).roles(extractRoles()).build();
 
         System.out.println("getUserProfileWithRoles: " + response);
         return response;

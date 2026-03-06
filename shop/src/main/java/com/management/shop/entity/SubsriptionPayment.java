@@ -26,6 +26,7 @@ public class SubsriptionPayment {
     private String gatewaySignature;
     private Double amount;
 
+
     private String username;
     private LocalDateTime paymentDate;
     private LocalDateTime updatedAt;

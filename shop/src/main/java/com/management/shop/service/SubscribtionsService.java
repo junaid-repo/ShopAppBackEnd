@@ -3,9 +3,11 @@ package com.management.shop.service;
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.management.shop.dto.*;
+import com.management.shop.entity.SubscriptionBillingEntity;
 import com.management.shop.entity.SubsriptionPayment;
 import com.management.shop.entity.UserInfo;
 import com.management.shop.entity.UserSubscriptions;
+import com.management.shop.repository.SubsriptionBillingDetailsRepository;
 import com.management.shop.repository.SubsriptionPaymentRepository;
 import com.management.shop.repository.UserInfoRepository;
 import com.management.shop.repository.UserSubscriptionsRepository;
@@ -50,6 +52,9 @@ public class SubscribtionsService {
 
     @Autowired
     SubsriptionPaymentRepository subsripPayRepo;
+
+    @Autowired
+    SubsriptionBillingDetailsRepository billingDetailsRepo;
 
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -203,6 +208,12 @@ public class SubscribtionsService {
 
         userinfoRepo.updateUserRole(userSub.getUsername(),"ROLE_PREMIUM");
 
+        try {
+            billingDetailsRepo.updateBillingDetailsByUsername(extractUsername(), request.getRazorpay_order_id(), LocalDateTime.now());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
 
         try {
             sendSubscriptionInvoice();
@@ -306,7 +317,10 @@ public class SubscribtionsService {
 
 
         UserSubscriptions userSub= subsRepo.findLatestActiveOrUpcomingByUsername(extractUsername());
-        UserInfo userinfo=userinfoRepo.findByUsername(extractUsername()).get();
+        //UserInfo userinfo=userinfoRepo.findByUsername(extractUsername()).get();
+
+        SubscriptionBillingEntity subBill= billingDetailsRepo.findLatestByUsername(extractUsername());
+
         SubscriptionReceiptData data = new SubscriptionReceiptData();
         if(userSub!=null) {
             data.setAppName("Clear Bill");
@@ -317,10 +331,15 @@ public class SubscribtionsService {
             data.setInvoiceId(userSub.getSubscriptionId());
             data.setInvoiceDate(LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
 
-            data.setUserEmail(userinfo.getEmail());
-            data.setUserPhone(userinfo.getPhoneNumber());
-            data.setUserAddress("New Town");
-            data.setUserGstin("20ABCDE1234F1Z5");
+
+
+            data.setUserEmail(subBill.getEmail());
+            data.setUserPhone(subBill.getPhone());
+            data.setCity(subBill.getCity());
+            data.setPincode(subBill.getPincode());
+            data.setState(subBill.getState());
+            data.setUserAddress(subBill.getAddress());
+           // data.setUserGstin("20ABCDE1234F1Z5");
 
             Double price =userSub.getPrice()/100;
 
@@ -343,15 +362,15 @@ public class SubscribtionsService {
             data.setTaxableAmount(BigDecimal.valueOf(baseAmount));
             data.setTotalGstAmount(BigDecimal.valueOf(gstAmount));
             data.setTotalAmount(BigDecimal.valueOf(userSub.getPrice()/100));
-            data.setUserName(userSub.getUsername());
+            data.setUserName(subBill.getName());
 
 
             try {
                 String emailContent = emailTemplate.getSubscriptionSuccessEmailContent(getSubscriptionDetails().get(getSubscriptionDetails().size()-1), extractUsername());
 
                 if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
-                    CompletableFuture<String> futureResult = email.sendEmail(userinfo.getEmail(),
-                            userSub.getSubscriptionId(),userinfo.getName(),
+                    CompletableFuture<String> futureResult = email.sendEmail(subBill.getEmail(),
+                            userSub.getSubscriptionId(),subBill.getName(),
                             generateGSTInvoicePdf.generateSubscriptionReceipt(data), emailContent, "Clear Bill");
                     System.out.println(futureResult);
                 }
@@ -366,4 +385,39 @@ public class SubscribtionsService {
 
     }
 
+    public Map<String, String> saveSubscriptionBillingDetails(Map<String, String> request) {
+
+        var billingEntity= SubscriptionBillingEntity.builder()
+                .name(request.get("name"))
+                .email(request.get("email"))
+                .phone(request.get("phone"))
+                .city(request.get("city"))
+                .state(request.get("state"))
+                .pincode(request.get("pincode"))
+                .address(request.get("address"))
+                .createdDate(LocalDateTime.now())
+                .username(extractUsername())
+                .updatedDate(LocalDateTime.now())
+                .updatedBy("SYSTEM")
+                .createdBy("SYSTEM")
+                .createdDate(LocalDateTime.now())
+                .build();
+
+        Map<String, String> response= new HashMap<>();
+
+        SubscriptionBillingEntity billEntity=  billingDetailsRepo.save(billingEntity);
+
+        if(billEntity!=null && billEntity.getId()>0){
+            response.put("status", "success");
+            response.put("message", "Billing details saved successfully");
+            return response;
+        }
+        else{
+            response.put("status", "failure");
+            response.put("message", "Failed to save billing details");
+            return response;
+        }
+
+
+    }
 }

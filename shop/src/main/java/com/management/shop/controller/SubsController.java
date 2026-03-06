@@ -1,6 +1,7 @@
 package com.management.shop.controller;
 
 import com.management.shop.dto.BillingResponse;
+import com.management.shop.dto.ReportResponse;
 import com.management.shop.dto.SubsriptionRequest;
 import com.management.shop.dto.VerifyAndBillRequest;
 import com.management.shop.service.SubscribtionsService;
@@ -9,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -86,4 +88,23 @@ public class SubsController {
         return ResponseEntity.ok(response);
 
     }
+
+    @PostMapping("api/shop/subscription/save-billing-details")
+    public ResponseEntity<Map<String, String>> saveSubscriptionBillingDetails(@RequestBody Map<String, String> request) {
+
+        System.out.println("The request payload for saveSubscriptionBillingDetails  is-->" + request);
+
+        Map<String, String> response = serv.saveSubscriptionBillingDetails(request);
+
+        if(response.get("status").equals("failure")) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+
+
+
+
 }

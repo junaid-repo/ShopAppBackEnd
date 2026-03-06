@@ -28,6 +28,9 @@ public class SubscriptionReceiptData {
     private String userName;
     private String userEmail;
     private String userAddress; // Combined billing/shipping address
+    private String city;
+    private String state;
+    private String pincode;
     private String userGstin; // User's GSTIN (if they provided one)
     private String userPhone;
 

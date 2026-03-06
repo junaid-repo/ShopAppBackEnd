@@ -531,6 +531,7 @@ public class ShopController {
         return ResponseEntity.ok(response);
     }
 
+
     @GetMapping("api/shop/user/{username}/profile-pic")
     public ResponseEntity<byte[]> getProfilePic(@PathVariable String username) throws IOException {
 
