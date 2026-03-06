@@ -464,7 +464,7 @@ public class AuthService {
                     }
 
                     response.addHeader("Set-Cookie",
-                            "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
+                            "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + ".clearbills.info" + "; Max-Age=36000");
                 } else {
                     String cookieHeader = String.format(
                             "jwt=%s; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax",
