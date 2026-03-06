@@ -59,9 +59,13 @@ public class AuthController {
     }
 
     @PostMapping("auth/new/google/user")
-    public ResponseEntity<GoogleAuthResponse> addNewGoogleUser(@RequestBody GoogleLoginRequest request, HttpServletResponse httpResponse) throws Exception {
+    public ResponseEntity<GoogleAuthResponse> addNewGoogleUser(
+            @RequestBody GoogleLoginRequest loginRequest,
+            HttpServletRequest request,
+            HttpServletResponse httpResponse) throws Exception {
 
-        GoogleAuthResponse response=     serv.googleLogin(request, httpResponse);
+        // 🟢 Passed 'request' so the service can determine the correct domain (.info or .store)
+        GoogleAuthResponse response = serv.googleLogin(loginRequest, request, httpResponse);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
