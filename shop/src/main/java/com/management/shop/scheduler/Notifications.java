@@ -66,7 +66,7 @@ public class Notifications {
 
         usersList.stream().forEach(user -> {
             String username = user.getUsername();
-            if(username.equals("gadae40")){
+           // if(username.equals("gadae40")){
             Boolean stockNotificationEnabled = (Boolean) getNotificationSettings(username).getOrDefault("receiveLowStockAlerts", Boolean.FALSE);
 
             if(stockNotificationEnabled) {
@@ -99,7 +99,8 @@ public class Notifications {
 
             });
 
-        }}
+        }
+        //}
         });
 
     }
@@ -124,7 +125,7 @@ public class Notifications {
                     Long daysBetween = Optional.ofNullable(payment.getUpdatedDate())
                             .map(updatedDate -> ChronoUnit.DAYS.between(updatedDate, LocalDateTime.now()))
                             .orElse(0l);
-                    if (daysBetween > 3) {
+                    if (daysBetween > 0) {
 
                         String title = "Due Amount for Order No " + payment.getOrderNumber();
                         String details = "Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment";

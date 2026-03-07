@@ -223,6 +223,17 @@ public class SettingsService {
 
         NotificationSetting notSettings = notificationSettingsRepo.findbyUsername(extractUsername());
 
+        if(notSettings==null){
+            notSettings=NotificationSetting.builder().paymentReminders(true)
+                    .lowStockAlert(true)
+                    .systemUpdates(true)
+                    .username(extractUsername())
+                    .updatedBy(extractUsername())
+                    .updatedDate(LocalDateTime.now())
+                    .build();
+            notificationSettingsRepo.save(notSettings);
+        }
+
         response.put("receiveLowStockAlerts", notSettings != null && notSettings.getLowStockAlert() != null ? notSettings.getLowStockAlert() : false);
         response.put("receivePaymentReminders", notSettings != null && notSettings.getPaymentReminders() != null ? notSettings.getPaymentReminders() : false);
         response.put("receiveSystemUpdates", notSettings != null && notSettings.getSystemUpdates() != null ? notSettings.getSystemUpdates() : false);
