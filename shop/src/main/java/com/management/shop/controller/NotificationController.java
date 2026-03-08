@@ -1,5 +1,6 @@
 package com.management.shop.controller;
 
+import com.management.shop.scheduler.Notifications;
 import com.management.shop.service.FCMService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,9 @@ public class NotificationController {
     @Autowired
     private FCMService fcmService;
 
+    @Autowired
+    private Notifications notifications;
+
     @PostMapping("/send")
     public String sendNotification(@RequestBody NotificationRequest request) {
         return fcmService.sendNotification(
@@ -24,6 +28,13 @@ public class NotificationController {
     public String saveFirebasePermissionToken(@RequestBody Map<String, String> request) {
 
         fcmService.saveFirebaseToken(request);
+
+        return "Token saved successfully!";
+    }
+    @PostMapping("/demo/test/notification")
+    public String dummyTestNotification() {
+
+        notifications.paymentReminders();
 
         return "Token saved successfully!";
     }

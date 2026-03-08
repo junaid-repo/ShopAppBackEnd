@@ -19,8 +19,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Integer>
 
 	@Modifying
 	@Transactional
-	@Query(value = "UPDATE shop_product SET stock = stock - ?2, status = CASE    WHEN stock - ?2 <= 0 THEN 'Out of Stock' ELSE status END WHERE id = ?1 AND stock > 0 and user_id = ?3", nativeQuery = true)
-	void updateProductStock(Integer id, Integer quantity, String userId);
+	@Query(value = "UPDATE shop_product SET stock = stock - ?2, updated_date=?4, updated_by=?3,  status = CASE    WHEN stock - ?2 <= 0 THEN 'Out of Stock' ELSE status END WHERE id = ?1 AND stock > 0 and user_id = ?3", nativeQuery = true)
+	void updateProductStock(Integer id, Integer quantity, String userId, LocalDateTime updatedDate);
 
 	@Modifying
 	@Transactional

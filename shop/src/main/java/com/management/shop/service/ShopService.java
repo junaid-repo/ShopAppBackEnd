@@ -500,6 +500,8 @@ public class ShopService {
         System.out.println("The updated request" + request.getTax());
         var productEntity = ProductEntity.builder().id(request.getSelectedProductId()).name(request.getName())
                 .active(true).category(request.getCategory()).userId(extractUsername()).status(status).stock(request.getStock())
+                .updatedDate(LocalDateTime.now())
+                .updatedBy(extractUsername())
                 .hsn(request.getHsn()).taxPercent(request.getTax()).price(request.getPrice()).costPrice(request.getCostPrice()).build();
 
         ProductEntity ent = prodRepo.save(productEntity);
@@ -767,7 +769,7 @@ public class ShopService {
                 }
               if(!userSettingsEntity.getAllowNoStockBilling()){
                 if (prodSalesResponse.getId() != null) {
-                    prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername());
+                    prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername(), LocalDateTime.now());
 
                 }}
 
