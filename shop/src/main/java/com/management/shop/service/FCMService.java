@@ -81,7 +81,7 @@ public class FCMService {
             MulticastMessage message = MulticastMessage.builder()
                     .addAllTokens(allToken) // 🟢 Pass the entire list of tokens here
                     .setNotification(notification)
-                    .putData("url", "https://clearbills.info/dashboard")
+                    .putData("url", "https://clearbills.info/notifications")
                     .build();
 
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);

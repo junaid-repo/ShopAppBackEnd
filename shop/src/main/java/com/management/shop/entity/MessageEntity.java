@@ -33,4 +33,6 @@ public class MessageEntity {
     private LocalDateTime updatedDate;
     private String updatedBy;
     private String userId;
+    private String cronEx;
+    private Boolean isSent;
 }

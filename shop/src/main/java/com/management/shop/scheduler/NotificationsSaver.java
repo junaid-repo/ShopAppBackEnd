@@ -24,10 +24,11 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 
 @Component
 @Slf4j
-public class Notifications {
+public class NotificationsSaver {
 
     @Autowired
     private ProductRepository prodRepo;
@@ -46,6 +47,9 @@ public class Notifications {
 
     @Autowired
     FCMService fcmService;
+
+    @Autowired
+    NotificationScheduler notificationScheduler;
 
 
     public String extractUsername() {
@@ -75,9 +79,14 @@ public class Notifications {
 
             outOfStockProducts.stream().forEach(product -> {
 
-                String title = "Product " + product.getName() + "of " + product.getCategory() + " is out of stock.";
-                String details = "Product " + product.getName() + "of " + product.getCategory() + " is out of stock. Please restock it as soon as possible by going through the Products tabs";
+                // Check if category exists and is NOT just "Product"
+                String categoryText = (product.getCategory() != null && !product.getCategory().equalsIgnoreCase("Product"))
+                        ? " of " + product.getCategory() + " category"
+                        : "";
 
+                String title = "📦 Product " + product.getName() + categoryText + " is out of stock.";
+
+                String details = "Product " + product.getName() + categoryText + " is out of stock. Please restock it as soon as possible by going through the Products tab.";
 
                 MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("products")
                         .title("Out of Stock Alert " + product.getName())
@@ -92,10 +101,12 @@ public class Notifications {
                         .updatedBy(username)
                         .searchKey(product.getName())
                         .updatedDate(LocalDateTime.now())
+                        .isSent(Boolean.FALSE)
+                        .cronEx(generanteRandomCornEx())
                         .build();
-
+                notificationScheduler.scheduleNewTask(messageEntity);
                 notiRepo.save(messageEntity);
-                fcmService.sendNotification(title, details, username);
+
 
             });
 
@@ -128,7 +139,7 @@ public class Notifications {
                     if (daysBetween > 0) {
 
                         String title = "Due Amount for Order No " + payment.getOrderNumber();
-                        String details = "Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment";
+                        String details = "\uD83D\uDCB5 Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment";
 
                         MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("sales")
                                 .title(title)
@@ -143,11 +154,14 @@ public class Notifications {
                                 .updatedBy(username)
                                 .searchKey(payment.getOrderNumber())
                                 .updatedDate(LocalDateTime.now())
+                                .isSent(Boolean.FALSE)
+                                .cronEx(generanteRandomCornEx())
                                 .build();
 
+                        notificationScheduler.scheduleNewTask(messageEntity);
                         notiRepo.save(messageEntity);
 
-                        fcmService.sendNotification(title, details, username);
+                       // fcmService.sendNotification(title, details, username);
                     }
 
                 });
@@ -168,5 +182,15 @@ public class Notifications {
 
     private Map<String, Object> getNotificationSettings(String username){
         return setServ.getNotificationSettings(username);
+    }
+
+    private static String generanteRandomCornEx(){
+        Random random = new Random();
+
+        int second = random.nextInt(60);   // 0-59
+        int minute = random.nextInt(60);   // 0-59
+        int hour = random.nextInt(24);     // 0-23
+
+        return String.format("%d %d %d * * ?", second, minute, hour);
     }
 }

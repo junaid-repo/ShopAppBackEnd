@@ -1992,12 +1992,12 @@ String username=extractUsername();
 
             if (seen.equals("flagged")) {
                 Boolean isFlagged = true;
-                notificationsList = notiRepo.findAllNotificationsByFlaggedStatus(extractUsername(), domain, isFlagged, Boolean.FALSE, pageable);
+                notificationsList = notiRepo.findAllNotificationsByFlaggedStatus(extractUsername(), domain, isFlagged, Boolean.FALSE,  Boolean.TRUE, pageable);
             } else
-                notificationsList = notiRepo.findAllNotificationsByReadStatus(extractUsername(), domain, isRead, Boolean.FALSE, pageable);
+                notificationsList = notiRepo.findAllNotificationsByReadStatus(extractUsername(), domain, isRead, Boolean.FALSE,  Boolean.TRUE, pageable);
 
         } else
-            notificationsList = notiRepo.findAllNotifications(extractUsername(), domain, Boolean.FALSE, pageable);
+            notificationsList = notiRepo.findAllNotifications(extractUsername(), domain, Boolean.FALSE, Boolean.TRUE, pageable);
 
         for (MessageEntity obj : notificationsList) {
             notifications.add(ShopNotifications.builder().createdAt(obj.getCreatedDate()).title(obj.getTitle()).id(String.valueOf(obj.getId())).subject(obj.getSubject()).message(obj.getDetails()).seen(obj.getIsRead()).domain(obj.getDomain()).searchKey(obj.getSearchKey()).isFlagged(obj.getIsFlagged()).build());

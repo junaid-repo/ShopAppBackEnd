@@ -1,6 +1,6 @@
 package com.management.shop.controller;
 
-import com.management.shop.scheduler.Notifications;
+import com.management.shop.scheduler.NotificationsSaver;
 import com.management.shop.service.FCMService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +15,7 @@ public class NotificationController {
     private FCMService fcmService;
 
     @Autowired
-    private Notifications notifications;
+    private NotificationsSaver notifications;
 
     @PostMapping("/send")
     public String sendNotification(@RequestBody NotificationRequest request) {
