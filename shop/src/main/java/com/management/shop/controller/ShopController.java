@@ -620,8 +620,7 @@ public class ShopController {
 
         Map<String, Object> responseMap = new HashMap<>();
 
-        if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
-            // 1. Determine the correct domain dynamically based on the request Origin or Host
+        if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {// 1. Determine the correct domain dynamically based on the request Origin or Host
             String origin = request.getHeader("Origin");
             String host = request.getHeader("Host");
             String targetDomain = ".clearbills.info"; // Default fallback
@@ -631,19 +630,10 @@ public class ShopController {
                 targetDomain = ".clearbill.store";
             }
 
-            // PROD: Delete cookie with dynamic Domain and Secure flag
-            // Note: Max-Age must be 0 to expire the cookie immediately
+
             httpResponse.addHeader("Set-Cookie",
-                    "jwt=; Path=/; HttpOnly; Secure; SameSite=None;"+ "; Max-Age=0");
+                    "jwt=; Path=/; Domain=" + targetDomain + "; HttpOnly; Secure; SameSite=None; Max-Age=0");} else {
 
-
-        } else {
-            // DEV (IP Address/Localhost): Delete cookie without Domain and without Secure
-
-            // 1. We use a manual header to ensure consistency with the Login logic
-            // 2. We set Max-Age=0 to delete it
-            // 3. We set SameSite=Lax (matches the login logic)
-            // 4. We DO NOT set Domain (matches the login logic for IP addresses)
 
             String cookieHeader = "jwt=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
             httpResponse.addHeader("Set-Cookie", cookieHeader);
