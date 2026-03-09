@@ -104,8 +104,9 @@ public class NotificationsSaver {
                         .isSent(Boolean.FALSE)
                         .cronEx(generanteRandomCornEx())
                         .build();
-                notificationScheduler.scheduleNewTask(messageEntity);
-                notiRepo.save(messageEntity);
+                ;
+                notificationScheduler.scheduleNewTask(notiRepo.save(messageEntity));
+
 
 
             });
@@ -158,8 +159,8 @@ public class NotificationsSaver {
                                 .cronEx(generanteRandomCornEx())
                                 .build();
 
-                        notificationScheduler.scheduleNewTask(messageEntity);
-                        notiRepo.save(messageEntity);
+                        notificationScheduler.scheduleNewTask(notiRepo.save(messageEntity));
+
 
                        // fcmService.sendNotification(title, details, username);
                     }
