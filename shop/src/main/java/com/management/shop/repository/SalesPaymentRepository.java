@@ -53,8 +53,7 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
            COALESCE(SUM(bp.toBePaid), 0) AS totalDue
     FROM PaymentEntity bp
     WHERE bp.userId = :userId
-      AND bp.createdDate >= :startDate
-      AND bp.createdDate < :endDate 
+      AND bp.createdDate between :startDate and :endDate
 """)
     List<Map<String, Object>> getPaymentStatusBreakdown(
             String userId,

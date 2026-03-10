@@ -145,7 +145,7 @@ public class NotificationsSaver {
                         MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("sales")
                                 .title(title)
                                 .subject("Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days.")
-                                .details(title)
+                                .details(details)
                                 .isDeleted(false)
                                 .isDone(false)
                                 .isRead(false)
