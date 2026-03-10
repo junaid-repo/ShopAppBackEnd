@@ -46,7 +46,7 @@ public class PDFGSTInvoiceUtil {
 
         // --- QR Code (UPI) ---
         String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+data.getGrandTotal()+"&cu=INR";
-        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 200, 200);
+        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(data.getInvoiceId()), 200, 200);
 
         // --- Barcode Generation for Invoice ID (Conditional) ---
         String invoiceId = nullSafeString(data.getInvoiceId());

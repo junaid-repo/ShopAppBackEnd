@@ -84,7 +84,7 @@ public class NotificationsSaver {
                         ? " of " + product.getCategory() + " category"
                         : "";
 
-                String title = "📦 Product " + product.getName() + categoryText + " is out of stock.";
+                String title = "\uD83D\uDCE6 Product " + product.getName() + categoryText + " is out of stock.";
 
                 String details = "Product " + product.getName() + categoryText + " is out of stock. Please restock it as soon as possible by going through the Products tab.";
 

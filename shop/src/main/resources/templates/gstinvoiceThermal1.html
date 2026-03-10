@@ -6,7 +6,7 @@
 
     <style>
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: 'Monospace', 'Courier New', Courier, monospace;
             color: #000;
             background: #fff;
             margin: 0;
@@ -15,7 +15,6 @@
         }
 
         .receipt-wrapper {
-            /* 🟢 Utilizes 96% of the paper width to remove vacant space while keeping a tiny safe margin */
             width: 96%;
             max-width: 100%;
             box-sizing: border-box;
@@ -31,68 +30,78 @@
         .flex-between { display: flex; justify-content: space-between; align-items: flex-end; }
         .break-word { word-wrap: break-word; word-break: break-all; }
 
-        /* Header Section */
+        /* 🟢 Header Section - Increased margins & padding */
         .brand-section {
             text-align: center;
-            margin-bottom: 8px;
+            margin-bottom: 16px;
             border-bottom: 2px dashed #000;
-            padding-bottom: 8px;
+            padding-bottom: 14px;
         }
         .logo-img {
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             object-fit: contain;
             filter: grayscale(100%);
         }
         .shop-title {
             font-weight: 900;
             text-transform: uppercase;
-            margin: 0 0 2px 0;
+            margin: 0 0 4px 0;
             line-height: 1;
         }
         .shop-sub {
             color: #000;
+            line-height: 1.3;
         }
 
-        /* Info Card */
+        /* 🟢 Info Card - Increased margins & padding */
         .info-card {
-            margin-bottom: 8px;
+            margin-bottom: 16px;
             border-bottom: 1px dashed #000;
-            padding-bottom: 5px;
+            padding-bottom: 12px;
         }
         .info-row {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 2px;
+            justify-content: flex-start;
+            align-items: baseline;
+            gap: 6px;
+            margin-bottom: 4px;
+            white-space: nowrap;
         }
         .info-label { font-weight: 600; }
-        .info-val { font-weight: bold; text-align: right;}
+        .info-val { font-weight: bold; text-align: left;}
 
-        /* Customer Section */
+        /* 🟢 Customer Section - Increased margins */
         .customer-area {
-            margin: 5px 0 8px 0;
-            line-height: 1.2;
+            margin: 12px 0 18px 0;
+            line-height: 1.3;
         }
-        .cust-label { text-transform: uppercase; font-weight: bold; color: #000; }
-        .cust-name { font-weight: 800; margin-bottom: 1px;}
+        .cust-label { text-transform: uppercase; font-weight: bold; color: #000; margin-bottom: 2px; }
+        .cust-name { font-weight: 800; margin-bottom: 2px;}
 
-        /* Items Table */
+        /* 🟢 Items Table - Increased bottom margin */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
+            margin-bottom: 16px;
         }
         .items-table thead {
             border-top: 2px solid #000;
             border-bottom: 2px solid #000;
         }
+        .items-table tbody tr {
+            border-bottom: 1px dashed #aaa;
+        }
+        .items-table tbody tr:last-child {
+            border-bottom: none;
+        }
         .items-table th {
             text-align: left;
             font-weight: 800;
-            padding: 4px 0;
+            padding: 6px 0;
             text-transform: uppercase;
         }
         .items-table td {
-            padding: 5px 0;
+            padding: 6px 0 8px 0;
             vertical-align: top;
         }
 
@@ -105,30 +114,30 @@
         .sub-desc {
             color: #444;
             display: block;
-            margin-top: 1px;
+            margin-top: 2px;
             font-style: italic;
         }
 
-        /* Totals Section */
+        /* 🟢 Totals Section - Increased top padding */
         .totals-block {
             border-top: 1px dashed #000;
-            padding-top: 5px;
+            padding-top: 14px;
         }
         .t-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
         .t-label { color: #000; font-weight: 600; }
 
-        /* 🟢 UPDATED: The "PILL" - Now a clean bordered box */
         .grand-total-pill {
             background-color: transparent;
             color: #000;
             border: 2px solid #000;
-            border-radius: 4px; /* Optional slight curve */
-            padding: 6px 8px;
-            margin-top: 8px;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-top: 12px;
+            margin-bottom: 12px; /* Extra space below total */
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -136,29 +145,29 @@
         .gt-label { font-weight: bold; text-transform: uppercase; }
         .gt-value { font-weight: 900; }
 
-        /* Footer */
+        /* 🟢 Footer - Increased spacing */
         .footer-area {
             text-align: center;
-            margin-top: 10px;
-            padding-top: 5px;
+            margin-top: 20px;
+            padding-top: 14px;
             border-top: 1px solid #000;
         }
         .pay-info {
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             border: 2px solid #000;
             display: inline-block;
-            padding: 2px 8px;
+            padding: 4px 10px;
         }
         .qr-display {
             display: block;
-            margin: 8px auto; /* Ensures it is always centered */
+            margin: 12px auto;
         }
         .terms-list {
             color: #000;
-            margin-top: 8px;
-            text-align: center;
-            line-height: 1.2;
+            margin-top: 12px;
+            text-align: left;
+            line-height: 1.3;
         }
     </style>
 
@@ -168,11 +177,14 @@
         .logo-img { max-height: 45px; }
         .shop-title { font-size: 16px; }
         .shop-sub, .pay-info { font-size: 10px; }
-        .info-row, .customer-area, .items-table td, .t-row { font-size: 11px; }
-        .cust-label, .items-table th, .sub-desc, .terms-list { font-size: 9px; }
+        .info-row, .customer-area, .t-row { font-size: 11px; }
+
+        .items-table td { font-size: 10px; }
+        .sub-desc { font-size: 8px; }
+
+        .cust-label, .items-table th, .terms-list { font-size: 9px; }
         .cust-name, .gt-label { font-size: 12px; }
         .gt-value { font-size: 16px; }
-        /* 🟢 Increased QR Size */
         .qr-display { width: 80px; height: 80px; }
     </style>
 
@@ -182,11 +194,14 @@
         .logo-img { max-height: 65px; }
         .shop-title { font-size: 22px; }
         .shop-sub, .pay-info { font-size: 12px; }
-        .info-row, .customer-area, .items-table td, .t-row { font-size: 13px; }
-        .cust-label, .items-table th, .sub-desc, .terms-list { font-size: 11px; }
+        .info-row, .customer-area, .t-row { font-size: 13px; }
+
+        .items-table td { font-size: 12px; }
+        .sub-desc { font-size: 10px; }
+
+        .cust-label, .items-table th, .terms-list { font-size: 11px; }
         .cust-name, .gt-label { font-size: 14px; }
         .gt-value { font-size: 20px; }
-        /* 🟢 Increased QR Size */
         .qr-display { width: 120px; height: 120px; }
     </style>
 
@@ -196,11 +211,14 @@
         .logo-img { max-height: 85px; }
         .shop-title { font-size: 26px; }
         .shop-sub, .pay-info { font-size: 14px; }
-        .info-row, .customer-area, .items-table td, .t-row { font-size: 15px; }
-        .cust-label, .items-table th, .sub-desc, .terms-list { font-size: 13px; }
+        .info-row, .customer-area, .t-row { font-size: 15px; }
+
+        .items-table td { font-size: 14px; }
+        .sub-desc { font-size: 11px; }
+
+        .cust-label, .items-table th, .terms-list { font-size: 13px; }
         .cust-name, .gt-label { font-size: 16px; }
         .gt-value { font-size: 26px; }
-        /* 🟢 Increased QR Size */
         .qr-display { width: 160px; height: 160px; }
     </style>
 </head>
@@ -221,7 +239,7 @@
         <div class="shop-sub">
             <span th:text="${shopAddress}"></span><br>
             <span th:text="${shopPhone}"></span>
-            <div th:if="${gstNumber}" style="margin-top:2px; font-weight:bold;" th:text="'GST: ' + ${gstNumber}"></div>
+            <div th:if="${gstNumber}" style="margin-top:4px; font-weight:bold;" th:text="'GST: ' + ${gstNumber}"></div>
         </div>
     </div>
 
@@ -244,10 +262,10 @@
         <div class="cust-label">Billed To</div>
         <div class="cust-name" th:text="${customerName}"></div>
         <div th:text="${customerPhone}"></div>
-        <div style="font-size: 0.9em;" th:text="${combineAddress} ? ${customerBillingAddress} : ${customerBillingAddress}"></div>
+        <div style="font-size: 0.9em; margin-top: 2px;" th:text="${combineAddress} ? ${customerBillingAddress} : ${customerBillingAddress}"></div>
     </div>
 
-    <table class="items-table">
+    <table class="items-table" style="font-size: 0.9em;">
         <thead>
         <tr>
             <th class="c-item">Item</th>
@@ -268,8 +286,9 @@
                           th:text="'Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 0)} + '%'"></span>
                 </td>
                 <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></td>
-                <td class="c-price" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
-                <td class="c-total" th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
+
+                <td class="c-price" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 0, 'POINT')}"></td>
+                <td class="c-total" th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 0, 'POINT')}"></td>
             </tr>
         </th:block>
         </tbody>
@@ -291,7 +310,7 @@
             <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
         </div>
 
-        <div class="t-row" style="margin-top: 6px; border-top: 1px dotted #000; padding-top:2px;"
+        <div class="t-row" style="margin-top: 8px; border-top: 1px dotted #000; padding-top: 4px;"
              th:if="${showDueAmount and dueAmount != null and dueAmount > 0}">
             <span class="bold uppercase">Balance Due</span>
             <span class="bold" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
@@ -302,7 +321,7 @@
             <span class="gt-value" th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
         </div>
 
-        <div class="text-center" style="font-size: 0.8em; margin-top: 5px; color: #000; font-weight: 500;" th:text="${grandTotalInWords}"></div>
+        <div class="text-center" style="font-size: 0.8em; margin-top: 8px; color: #000; font-weight: 500;" th:text="${grandTotalInWords}"></div>
     </div>
 
     <div class="footer-area">
@@ -311,14 +330,14 @@
             <div th:if="${qrCodeBase64}">
                 <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-display"/>
             </div>
-            <div class="pay-info" th:if="${upiId != null and !#strings.isEmpty(upiId)}" th:text="'UPI: ' + ${upiId}"></div>
+            <div class="pay-info" th:if="${invoiceId != null and !#strings.isEmpty(invoiceId)}" th:text="'Invoice #: ' + ${invoiceId}"></div>
         </div>
 
         <div class="terms-list" th:unless="${removeTerms}">
             <div th:each="term : ${termsAndConditions}" th:text="'• ' + ${term}"></div>
         </div>
 
-        <div style="margin-top: 12px; font-weight: 900; font-size: 1.1em; text-transform: uppercase;">
+        <div style="margin-top: 18px; font-weight: 900; font-size: 1.2em; text-transform: uppercase;">
             Thank you!
         </div>
     </div>
