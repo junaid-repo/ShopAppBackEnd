@@ -1200,6 +1200,15 @@ public class ShopController {
         return ResponseEntity.ok(categories);
     }
 
+    @PostMapping("api/shop/add-categories")
+    public ResponseEntity<SaveCategoryDto> saveCategories(@RequestBody Map<String, List> newCategories) {
+        System.out.println("Entered getCategories controller");
+        SaveCategoryDto response= serv.saveCategories(newCategories);
+
+        return ResponseEntity.ok(response);
+    }
+
+
 
 }
 

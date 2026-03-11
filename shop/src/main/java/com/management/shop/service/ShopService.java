@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.management.shop.dto.*;
 import com.management.shop.entity.*;
@@ -180,6 +181,9 @@ public class ShopService {
     @Autowired
     ProductCategoryRepository prodCatRepo;
 
+    @Autowired
+    ApiSaveRepository apiSaveRepo;
+
     private final Random random = new Random();
 
     @Value("${aws.s3.bucket-name}")
@@ -201,10 +205,20 @@ public class ShopService {
         return username;
     }
 
+    public String extractRole() {
+        String userrole= SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().toList().get(0).getAuthority();
+
+        System.out.println("Current user: " + userrole);
+        //  username="junaid1";
+        return userrole;
+    }
+
+
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        // For testing purposes, you might uncomment the line below
-        // username="junaid1";
+        SecurityContextHolder.getContext().getAuthentication().getAuthorities().forEach(auth -> {
+            System.out.println("Authority: " + auth.getAuthority());
+        });
         return username;
     }
 
@@ -418,16 +432,16 @@ public class ShopService {
 
         ProductEntity productEntity = null;
 
-        String productName=request.getName().toLowerCase().replaceAll("//s", "");
+        String productName = request.getName().toLowerCase().replaceAll("//s", "");
 
-        ProductEntity prodEntity=prodRepo.findByNameAndUserId(productName, extractUsername());
-        Integer updatedStock= request.getStock();
-        Integer updatedPrice= request.getPrice();
-        if(prodEntity!=null){
+        ProductEntity prodEntity = prodRepo.findByNameAndUserId(productName, extractUsername());
+        Integer updatedStock = request.getStock();
+        Integer updatedPrice = request.getPrice();
+        if (prodEntity != null) {
             request.setSelectedProductId(prodEntity.getId());
-            updatedStock=updatedStock+prodEntity.getStock();
+            updatedStock = updatedStock + prodEntity.getStock();
 
-            if(updatedPrice==0){
+            if (updatedPrice == 0) {
                 request.setPrice(prodEntity.getPrice());
             }
         }
@@ -678,7 +692,7 @@ public class ShopService {
     public BillingResponse doPayment(BillingRequest request) throws Exception {
 
 
-          checkAnonymousCustomer(request);
+        checkAnonymousCustomer(request);
 
         Integer unitsSold = 0;
         for (var obj : request.getCart()) {
@@ -767,11 +781,12 @@ public class ShopService {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-              if(!userSettingsEntity.getAllowNoStockBilling()){
-                if (prodSalesResponse.getId() != null) {
-                    prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername(), LocalDateTime.now());
+                if (!userSettingsEntity.getAllowNoStockBilling()) {
+                    if (prodSalesResponse.getId() != null) {
+                        prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername(), LocalDateTime.now());
 
-                }}
+                    }
+                }
 
             });
 
@@ -826,8 +841,6 @@ public class ShopService {
             }
 
 
-
-
             if (sendInvoice && !(request.getSelectedCustomer().getName().equals("Anonymous"))) {
 
                 try {
@@ -867,10 +880,10 @@ public class ShopService {
             Map<String, Object> emailContent = emailTemplate.generateOrderHtml(order, extractUsername());
 
             //if (Arrays.asList(environment.getActiveProfiles()).contains("prod") || Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
-String customerEmail=order.getCustomerEmail();
-String invoiceNumber=billResponse.getInvoiceNumber();
-String username=extractUsername();
-            CompletableFuture<String> emailResult=CompletableFuture.supplyAsync(()-> {
+            String customerEmail = order.getCustomerEmail();
+            String invoiceNumber = billResponse.getInvoiceNumber();
+            String username = extractUsername();
+            CompletableFuture<String> emailResult = CompletableFuture.supplyAsync(() -> {
 
 
                 return email.sendEmail(customerEmail,
@@ -878,9 +891,9 @@ String username=extractUsername();
                         generateGSTInvoicePdf(invoiceNumber, username), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
 
 
-            }).thenApply(futureResult->{
+            }).thenApply(futureResult -> {
 
-                EmailRecord emailRecord= null;
+                EmailRecord emailRecord = null;
                 try {
                     emailRecord = EmailRecord.builder().emailId(customerEmail)
                             .identifier(invoiceNumber)
@@ -895,7 +908,7 @@ String username=extractUsername();
                     throw new RuntimeException(e);
                 }
 
-                EmailRecord emailRecordSave=    emailRecordRepo.save(emailRecord);
+                EmailRecord emailRecordSave = emailRecordRepo.save(emailRecord);
 
                 return String.valueOf(futureResult);
 
@@ -916,10 +929,10 @@ String username=extractUsername();
 
     private void checkAnonymousCustomer(BillingRequest request) {
 
-        if(request.getSelectedCustomer().getName().equals("Anonymous")){
-            CustomerEntity existingCustomer=shopRepo.findByNameAndId(extractUsername(), request.getSelectedCustomer().getName());
+        if (request.getSelectedCustomer().getName().equals("Anonymous")) {
+            CustomerEntity existingCustomer = shopRepo.findByNameAndId(extractUsername(), request.getSelectedCustomer().getName());
 
-            if(existingCustomer==null){
+            if (existingCustomer == null) {
                 var customerEntity = CustomerEntity.builder().name(request.getSelectedCustomer().getName()).email(request.getSelectedCustomer().getEmail())
                         .createdDate(LocalDateTime.now())
                         .isActive(Boolean.TRUE)
@@ -929,10 +942,9 @@ String username=extractUsername();
                         .status("ACTIVE").userId(extractUsername()).totalSpent(0d).build();
 
                 CustomerEntity ent = shopRepo.save(customerEntity);
-                System.out.println("The saved customer details is "+ent);
+                System.out.println("The saved customer details is " + ent);
                 request.getSelectedCustomer().setId(ent.getId());
-            }
-            else{
+            } else {
                 request.getSelectedCustomer().setId(existingCustomer.getId());
             }
         }
@@ -942,9 +954,9 @@ String username=extractUsername();
         String customerState = selectedCustomer.getState();
         String shopState = "";
         try {
-            shopState=   shopBasicRepo.findByUserId(username).getShopState();
+            shopState = shopBasicRepo.findByUserId(username).getShopState();
         } catch (Exception e) {
-            shopState="West Bengal";
+            shopState = "West Bengal";
         }
 
         double taxPercent = prodRes.getTaxPercent(); // e.g., 18
@@ -1608,13 +1620,13 @@ String username=extractUsername();
         InvoiceData invoiceData = utils.getFullInvoiceDetails(username, orderId);
 
         String invoiceTemplateName = "gstinvoice";
-        String invoicePrinter="THERMAL_2";
+        String invoicePrinter = "THERMAL_2";
 
         try {
             SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
             if (repoEntity != null) {
                 invoiceTemplateName = repoEntity.getTemplateName();
-                invoicePrinter=repoEntity.getPrinterType();
+                invoicePrinter = repoEntity.getPrinterType();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -1626,7 +1638,8 @@ String username=extractUsername();
 
         return response;
     }
-    public byte[] generateGSTInvoicePdf(String orderId, String username)   {
+
+    public byte[] generateGSTInvoicePdf(String orderId, String username) {
         System.out.println("Generating invoice for orderNumber-->" + orderId);
 
       /*  String username = "";
@@ -1638,19 +1651,19 @@ String username=extractUsername();
         InvoiceData invoiceData = utils.getFullInvoiceDetails(username, orderId);
 
         String invoiceTemplateName = "gstinvoice";
-        String invoicePrinter="THERMAL_2";
+        String invoicePrinter = "THERMAL_2";
 
         try {
             SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
             if (repoEntity != null) {
                 invoiceTemplateName = repoEntity.getTemplateName();
-                invoicePrinter=repoEntity.getPrinterType();
+                invoicePrinter = repoEntity.getPrinterType();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
-        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName,invoicePrinter);
+        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName, invoicePrinter);
         System.out.println("The full invoice Data is " + invoiceData);
 
 
@@ -1992,9 +2005,9 @@ String username=extractUsername();
 
             if (seen.equals("flagged")) {
                 Boolean isFlagged = true;
-                notificationsList = notiRepo.findAllNotificationsByFlaggedStatus(extractUsername(), domain, isFlagged, Boolean.FALSE,  Boolean.TRUE, pageable);
+                notificationsList = notiRepo.findAllNotificationsByFlaggedStatus(extractUsername(), domain, isFlagged, Boolean.FALSE, Boolean.TRUE, pageable);
             } else
-                notificationsList = notiRepo.findAllNotificationsByReadStatus(extractUsername(), domain, isRead, Boolean.FALSE,  Boolean.TRUE, pageable);
+                notificationsList = notiRepo.findAllNotificationsByReadStatus(extractUsername(), domain, isRead, Boolean.FALSE, Boolean.TRUE, pageable);
 
         } else
             notificationsList = notiRepo.findAllNotifications(extractUsername(), domain, Boolean.FALSE, Boolean.TRUE, pageable);
@@ -2655,12 +2668,12 @@ String username=extractUsername();
         String username = extractUsername();
 
         UserSettingsEntity userSettingsEntity = userSettingsRepo.findByUsername(extractUsername());
-        Integer stockCount=0;
-        if(userSettingsEntity.getAllowNoStockBilling())
-            stockCount=-99999;
+        Integer stockCount = 0;
+        if (userSettingsEntity.getAllowNoStockBilling())
+            stockCount = -99999;
 
 
-        List<ProductEntity> productList = prodRepo.findAllActiveProductsForGSTBilling(Boolean.TRUE,  username, query, limit, stockCount);
+        List<ProductEntity> productList = prodRepo.findAllActiveProductsForGSTBilling(Boolean.TRUE, username, query, limit, stockCount);
 
 
         productList.stream().forEach(obj -> {
@@ -2713,14 +2726,14 @@ String username=extractUsername();
             salesPaymentRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
 
             var reminderCounter = ReminderCounter.builder().createdBy(extractUsername())
-                    .method((String)request.get("method"))
+                    .method((String) request.get("method"))
                     .username(extractUsername())
                     .invoiceId((String) request.get("orderId"))
                     .message((String) request.get("message"))
                     .createdDate(LocalDateTime.now())
                     .build();
 
-            ReminderCounter savedCounter= reminderCounterRepo.save(reminderCounter);
+            ReminderCounter savedCounter = reminderCounterRepo.save(reminderCounter);
             salesCacheService.evictUserSales(extractUsername(orderNo));
             salesCacheService.evictUserPayments(extractUsername(orderNo));
 
@@ -2734,12 +2747,10 @@ String username=extractUsername();
     }
 
 
-
-    public List<ReminderCounter> getPaymentReminderLists(String invoiceId){
-        List<ReminderCounter> paymentReminders=reminderCounterRepo.findByInvoiceIdAndUsername(invoiceId, extractUsername());
+    public List<ReminderCounter> getPaymentReminderLists(String invoiceId) {
+        List<ReminderCounter> paymentReminders = reminderCounterRepo.findByInvoiceIdAndUsername(invoiceId, extractUsername());
         return paymentReminders;
     }
-
 
 
     @Transactional
@@ -3107,6 +3118,7 @@ String username=extractUsername();
         log.info("SuperAnalytics processing complete for user: {}", userId);
         return superResponse;
     }
+
     public void sendReportEmail(MultipartFile file, String subject, List<String> emailList) {
 
 
@@ -3143,10 +3155,23 @@ String username=extractUsername();
         return utils.getFullInvoiceDetails(extractUsername(), invoiceId);
     }
 
-   // @Async("geminiAsync")
+    // @Async("geminiAsync")
     public String extractTextFromImage(MultipartFile file) throws IOException {
 
-        String base64Image=Base64.getEncoder().encodeToString(file.getBytes());
+        LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
+        List<GeminiTextExtract> apiLogs= apiSaveRepo.findCreatedWithinLast24Hours(last24Hours, extractUsername(), "Gemini Text Extraction API");
+        Integer count=apiLogs.size();
+
+
+        if(extractRole().equals("USER")){
+            if (count > 2) {
+
+                return "Sorry, you have exceeded the free usage limit for text extraction. Please upgrade to premium for unlimited access.";
+            }
+
+        }
+
+        String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
 
         String mimeType = file.getContentType(); // e.g., "image/jpeg" or "image/png"
 
@@ -3154,12 +3179,12 @@ String username=extractUsername();
             mimeType = "image/jpeg"; // Fallback
         }
 
-        String response =geminiCalls.geminiApiCall(base64Image, mimeType);
+        String response = geminiCalls.geminiApiCall(base64Image, mimeType);
 
-        System.out.println("The response of textExtraction is "+response);
+        System.out.println("The response of textExtraction is " + response);
 
 
-      return    response;
+        return response;
     }
 
     public List<String> getCategories() {
@@ -3168,12 +3193,47 @@ String username=extractUsername();
 
         List<ProductCategory> productCategoryList = prodCatRepo.getCategoryNamesList(extractUsername());
 
-        if (productCategoryList != null && productCategoryList.size()!=0) {
+        if (productCategoryList != null && productCategoryList.size() != 0) {
             response = productCategoryList.stream().map(i -> i.getCategoryName()).collect(Collectors.toList());
             return response;
         }
         response.add("Products");
         response.add("Services");
+
+        return response;
+    }
+
+    public SaveCategoryDto saveCategories(Map<String, List> request) {
+
+        List<ProductCategory> productCategoryList = prodCatRepo.getCategoryNamesList(extractUsername());
+
+        List<String> existingList = productCategoryList.stream().map(i -> i.getCategoryName().replaceAll("[^a-zA-Z0-9]", "")).collect(Collectors.toList());
+
+        System.out.println("The existing category list is " + existingList);
+
+        List<String> newCategories = request.get("categories");
+
+        List<String> categoriesToAdd = newCategories.stream().filter(i -> !(existingList.contains(i.replaceAll("[^a-zA-Z0-9]", "")))).collect(Collectors.toList());
+
+        System.out.println("The categoriesToAdd  list is " + categoriesToAdd);
+
+        List<ProductCategory> categoryEntitiesToAdd = categoriesToAdd.stream().map(i -> ProductCategory.builder().categoryName(i).type("product").username(extractUsername()).updatedBy(extractUsername()).updateDate(LocalDateTime.now()).build()).collect(Collectors.toList());
+
+        try {
+            categoryEntitiesToAdd.stream().forEach(i -> {
+                prodCatRepo.save(i);
+
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        List<String> listCategories = getCategories();
+
+        Boolean success = Boolean.TRUE;
+        String message = "Categories added successfully";
+
+        var response = SaveCategoryDto.builder().categories(listCategories).success(success).message(message).build();
 
         return response;
     }

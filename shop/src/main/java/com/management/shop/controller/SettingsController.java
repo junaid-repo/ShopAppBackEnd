@@ -100,4 +100,12 @@ public class SettingsController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @GetMapping("api/shop/check-import-limit")
+    ResponseEntity<Map<String, Object>> getCheckImportLimit() {
+
+        Map<String, Object> response = serv.checkImportLimit();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
 }

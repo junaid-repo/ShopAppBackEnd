@@ -1,8 +1,10 @@
 package com.management.shop.service;
 
 import com.management.shop.dto.*;
+import com.management.shop.entity.GeminiTextExtract;
 import com.management.shop.entity.NotificationSetting;
 import com.management.shop.entity.UserSettingsEntity;
+import com.management.shop.repository.ApiSaveRepository;
 import com.management.shop.repository.NotificationSettingsRepository;
 import com.management.shop.repository.UserSettingsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -22,11 +25,25 @@ public class SettingsService {
     @Autowired
     NotificationSettingsRepository notificationSettingsRepo;
 
+    @Autowired
+    ApiSaveRepository apiSaveRepo;
+
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        SecurityContextHolder.getContext().getAuthentication().getAuthorities().forEach(auth -> {
+            System.out.println("Authority: " + auth.getAuthority());
+        });
         System.out.println("Current user: " + username);
         //  username="junaid1";
         return username;
+    }
+
+    public String extractRole() {
+        String userrole= SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().toList().get(0).getAuthority();
+
+        System.out.println("Current user: " + userrole);
+        //  username="junaid1";
+        return userrole;
     }
 
     public String saveUserUISettings(UiSettings request) {
@@ -252,6 +269,30 @@ public class SettingsService {
         response.put("receivePaymentReminders", notSettings != null && notSettings.getPaymentReminders() != null ? notSettings.getPaymentReminders() : false);
         response.put("receiveSystemUpdates", notSettings != null && notSettings.getSystemUpdates() != null ? notSettings.getSystemUpdates() : false);
 
+
+        return response;
+    }
+
+    public Map<String, Object> checkImportLimit() {
+        LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
+       List<GeminiTextExtract> apiLogs= apiSaveRepo.findCreatedWithinLast24Hours(last24Hours, extractUsername(), "Gemini Text Extraction API");
+        Integer count=apiLogs.size();
+       Map<String, Object> response = new HashMap<>();
+
+       if(extractRole().equals("USER")){
+           if(count>2) {
+               response.put("count", count);
+               response.put("allowed", Boolean.FALSE);
+           }
+           else{
+               response.put("count", count);
+               response.put("allowed", Boolean.TRUE);
+           }
+       }
+       else{
+           response.put("count", count);
+           response.put("allowed", Boolean.TRUE);
+       }
 
         return response;
     }

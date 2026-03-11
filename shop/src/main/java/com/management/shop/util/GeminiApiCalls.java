@@ -1,15 +1,22 @@
 package com.management.shop.util;
 
 import ch.qos.logback.core.CoreConstants;
+import com.management.shop.entity.GeminiTextExtract;
+import com.management.shop.repository.ApiSaveRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class GeminiApiCalls {
 
@@ -23,6 +30,16 @@ public class GeminiApiCalls {
 
     public GeminiApiCalls() {
         this.restTemplate = new RestTemplate();
+    }
+
+    @Autowired
+    ApiSaveRepository apiLogSaveRepo;
+
+    public String extractUsername() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        // For testing purposes, you might uncomment the line below
+        // username="junaid1";
+        return username;
     }
 
 
@@ -64,6 +81,22 @@ public class GeminiApiCalls {
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
         System.out.println("Gemini API response: " + response.getBody());
+
+        var apiLog = GeminiTextExtract.builder().createdDate(LocalDateTime.now())
+                .username(extractUsername())
+                .request("geminiPrompt")
+                .name("Gemini Text Extraction API")
+                .url(geminiApiUrl)
+                .status(response.getStatusCode().toString())
+                .response("response size: "+response.getBody().toString().length())
+                .build();
+
+        try {
+            apiLogSaveRepo.save(apiLog);
+        } catch (Exception e) {
+            log.info("Error while saving logs for Gemini API call: " + e.getMessage());
+        }
+
 
         return extractGeminiResponse(response.getBody());
     }
