@@ -3166,7 +3166,7 @@ public class ShopService {
         if(extractRole().equals("USER")){
             if (count > 2) {
 
-                return "Sorry, you have exceeded the free usage limit for text extraction. Please upgrade to premium for unlimited access.";
+                return "Sorry, you have exceeded the free usage limit for text extraction. Please upgrade to Premium for unlimited access.";
             }
 
         }
