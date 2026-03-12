@@ -1359,6 +1359,7 @@ public class ShopService {
         var response = InvoiceDetails.builder().discountRate(billDetails.getDiscountPercent()).invoiceId(orderReferenceNumber)
                 .paymentReferenceNumber(paymentEntity.getPaymentReferenceNumber()).items(items).gstRate(gst)
                 .gstNumber(billDetails.getGstin())
+                .reminderCount(billDetails.getDueReminderCount())
                 .customerPhone(customerEntity.getPhone()).customerEmail(customerEntity.getEmail()).orderedDate(String.valueOf(billDetails.getCreatedDate()).substring(0, 10))
                 .totalAmount(billDetails.getTotalAmount()).customerName(customerEntity.getName())
                 .paidAmount(paidAmount)
