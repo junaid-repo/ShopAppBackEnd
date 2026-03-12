@@ -1067,6 +1067,7 @@ public class ShopService {
                             .total(obj.getTotalAmount())
                             .paid(obj.getPayingAmount())
                             .status(paymentStatus)
+                            .count(obj.getUnitsSold())
                             .gstin(obj.getGstin())
                             .reminderCount(obj.getDueReminderCount())
                             .build();
