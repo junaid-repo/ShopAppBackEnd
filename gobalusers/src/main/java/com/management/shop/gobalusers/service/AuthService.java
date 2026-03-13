@@ -394,12 +394,15 @@ public class AuthService {
 
     public String authAndsetCookiesGoogle(AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
 
+        System.out.println("Inside authAndsetCookiesGoogle with username --> " + authRequest.getUsername());
         String userSource = userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
         boolean isUserActive = checkUserStatus(authRequest.getUsername());
 
         if (isUserActive && userSource.equals("google")) {
-            String token = jwtService.generateToken(authRequest.getUsername());
+            System.out.println("Inside authAndsetCookiesGoogle with userSource --> " + userSource);
 
+            String token = jwtService.generateToken(authRequest.getUsername());
+            System.out.println("Inside authAndsetCookiesGoogle with token --> " + token);
             if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
                 // Determine target domain dynamically
                 String origin = request.getHeader("Origin");
@@ -410,7 +413,7 @@ public class AuthService {
                         (host != null && host.contains("clearbill.store"))) {
                     targetDomain = ".clearbill.store";
                 }
-
+                System.out.println("Inside authAndsetCookiesGoogle with targetDomain --> " + targetDomain);
                 response.addHeader("Set-Cookie",
                         "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
             } else {
