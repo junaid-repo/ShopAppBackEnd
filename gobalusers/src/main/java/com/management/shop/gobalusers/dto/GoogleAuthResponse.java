@@ -1,5 +1,8 @@
 package com.management.shop.gobalusers.dto;
 
+import lombok.ToString;
+
+@ToString
 public class GoogleAuthResponse {
     private boolean success;
     private String token;
