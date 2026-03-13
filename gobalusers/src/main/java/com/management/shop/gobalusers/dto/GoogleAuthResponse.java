@@ -3,10 +3,9 @@ package com.management.shop.gobalusers.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
-@ToString
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class GoogleAuthResponse {
     private boolean success;
@@ -15,45 +14,10 @@ public class GoogleAuthResponse {
     private String username;
     private String secureToken;
 
-    public GoogleAuthResponse() {}
-
-    public void setSecureToken(String secureToken) {
-        this.secureToken = secureToken;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
+    // Keep this custom constructor in case your older code still relies on it!
     public GoogleAuthResponse(boolean success, String token, String message) {
         this.success = success;
         this.token = token;
         this.message = message;
     }
-
-    // Getters and setters
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
 }
-
