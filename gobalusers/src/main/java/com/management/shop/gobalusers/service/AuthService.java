@@ -339,6 +339,7 @@ public class AuthService {
             String jwtToken = null;
             List<UserInfo> res = userinfoRepo.validateUser(email, "na", true);
             String secureToken= UUID.randomUUID().toString();
+            log.info("The secure token generated for google login is --> " + secureToken);
             try {
                 if (res.size() > 0) {
                     var authRequest = AuthRequest.builder().username(res.get(0).getUsername()).build();
@@ -346,7 +347,7 @@ public class AuthService {
                 } else {
                     var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
                             .phoneNumber("0000000000")
-                            .password(secureToken)
+                            .password(passwordEncoder.encode(secureToken))
                             .source("google")
                             .profilePiclink(profilePicLink)
                             .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
@@ -444,7 +445,7 @@ public class AuthService {
         String userSource = userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
         boolean isUserActive = checkUserStatus(authRequest.getUsername());
 
-        if (userSource.equals("phone") || authRequest.getUsername().equals("junaid1")) {
+        if (userSource.equals("phone") || authRequest.getUsername().equals("junaid1") ||userSource.equals("google") ) {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
             log.info("The authentication object is --> " + authentication);
@@ -476,9 +477,7 @@ public class AuthService {
                 log.info("The generated token --> " + token);
                 return token;
             }
-        } else if (userSource.equals("google")) {
-            return "Please login using google login";
-        } else {
+        }  else {
             throw new UsernameNotFoundException("invalid user request !");
         }
         return null;
