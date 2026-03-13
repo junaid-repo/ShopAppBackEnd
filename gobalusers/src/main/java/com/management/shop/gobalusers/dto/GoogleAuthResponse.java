@@ -4,8 +4,18 @@ public class GoogleAuthResponse {
     private boolean success;
     private String token;
     private String message;
+    private String username;
+    private String secureToken;
 
     public GoogleAuthResponse() {}
+
+    public void setSecureToken(String secureToken) {
+        this.secureToken = secureToken;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public GoogleAuthResponse(boolean success, String token, String message) {
         this.success = success;

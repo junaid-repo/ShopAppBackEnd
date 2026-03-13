@@ -31,6 +31,6 @@ public interface UserInfoRepository extends JpaRepository<UserInfo, Integer> {
     List<UserInfo> validateUserPhone(String phoneNumber, String userId, boolean b);
 
 
-    @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?2 and (    phone_number=?1 or username=?1)  order by updated_at desc limit 1", nativeQuery = true)
+    @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?2 and (    phone_number=?1 or username=?1 or email=?1)  order by updated_at desc limit 1", nativeQuery = true)
     UserInfo findByPhoneNumber(String phone, boolean b);
 }

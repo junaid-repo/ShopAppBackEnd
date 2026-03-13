@@ -28,10 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -341,7 +338,7 @@ public class AuthService {
 
             String jwtToken = null;
             List<UserInfo> res = userinfoRepo.validateUser(email, "na", true);
-
+            String secureToken= UUID.randomUUID().toString();
             try {
                 if (res.size() > 0) {
                     var authRequest = AuthRequest.builder().username(res.get(0).getUsername()).build();
@@ -349,6 +346,7 @@ public class AuthService {
                 } else {
                     var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
                             .phoneNumber("0000000000")
+                            .password(secureToken)
                             .source("google")
                             .profilePiclink(profilePicLink)
                             .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
@@ -370,6 +368,8 @@ public class AuthService {
                 if (jwtToken != null) {
                     response.setMessage("Login successful");
                     response.setSuccess(Boolean.TRUE);
+                    response.setUsername(email);
+                    response.setSecureToken(secureToken);
                     response.setToken(jwtToken);
                 } else {
                     response.setMessage("Login unsuccessful");
