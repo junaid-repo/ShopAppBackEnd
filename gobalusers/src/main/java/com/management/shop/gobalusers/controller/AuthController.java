@@ -66,6 +66,7 @@ public class AuthController {
 
         // 🟢 Passed 'request' so the service can determine the correct domain (.info or .store)
         GoogleAuthResponse response = serv.googleLogin(loginRequest, request, httpResponse);
+        System.out.println("The final response from googleLogin in controller is --> " + response);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
 

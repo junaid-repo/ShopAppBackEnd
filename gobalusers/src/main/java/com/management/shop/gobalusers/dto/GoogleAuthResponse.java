@@ -1,8 +1,13 @@
 package com.management.shop.gobalusers.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 @ToString
+@Data
+@AllArgsConstructor
 public class GoogleAuthResponse {
     private boolean success;
     private String token;
