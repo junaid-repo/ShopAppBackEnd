@@ -435,7 +435,8 @@ public class AuthService {
     }
 
     public String authAndsetCookies(AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
-
+        System.out.println("Inside authAndsetCookies with username --> " + authRequest.getUsername());
+        System.out.println("Inside authAndsetCookies with pass --> " + authRequest.getPassword());
         UserInfo userInfo = userinfoRepo.findByPhoneNumber(authRequest.getUsername(), true);
 
         if (userInfo != null) {
