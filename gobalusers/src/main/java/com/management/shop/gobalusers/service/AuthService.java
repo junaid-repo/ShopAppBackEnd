@@ -389,7 +389,8 @@ public class AuthService {
             response.setSuccess(Boolean.FALSE);
             response.setToken(null);
         }
-
+        System.out.println("The final response from googleLogin is --> " + response);
+        log.info("The final response from googleLogin is --> " + response);
         return response;
     }
 
