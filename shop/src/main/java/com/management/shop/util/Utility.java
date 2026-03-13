@@ -570,10 +570,10 @@ public class Utility {
                 missingDetails.add("Shop Pincode");
             }
             // Check for GSTIN (assuming gstin and gstNumber are interchangeable)
-            if ((userDetails.getGstin() == null || userDetails.getGstin().trim().isEmpty()) &&
+      /*      if ((userDetails.getGstin() == null || userDetails.getGstin().trim().isEmpty()) &&
                     (userDetails.getGstNumber() == null || userDetails.getGstNumber().trim().isEmpty())) {
                 missingDetails.add("GST Number");
-            }
+            }*/
 
             // If the list of missing details is not empty, construct the warning message
             if (!missingDetails.isEmpty()) {
