@@ -338,13 +338,15 @@ public class AuthService {
 
             String jwtToken = null;
             List<UserInfo> res = userinfoRepo.validateUser(email, "na", true);
-            String secureToken= UUID.randomUUID().toString();
+            String secureToken= null;
             log.info("The secure token generated for google login is --> " + secureToken);
             try {
                 if (res.size() > 0) {
                     var authRequest = AuthRequest.builder().username(res.get(0).getUsername()).build();
                     jwtToken = authAndsetCookiesGoogle(authRequest, request, httpServletResponse);
+                    secureToken=res.get(0).getPassword();
                 } else {
+                    secureToken= UUID.randomUUID().toString();
                     var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
                             .phoneNumber("0000000000")
                             .password(passwordEncoder.encode(secureToken))
