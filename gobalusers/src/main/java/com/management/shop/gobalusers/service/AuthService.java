@@ -508,7 +508,7 @@ public class AuthService {
             int index = random.nextInt(CHARACTERS.length());
             password.append(CHARACTERS.charAt(index));
         }
-        System.out.println("Inside randomPasswor --> " + password);
+        System.out.println("Inside randomPassword --> " + password);
 
         return password.toString();
     }
