@@ -27,8 +27,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
+
 
 @Service
 @Slf4j
@@ -347,7 +349,7 @@ public class AuthService {
                     secureToken= res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getPassword();
                     System.out.println("The secure token for existing user in google login is --> " + secureToken);
                 } else {
-                    secureToken= UUID.randomUUID().toString();
+                    secureToken= randomPassword(15);
                     System.out.println("The secure token generated for google login is --> " + secureToken);
                     var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
                             .phoneNumber("0000000000")
@@ -490,5 +492,24 @@ public class AuthService {
             throw new UsernameNotFoundException("invalid user request !");
         }
         return null;
+    }
+
+    private String randomPassword(Integer length) {
+           final String CHARACTERS =
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+                        "abcdefghijklmnopqrstuvwxyz" +
+                        "0123456789" +
+                        "!@#$%^&*()-_=+<>?";
+
+            final SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder(length);
+
+        for (int i = 0; i < length; i++) {
+            int index = random.nextInt(CHARACTERS.length());
+            password.append(CHARACTERS.charAt(index));
+        }
+        System.out.println("Inside randomPasswor --> " + password);
+
+        return password.toString();
     }
 }
