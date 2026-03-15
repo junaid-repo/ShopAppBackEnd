@@ -47,10 +47,10 @@ public class AuthController {
     }
 
 
-    @PostMapping("auth/new/user")
+ /*   @PostMapping("auth/new/user")
     public String addNewUser(@RequestBody UserInfo userInfo) {
         return serv.addUser(userInfo);
-    }
+    }*/
 
     @GetMapping("auth/new/welcome")
     public ResponseEntity<String> welcome() {
@@ -64,7 +64,7 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse httpResponse) throws Exception {
 
-        
+
         GoogleAuthResponse response = serv.googleLogin(loginRequest, request, httpResponse);
         System.out.println("The final response from googleLogin in controller is --> " + response);
 

@@ -98,7 +98,7 @@ public class AuthService {
     public RegisterResponse registerNewUser(RegisterRequest regRequest) {
 
         ValidateContactResponse validateContactResponse = validateContact(ValidateContactRequest.builder().phone(regRequest.getPhone()).email(regRequest.getEmail()).build());
-        log.info("The validate contact response is --> " + validateContactResponse);
+        System.out.println("The validate contact response is --> " + validateContactResponse);
         if (validateContactResponse != null) {
             if (!validateContactResponse.isStatus()) {
                 return RegisterResponse.builder().message("Email/Phone already registered").success(false).build();
@@ -194,7 +194,7 @@ public class AuthService {
         List<UserInfo> res = userinfoRepo.validateUser(forgotPassRequest.getEmailId(), forgotPassRequest.getUserId(), true);
 
         if (res.size() > 0) {
-            log.info(String.valueOf(res.get(0)));
+            System.out.println(String.valueOf(res.get(0)));
             Random random = new Random();
             int otp = 100000 + random.nextInt(900000);
             var otpVerifyReq = OtpVerifyRequest.builder().otp(String.valueOf(otp)).username(res.get(0).getUsername()).build();
@@ -332,9 +332,9 @@ public class AuthService {
             String sub = payload.getSubject(); // Google's user ID
             String name = (String) payload.get("name");
 
-            log.info("google email ->" + email);
-            log.info("google name ->" + name);
-            log.info("google profilePicLink ->" + profilePicLink);
+            System.out.println("google email ->" + email);
+            System.out.println("google name ->" + name);
+            System.out.println("google profilePicLink ->" + profilePicLink);
 
             String jwtToken = null;
             List<UserInfo> res = userinfoRepo.validateUser(email, "na", true);
@@ -348,7 +348,7 @@ public class AuthService {
                     System.out.println("The secure token for existing user in google login is --> " + secureToken);
                 } else {
                     secureToken= UUID.randomUUID().toString();
-                    log.info("The secure token generated for google login is --> " + secureToken);
+                    System.out.println("The secure token generated for google login is --> " + secureToken);
                     var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
                             .phoneNumber("0000000000")
                             .password(passwordEncoder.encode(secureToken))
@@ -382,7 +382,7 @@ public class AuthService {
                     response.setToken(null);
                 }
                 System.out.println("The final response from googleLogin is --> " + response);
-                log.info("The final response from googleLogin is --> " + response);
+                System.out.println("The final response from googleLogin is --> " + response);
                 return response;
 
             } catch (Exception e) {
@@ -401,15 +401,15 @@ public class AuthService {
 
     public String authAndsetCookiesGoogle(AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
 
-        log.info("Inside authAndsetCookiesGoogle with username --> " + authRequest.getUsername());
+        System.out.println("Inside authAndsetCookiesGoogle with username --> " + authRequest.getUsername());
         String userSource = userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
         boolean isUserActive = checkUserStatus(authRequest.getUsername());
 
         if (isUserActive && userSource.equals("google")) {
-            log.info("Inside authAndsetCookiesGoogle with userSource --> " + userSource);
+            System.out.println("Inside authAndsetCookiesGoogle with userSource --> " + userSource);
 
             String token = jwtService.generateToken(authRequest.getUsername());
-            log.info("Inside authAndsetCookiesGoogle with token --> " + token);
+            System.out.println("Inside authAndsetCookiesGoogle with token --> " + token);
             if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
                 // Determine target domain dynamically
                 String origin = request.getHeader("Origin");
@@ -420,7 +420,7 @@ public class AuthService {
                         (host != null && host.contains("clearbill.store"))) {
                     targetDomain = ".clearbill.store";
                 }
-                log.info("Inside authAndsetCookiesGoogle with targetDomain --> " + targetDomain);
+                System.out.println("Inside authAndsetCookiesGoogle with targetDomain --> " + targetDomain);
                 response.addHeader("Set-Cookie",
                         "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
             } else {
@@ -442,7 +442,7 @@ public class AuthService {
         System.out.println("Inside authAndsetCookies with username --> " + authRequest.getUsername());
         System.out.println("Inside authAndsetCookies with pass --> " + authRequest.getPassword());
         UserInfo userInfo = userinfoRepo.findByPhoneNumber(authRequest.getUsername(), true);
-
+        System.out.println("The userInfo fetched by phone number is --> " + userInfo);
         if (userInfo != null) {
             authRequest.setUsername(userInfo.getUsername());
         } else {
@@ -450,12 +450,14 @@ public class AuthService {
         }
 
         String userSource = userinfoRepo.findByUsername(authRequest.getUsername()).get().getSource();
+        System.out.println("The userSource --> " + userSource);
         boolean isUserActive = checkUserStatus(authRequest.getUsername());
 
         if (userSource.equals("phone") || authRequest.getUsername().equals("junaid1") ||userSource.equals("google") ) {
+            System.out.println("Inside authAndsetCookies with userSource --> " + userSource);
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
-            log.info("The authentication object is --> " + authentication);
+            System.out.println("The authentication object is --> " + authentication);
 
             if (authentication.isAuthenticated() && isUserActive) {
                 String token = jwtService.generateToken(authRequest.getUsername());
@@ -481,7 +483,7 @@ public class AuthService {
                     );
                     response.addHeader("Set-Cookie", cookieHeader);
                 }
-                log.info("The generated token --> " + token);
+                System.out.println("The generated token --> " + token);
                 return token;
             }
         }  else {
