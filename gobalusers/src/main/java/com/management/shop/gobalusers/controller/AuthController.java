@@ -64,7 +64,7 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse httpResponse) throws Exception {
 
-        // 🟢 Passed 'request' so the service can determine the correct domain (.info or .store)
+        
         GoogleAuthResponse response = serv.googleLogin(loginRequest, request, httpResponse);
         System.out.println("The final response from googleLogin in controller is --> " + response);
 
