@@ -346,8 +346,8 @@ public class AuthService {
                 if (res.size() > 0) {
                     var authRequest = AuthRequest.builder().username(res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getUsername()).build();
                     jwtToken = authAndsetCookiesGoogle(authRequest, request, httpServletResponse);
-                    secureToken= res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getPassword();
-                    System.out.println("The secure token for existing user in google login is --> " + secureToken);
+                    secureToken= randomPassword(15);
+                    updatePassword(UserInfo.builder().username(res.get(0).getUsername()).password(secureToken).build());
                 } else {
                     secureToken= randomPassword(15);
                     System.out.println("The secure token generated for google login is --> " + secureToken);
