@@ -115,6 +115,7 @@ public class SettingsService {
                         .showRateColumn(userSettings != null && userSettings.getShowRateColumn() != null ? userSettings.getShowRateColumn() : false)
                         .showHsnColumn(userSettings != null && userSettings.getShowHsnColumn() != null ? userSettings.getShowHsnColumn() : false)
                         .showInvoiceBarcode(userSettings != null && userSettings.getShowInvoiceBarcode() != null ? userSettings.getShowInvoiceBarcode() : false)
+                        .showGSTBreakdown(userSettings != null && userSettings.getShowGstBreakdown() != null ? userSettings.getShowGstBreakdown() : false)
 
 
                         .build())
@@ -196,10 +197,11 @@ public class SettingsService {
         Boolean showRateColumn = (Boolean) request.get("showRateColumn");
         Boolean showHsnColumn = (Boolean) request.get("showHsnColumn");
         Boolean showInvoiceBarcode = (Boolean) request.get("showInvoiceBarcode");
+        Boolean showGstinBreakdown = (Boolean) request.get("showGSTBreakdown");
 
 
         settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms, showCustomerGstin, extractUsername(), LocalDateTime.now(),
-                showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode);
+                showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown);
 
 
         return "saved";

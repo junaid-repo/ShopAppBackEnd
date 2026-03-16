@@ -208,6 +208,8 @@ public class Utility {
 
         Boolean showInvoiceBarcode=false;
 
+        Boolean showGstBreakdown=false;
+
         try {
             UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(orderId));
             printDueAmount=   userSettingsEntity.getShowPaymentStatus();
@@ -222,6 +224,7 @@ public class Utility {
             showSupportInfo=userSettingsEntity.getShowSupportInfo();
             removeTerms=userSettingsEntity.getRemoveTerms();
             showInvoiceBarcode=userSettingsEntity.getShowInvoiceBarcode();
+            showGstBreakdown=userSettingsEntity.getShowGstBreakdown();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -289,6 +292,8 @@ public class Utility {
                 .showSupportInfo(showSupportInfo)
                 .removeTerms(removeTerms)
                 .showInvoiceBarcode(showInvoiceBarcode)
+                .showGstBreakdown(showGstBreakdown)
+
 
                 .build();
     }

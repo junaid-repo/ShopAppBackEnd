@@ -83,4 +83,5 @@ public class InvoiceData {
     Boolean showSupportInfo;
     Boolean removeTerms;
     Boolean showInvoiceBarcode;
+    Boolean showGstBreakdown;
 }

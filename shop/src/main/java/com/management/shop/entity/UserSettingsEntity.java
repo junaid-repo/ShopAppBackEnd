@@ -51,6 +51,7 @@ public class UserSettingsEntity {
     private Boolean showTotalDiscount;
     private Boolean showSupportInfo;
     private Boolean showInvoiceBarcode;
+    private Boolean showGstBreakdown;
 
     private String username;
     private String updatedBy;

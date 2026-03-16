@@ -7,7 +7,6 @@ import com.google.zxing.common.BitMatrix;
 import com.management.shop.dto.InvoiceData;
 import com.management.shop.dto.OrderItemInvoice;
 import com.microsoft.playwright.*;
-import com.microsoft.playwright.options.Margin;
 import com.microsoft.playwright.options.ScreenshotType;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
@@ -52,10 +51,21 @@ public class PDFGSTInvoiceUtil {
         String invoiceId = nullSafeString(data.getInvoiceId());
         String invoiceBarcodeBase64 = "";
 
-        // CHECK: Only generate if showInvoiceBarcode is TRUE and invoiceId exists
+        // 🟢 FIX 1: Dynamically size the barcode so it doesn't stretch the thermal page width
         if (Boolean.TRUE.equals(data.getShowInvoiceBarcode()) && !invoiceId.isEmpty()) {
-            // Width: 300px, Height: 50px
-            invoiceBarcodeBase64 = generateBarcodeBase64(invoiceId, 600, 50);
+            int barcodeWidth = 600; // Default for A4
+            int barcodeHeight = 50;
+
+            if (printerType != null && printerType.contains("THERMAL")) {
+                barcodeWidth = switch (printerType) {
+                    case "THERMAL_2" -> 250; // Fits well inside 58mm paper
+                    case "THERMAL_3" -> 400; // Fits well inside 80mm paper
+                    case "THERMAL_4" -> 600; // Fits inside 112mm paper
+                    default          -> 250;
+                };
+                barcodeHeight = 40;
+            }
+            invoiceBarcodeBase64 = generateBarcodeBase64(invoiceId, barcodeWidth, barcodeHeight);
         }
 
         // --- Convert products to Map for template ---
@@ -83,13 +93,11 @@ public class PDFGSTInvoiceUtil {
         // --- Prepare Thymeleaf Context ---
         Context context = new Context();
 
-        // Shop Logo
         if (data.getShopLogoBytes() != null && data.getShopLogoBytes().length > 0) {
             String shopLogoBase64 = Base64.getEncoder().encodeToString(data.getShopLogoBytes());
             context.setVariable("shopLogoBase64", shopLogoBase64);
         }
 
-        // Shop Details
         context.setVariable("shopName", nullSafeString(data.getShopName()));
         context.setVariable("shopSlogan", nullSafeString(data.getShopSlogan()));
         context.setVariable("shopLogoText", nullSafeString(data.getShopLogoText()));
@@ -99,15 +107,12 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("gstNumber", nullSafeString(data.getGstNumber()));
         context.setVariable("panNumber", nullSafeString(data.getPanNumber()));
 
-        // Invoice Details
         context.setVariable("invoiceId", invoiceId);
-        // Add the Barcode to context (will be empty string if boolean was false)
         context.setVariable("invoiceBarcodeBase64", invoiceBarcodeBase64);
 
         context.setVariable("orderedDate", nullSafeString(data.getOrderedDate()));
         context.setVariable("dueDate", nullSafeString(data.getDueDate()));
 
-        // Customer Details
         context.setVariable("customerName", nullSafeString(data.getCustomerName()));
         context.setVariable("customerBillingAddress", nullSafeString(data.getCustomerBillingAddress()));
         context.setVariable("customerShippingAddress", nullSafeString(data.getCustomerShippingAddress()));
@@ -115,10 +120,8 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("customerPhone", nullSafeString(data.getCustomerPhone()));
         context.setVariable("customerState", nullSafeString(data.getCustomerState()));
 
-        // Products
         context.setVariable("products", productsForTemplate);
 
-        // Financials
         context.setVariable("taxableAmount", taxableAmount);
         context.setVariable("grandTotal", grandTotal);
         context.setVariable("paidAmount", safeGetDoubleFromPrimitive(data.getPaidAmount()));
@@ -129,10 +132,8 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("currentBalance", currentBalance);
         context.setVariable("grandTotalInWords", nullSafeString(grandTotalInWords));
 
-        // GST Summary
         context.setVariable("gstSummary", data.getGstSummary() != null ? data.getGstSummary() : Collections.emptyList());
 
-        // Bank & Payment
         context.setVariable("bankAccountName", nullSafeString(data.getBankAccountName()));
         context.setVariable("bankAccountNumber", nullSafeString(data.getBankAccountNumber()));
         context.setVariable("bankIfscCode", nullSafeString(data.getBankIfscCode()));
@@ -140,10 +141,8 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("upiId", nullSafeString(data.getUpiId()));
         context.setVariable("qrCodeBase64", nullSafeString(qrCodeBase64));
 
-        // Footer
         context.setVariable("termsAndConditions", data.getTermsAndConditions() != null ? data.getTermsAndConditions() : Collections.emptyList());
 
-        // Conditions
         context.setVariable("showShopPanOnInvoice", data.getPrintShopPan() != null ? data.getPrintShopPan() : true);
         context.setVariable("showCustomerGst", data.getPrintCustomerGst() != null ? data.getPrintCustomerGst() : true);
         context.setVariable("combineAddress", data.getCombineCustomerAddresses() != null ? data.getCombineCustomerAddresses() : false);
@@ -155,71 +154,55 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("showDueDate", data.getAddDueDate() != null ? data.getShowTotalDiscount() : false);
         context.setVariable("showSupportInfo", data.getShowSupportInfo() != null ? data.getShowSupportInfo() : false);
         context.setVariable("removeTerms", data.getRemoveTerms() != null ? data.getRemoveTerms() : false);
+        context.setVariable("gstBreakdown", data.getShowGstBreakdown() != null ? data.getShowGstBreakdown() : false);
 
-        context.setVariable("printerType", nullSafeString(printerType)); // Pass printer type to template for conditional styling
-
-        System.out.println("The full data to render invoice -->" + context);
+        context.setVariable("printerType", nullSafeString(printerType));
 
         // --- Generate PDF ---
         String htmlContent = templateEngine.process(invoiceTemplate, context);
 
         try (Playwright playwright = Playwright.create()) {
 
-            // === ADDED LINUX SERVER LAUNCH OPTIONS ===
             BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
                     .setHeadless(true)
                     .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox"));
 
-            // Wrapped Browser in try-with-resources to guarantee memory is freed on crash
             try (Browser browser = playwright.chromium().launch(launchOptions)) {
 
-                // 1. Create a new Context to control the Viewport (Width/Height)
                 Browser.NewContextOptions contextOptions = new Browser.NewContextOptions();
 
-                // === EXISTING LOGIC FOR DIMENSIONS ===
-                if (invoiceTemplate != null && invoiceTemplate.toLowerCase().contains("thermal")) {
-                    int viewportHeight = 800; // Base height (Playwright fullPage=true captures full length)
+                // 🟢 THE FIX: Check printerType instead of invoiceTemplate name!
+                if (printerType != null && printerType.contains("THERMAL")) {
+                    int viewportHeight = 800; // Base height, expands automatically
 
-                    // Modern switch expression to directly assign the width
                     int viewportWidth = switch (printerType) {
-                        case "THERMAL_2" -> 280; // 58mm thermal (~2 inches)
-                        case "THERMAL_3" -> 380; // 80mm thermal (~3.14 inches)
-                        case "THERMAL_4" -> 520; // 112mm thermal (~4.4 inches)
-                        default          -> 280; // Fallback default
+                        case "THERMAL_2" -> 384; // Standard 58mm thermal width in dots
+                        case "THERMAL_3" -> 576; // Standard 80mm thermal width in dots
+                        case "THERMAL_4" -> 832; // Standard 112mm thermal width in dots
+                        default          -> 384;
                     };
 
-                    // Apply the dynamic viewport size
                     contextOptions.setViewportSize(viewportWidth, viewportHeight);
-
-                    // Use High DPI (2.0) for crisper text and barcode rendering on small prints
-                    contextOptions.setDeviceScaleFactor(2.0);
+                    contextOptions.setDeviceScaleFactor(1.0); // Keep at 1.0 to prevent double-scaling
                 } else {
-                    // Default A4-like width: A4 at 96 DPI is approx 794px wide.
+                    // Fallback for normal A4 web invoices
                     contextOptions.setViewportSize(794, 1123);
                     contextOptions.setDeviceScaleFactor(1.0);
                 }
-                // ==========================
 
-                // Wrapped Context and Page in try-with-resources
                 try (BrowserContext context2 = browser.newContext(contextOptions);
                      Page page = context2.newPage()) {
 
                     page.setContent(htmlContent);
 
-                    // 2. Configure Screenshot Options
                     Page.ScreenshotOptions screenshotOptions = new Page.ScreenshotOptions()
-                            .setType(ScreenshotType.PNG) // Ensure output is PNG
-                            .setFullPage(true); // Capture the full scrollable height (Essential for invoices)
+                            .setType(ScreenshotType.PNG)
+                            .setFullPage(true);
 
-                    byte[] imageBytes = page.screenshot(screenshotOptions);
-
-                    // browser.close(); <--- REMOVED: try-with-resources handles this automatically now!
-
-                    return imageBytes;
+                    return page.screenshot(screenshotOptions);
                 }
             }
         } catch (Exception e) {
-            // ... existing error handling ...
             throw new RuntimeException("Error generating Invoice Image", e);
         }
     }
@@ -239,7 +222,6 @@ public class PDFGSTInvoiceUtil {
     }
 
     // --- Existing Helpers ---
-
     private String nullSafeString(Object o) {
         return o == null ? "" : String.valueOf(o);
     }
@@ -272,9 +254,7 @@ public class PDFGSTInvoiceUtil {
                 Object v = m.invoke(bean);
                 if (v != null) return v;
             } catch (NoSuchMethodException nsme) {
-                // try next possibility
             } catch (Exception ignored) {
-                // any other problem - ignore and continue
             }
         }
         return null;

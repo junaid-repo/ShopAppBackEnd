@@ -102,7 +102,7 @@ public class NotificationsSaver {
                         .searchKey(product.getName())
                         .updatedDate(LocalDateTime.now())
                         .isSent(Boolean.FALSE)
-                        .cronEx(generanteRandomCornEx())
+                        .cronEx(generateRandomCronWeekly())
                         .build();
                 ;
                 notificationScheduler.scheduleNewTask(notiRepo.save(messageEntity));
@@ -156,7 +156,7 @@ public class NotificationsSaver {
                                 .searchKey(payment.getOrderNumber())
                                 .updatedDate(LocalDateTime.now())
                                 .isSent(Boolean.FALSE)
-                                .cronEx(generanteRandomCornEx())
+                                .cronEx(generateRandomCronWeekly())
                                 .build();
 
                         notificationScheduler.scheduleNewTask(notiRepo.save(messageEntity));
@@ -193,5 +193,15 @@ public class NotificationsSaver {
         int hour = random.nextInt(24);     // 0-23
 
         return String.format("%d %d %d * * ?", second, minute, hour);
+    }
+    private static String generateRandomCronWeekly() {
+        Random random = new Random();
+
+        int second = random.nextInt(60);   // 0-59
+        int minute = random.nextInt(60);   // 0-59
+        int hour = random.nextInt(24);     // 0-23
+        int dayOfWeek = random.nextInt(7) + 1; // 1-7 (SUN-SAT)
+
+        return String.format("%d %d %d ? * %d", second, minute, hour, dayOfWeek);
     }
 }
