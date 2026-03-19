@@ -6,9 +6,10 @@
     <title th:text="'Invoice - ' + ${invoiceId}">Receipt</title>
 
     <style>
-        /* 🟢 Authentic Thermal Font Style */
+        /* 🟢 Classic Thermal Font Style - NORMAL WEIGHT */
         body {
-            font-family: 'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace;
+            font-family: 'Courier New', Courier, 'Lucida Console', monospace;
+            font-weight: normal;
             color: #000;
             background: #fff;
             margin: 0;
@@ -17,17 +18,16 @@
         }
 
         .receipt-wrapper {
-            width: 96%;
+            width: 100%;
             max-width: 100%;
             box-sizing: border-box;
-            margin: 0 auto;
-            padding: 2mm 0;
+            margin: 0;
+            padding: 2mm 2mm;
         }
 
         /* Utilities */
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .bold { font-weight: bold; }
         .uppercase { text-transform: uppercase; }
         .break-word { word-wrap: break-word; word-break: break-all; }
 
@@ -35,7 +35,7 @@
         .brand-section {
             text-align: center;
             margin-bottom: 12px;
-            border-bottom: 1px dashed #000; /* Thin dashed border */
+            border-bottom: 1px dashed #000;
             padding-bottom: 10px;
         }
         .logo-img {
@@ -44,8 +44,8 @@
             filter: grayscale(100%);
         }
         .shop-title {
-            font-weight: bold;
             text-transform: uppercase;
+            font-weight: bold;
             margin: 0 0 4px 0;
             line-height: 1.1;
             letter-spacing: 1px;
@@ -63,7 +63,7 @@
         }
         .info-row {
             display: flex;
-            justify-content: space-between; /* Spread evenly for clean thermal look */
+            justify-content: space-between;
             align-items: baseline;
             margin-bottom: 3px;
         }
@@ -73,8 +73,8 @@
             margin: 10px 0 14px 0;
             line-height: 1.4;
         }
-        .cust-label { text-transform: uppercase; font-weight: bold; margin-bottom: 2px; text-decoration: underline; }
-        .cust-name { font-weight: bold; margin-bottom: 2px;}
+        .cust-label { text-transform: uppercase; margin-bottom: 2px; text-decoration: underline; font-weight: bold; }
+        .cust-name { margin-bottom: 2px; font-weight: bold;}
 
         /* Items Table */
         .items-table {
@@ -87,27 +87,32 @@
             border-bottom: 1px dashed #000;
         }
         .items-table tbody tr {
-            border-bottom: 1px dotted #ccc; /* Very light separator for items */
+            border-bottom: 1px dotted #ccc;
         }
         .items-table tbody tr:last-child {
             border-bottom: none;
         }
+
+        /* Pipe Separators */
         .items-table th {
-            text-align: left;
-            font-weight: bold;
-            padding: 6px 0;
+            padding: 6px 2px;
             text-transform: uppercase;
+            border-bottom: 1px dashed #000;
         }
         .items-table td {
-            padding: 6px 0;
+            padding: 6px 2px;
             vertical-align: top;
+        }
+        .items-table th:not(:last-child),
+        .items-table td:not(:last-child) {
+            border-right: 1px dashed #000;
         }
 
         /* Column Optimization */
-        .c-item { width: 45%; padding-right: 4px; }
-        .c-qty { width: 15%; text-align: center; }
-        .c-price { width: 20%; text-align: right; }
-        .c-total { width: 20%; text-align: right; font-weight: bold; }
+        .c-item { width: 44%; text-align: left; padding-right: 4px; }
+        .c-qty { width: 14%; text-align: center; }
+        .c-price { width: 20%; text-align: right; padding-right: 4px; }
+        .c-total { width: 22%; text-align: right; }
 
         .sub-desc {
             display: block;
@@ -126,7 +131,6 @@
             margin-bottom: 4px;
         }
 
-        /* Replaced thick pill with a classic thermal grand-total row */
         .grand-total-row {
             border-top: 1px dashed #000;
             border-bottom: 1px dashed #000;
@@ -137,7 +141,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        .gt-label { font-weight: bold; text-transform: uppercase; }
+        .gt-label { text-transform: uppercase; font-weight: bold; }
         .gt-value { font-weight: bold; }
 
         /* Footer */
@@ -148,7 +152,6 @@
             border-top: 1px dashed #000;
         }
         .pay-info {
-            font-weight: bold;
             margin-bottom: 8px;
             border: 1px dashed #000;
             display: inline-block;
@@ -167,53 +170,53 @@
 
     <style th:if="${printerType == null or printerType == 'THERMAL_2'}">
         @page { size: 58mm auto; margin: 0; }
-        body { font-size: 26px; } /* Increased from 11px */
+        body { font-size: 24px; }
         .logo-img { max-height: 60px; }
-        .shop-title { font-size: 32px; }
-        .shop-sub, .pay-info { font-size: 24px; }
-        .info-row, .customer-area, .t-row { font-size: 24px; }
+        .shop-title { font-size: 30px; }
+        .shop-sub, .pay-info { font-size: 22px; }
+        .info-row, .customer-area, .t-row { font-size: 22px; }
 
-        .items-table td, .items-table th { font-size: 24px; }
-        .sub-desc { font-size: 22px; }
+        .items-table td, .items-table th { font-size: 22px; }
+        .sub-desc { font-size: 20px; }
 
-        .cust-label, .terms-list { font-size: 22px; }
-        .cust-name, .gt-label { font-size: 26px; }
-        .gt-value { font-size: 30px; }
-        .qr-display { width: 120px; height: 120px; }
+        .cust-label, .terms-list { font-size: 20px; }
+        .cust-name, .gt-label { font-size: 24px; }
+        .gt-value { font-size: 28px; }
+        .qr-display { width: 200px; height: 200px; } /* Increased from 125px */
     </style>
 
     <style th:if="${printerType == 'THERMAL_3'}">
         @page { size: 80mm auto; margin: 0; }
-        body { font-size: 30px; } /* Increased from 13px */
+        body { font-size: 28px; }
         .logo-img { max-height: 80px; }
-        .shop-title { font-size: 38px; }
-        .shop-sub, .pay-info { font-size: 18px; }
-        .info-row, .customer-area, .t-row { font-size: 28px; }
+        .shop-title { font-size: 36px; }
+        .shop-sub, .pay-info { font-size: 16px; }
+        .info-row, .customer-area, .t-row { font-size: 26px; }
 
-        .items-table td, .items-table th { font-size: 28px; }
-        .sub-desc { font-size: 15px; }
+        .items-table td, .items-table th { font-size: 26px; }
+        .sub-desc { font-size: 13px; }
 
-        .cust-label, .terms-list { font-size: 25px; }
-        .cust-name, .gt-label { font-size: 30px; }
-        .gt-value { font-size: 34px; }
-        .qr-display { width: 160px; height: 160px; }
+        .cust-label, .terms-list { font-size: 23px; }
+        .cust-name, .gt-label { font-size: 28px; }
+        .gt-value { font-size: 32px; }
+        .qr-display { width: 300px; height: 300px; } /* Increased from 165px */
     </style>
 
     <style th:if="${printerType == 'THERMAL_4'}">
         @page { size: 112mm auto; margin: 0; }
-        body { font-size: 36px; } /* Increased from 15px */
+        body { font-size: 34px; }
         .logo-img { max-height: 100px; }
-        .shop-title { font-size: 46px; }
-        .shop-sub, .pay-info { font-size: 32px; }
-        .info-row, .customer-area, .t-row { font-size: 32px; }
+        .shop-title { font-size: 44px; }
+        .shop-sub, .pay-info { font-size: 30px; }
+        .info-row, .customer-area, .t-row { font-size: 30px; }
 
-        .items-table td, .items-table th { font-size: 32px; }
-        .sub-desc { font-size: 28px; }
+        .items-table td, .items-table th { font-size: 30px; }
+        .sub-desc { font-size: 26px; }
 
-        .cust-label, .terms-list { font-size: 28px; }
-        .cust-name, .gt-label { font-size: 36px; }
-        .gt-value { font-size: 42px; }
-        .qr-display { width: 400px; height: 400px; }
+        .cust-label, .terms-list { font-size: 26px; }
+        .cust-name, .gt-label { font-size: 34px; }
+        .gt-value { font-size: 40px; }
+        .qr-display { width: 500px; height: 500px; } /* Increased from 405px */
     </style>
 </head>
 
@@ -240,15 +243,15 @@
     <div class="info-card">
         <div class="info-row">
             <span>INV NO:</span>
-            <span class="bold" th:text="'#' + ${invoiceId}"></span>
+            <span th:text="'#' + ${invoiceId}"></span>
         </div>
         <div class="info-row">
             <span>DATE:</span>
-            <span class="bold" th:text="${orderedDate}"></span>
+            <span th:text="${orderedDate}"></span>
         </div>
         <div class="info-row" th:if="${showDueDate and dueAmount != null}">
             <span>DUE DATE:</span>
-            <span class="bold" th:text="${dueDate}"></span>
+            <span th:text="${dueDate}"></span>
         </div>
     </div>
 
@@ -273,19 +276,20 @@
             <tr>
                 <td class="c-item">
                     <div style="margin-bottom: 2px;">
-                        <span th:text="${product['productName']}" class="bold break-word"></span>
+                        <span th:text="${product['productName']}" class="break-word"></span>
                     </div>
                     <span class="sub-desc" th:if="${showHsnColumn and product['hsnCode'] != null}" th:text="'HSN:' + ${product['hsnCode']}"></span>
 
                     <span class="sub-desc" th:if="${showIndividualDiscountPercentage and product['discountPercentage'] != null and product['discountPercentage'] > 0}"
-                          th:text="'Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 0)} + '%'"></span>
+                          th:text="'Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 'NONE', 0, 'POINT')} + '%'"></span>
 
                     <span class="sub-desc" th:if="${gstBreakdown and product['taxPercentage'] != null and product['taxPercentage'] > 0}"
-                          th:text="'GST: ' + ${#numbers.formatDecimal(product['taxPercentage'], 1, 0)} + '%'"></span>
+                          th:text="'GST: ' + ${#numbers.formatDecimal(product['taxPercentage'], 1, 'NONE', 0, 'POINT')} + '%'"></span>
                 </td>
-                <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></td>
-                <td class="c-price" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
-                <td class="c-total" th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
+
+                <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')}"></td>
+                <td class="c-price" th:text="${#numbers.formatDecimal(product['rate'], 1, 'NONE', 0, 'POINT')}"></td>
+                <td class="c-total" th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'NONE', 0, 'POINT')}"></td>
             </tr>
         </th:block>
         </tbody>
@@ -294,33 +298,36 @@
     <div class="totals-block">
         <div class="t-row">
             <span>SUBTOTAL</span>
-            <span class="bold" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+            <span th:text="${#numbers.formatDecimal(taxableAmount, 1, 'NONE', 0, 'POINT')}"></span>
         </div>
 
         <div class="t-row" th:if="${showTotalDiscountPercentage and totalDiscountAmount > 0}">
             <span>DISCOUNT</span>
-            <span class="bold" th:text="'-' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+            <span th:text="'-' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'NONE', 0, 'POINT')}"></span>
         </div>
 
         <th:block th:if="${gstBreakdown}">
             <div class="t-row" th:each="gst : ${gstSummary}">
                 <span th:text="${gst['type']} + ' (' + ${gst['percentage']} + '%)'"></span>
-                <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
+                <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'NONE', 0, 'POINT')}"></span>
             </div>
         </th:block>
 
         <div class="t-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px dotted #000;"
              th:if="${showDueAmount and dueAmount != null and dueAmount > 0}">
-            <span class="bold uppercase">BALANCE DUE</span>
-            <span class="bold" th:text="'Rs. ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+            <span class="uppercase">BALANCE DUE</span>
+            <span th:text="'Rs. ' + ${#numbers.formatDecimal(dueAmount, 1, 'NONE', 0, 'POINT')}"></span>
         </div>
 
         <div class="grand-total-row">
-            <span class="gt-label">TOTAL</span>
-            <span class="gt-value" th:text="'Rs. ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}"></span>
+            <div class="gt-label">
+                TOTAL
+                <div style="font-size: 0.65em; font-weight: normal; text-transform: lowercase; margin-top: 2px;">*(rounded off)</div>
+            </div>
+            <span class="gt-value" th:text="'Rs. ' + ${#numbers.formatDecimal(grandTotal, 1, 'NONE', 0, 'POINT')}"></span>
         </div>
 
-        <div class="text-center" style="font-size: 0.85em; margin-top: 8px; font-weight: bold;" th:text="${grandTotalInWords}"></div>
+        <div class="text-center" style="font-size: 0.85em; margin-top: 8px;" th:text="${grandTotalInWords}"></div>
     </div>
 
     <div class="footer-area">
@@ -336,7 +343,7 @@
             <div th:each="term : ${termsAndConditions}" th:text="'- ' + ${term}"></div>
         </div>
 
-        <div style="margin-top: 16px; font-weight: bold; font-size: 1.1em; text-transform: uppercase; letter-spacing: 1px;">
+        <div style="margin-top: 16px; font-size: 1.1em; text-transform: uppercase; letter-spacing: 1px;">
             THANK YOU
         </div>
     </div>

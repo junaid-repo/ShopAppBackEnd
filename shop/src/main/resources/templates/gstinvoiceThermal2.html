@@ -5,8 +5,10 @@
     <title th:text="'Invoice - ' + ${invoiceId}">Receipt</title>
 
     <style>
+        /* 🟢 Clean, Modern Sans-Serif, Normal Weight */
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: normal;
             color: #000;
             background: #fff;
             margin: 0;
@@ -15,12 +17,12 @@
         }
 
         .receipt-container {
-            /* 🟢 Utilizes 96% of the paper width to remove vacant space */
-            width: 96%;
+            width: 100%;
             max-width: 100%;
             box-sizing: border-box;
             margin: 0 auto;
-            padding: 3mm 0;
+            /* 1. Side margins set to 2mm */
+            padding: 2mm 2mm;
         }
 
         /* --- Text Alignment --- */
@@ -35,58 +37,67 @@
         h3 {
             margin: 5px 0 3px 0;
             text-transform: uppercase;
+            font-weight: bold;
         }
 
+        /* 3. Increased gaps for separators */
         .separator {
-            border-top: 1px solid #000;
-            margin: 8px 0;
+            border-top: 1px dashed #000;
+            margin: 12px 0;
         }
 
         .separator-solid {
-            border-top: 2px solid #000;
-            margin: 8px 0;
+            border-top: 2px dotted #000;
+            margin: 16px 0;
         }
 
         /* --- Header --- */
         .shop-logo {
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             object-fit: contain;
             filter: grayscale(100%);
         }
+        .shop-info {
+            margin-bottom: 15px; /* Added gap */
+        }
         .shop-info p {
-            margin: 1px 0;
+            margin: 2px 0;
         }
 
         /* --- Invoice Info --- */
         .invoice-meta {
-            margin: 5px 0;
+            margin: 15px 0; /* 3. Significant gap */
         }
         .invoice-meta table {
             width: 100%;
         }
 
         /* --- Customer Info --- */
+        .customer-info {
+            margin: 15px 0; /* 3. Significant gap */
+        }
         .customer-info p {
-            margin: 1px 0;
+            margin: 2px 0;
         }
 
         /* --- Items Table --- */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 5px 0;
+            margin: 15px 0; /* 3. Significant gap */
         }
         .items-table th, .items-table td {
-            padding: 4px 0;
+            padding: 6px 0;
             vertical-align: top;
         }
         .items-table thead th {
-            border-bottom: 2px solid #000;
-            padding-bottom: 4px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 8px;
+            text-transform: uppercase;
         }
 
         .items-table tbody tr {
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px dotted #ccc;
         }
         .items-table tbody tr:last-child {
             border-bottom: none;
@@ -116,10 +127,11 @@
             display: block;
             color: #333;
             font-style: italic;
+            margin-top: 2px;
         }
         .item-calc {
             display: block;
-            margin-top: 2px;
+            margin-top: 4px;
             font-weight: bold;
         }
         .item-discount {
@@ -128,18 +140,18 @@
         }
         .tax-breakdown {
             display: block;
-            line-height: 1.2;
+            line-height: 1.3;
             font-style: italic;
-            margin-top: 2px;
+            margin-top: 3px;
         }
 
         /* --- Totals Summary --- */
         .totals-summary {
             width: 100%;
-            margin-top: 5px;
+            margin-top: 15px; /* 3. Significant gap */
         }
         .totals-summary td {
-            padding: 2px 0;
+            padding: 3px 0;
         }
         .totals-summary .label {
             text-align: left;
@@ -149,20 +161,20 @@
             font-weight: bold;
         }
 
-        /* 🟢 UPDATED: The Total Box Styling */
         .grand-total td {
-            border: 2px solid #000; /* Replaced black background with border */
-            border-radius: 4px;
-            padding: 6px 8px;
-            margin-top: 8px;
+            border: 2px dashed #000;
+            border-radius: 6px;
+            padding: 10px 10px;
+            margin-top: 12px;
         }
 
         /* --- Due/Paid Summary --- */
         .payment-summary {
             width: 100%;
+            margin-top: 10px;
         }
         .payment-summary td {
-            padding: 3px 0;
+            padding: 4px 0;
             font-weight: bold;
         }
         .payment-summary .due {
@@ -171,98 +183,95 @@
 
         /* --- Footer --- */
         .footer-section {
-            margin-top: 10px;
+            margin-top: 20px; /* 3. Significant gap */
             page-break-inside: avoid;
         }
         .footer-section h4 {
-            margin: 5px 0 3px 0;
-            border-bottom: 1px solid #000;
-            padding-bottom: 3px;
+            margin: 5px 0 6px 0;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 4px;
         }
 
-        /* QR & Bank Layout */
-        .payment-flex-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
+        /* Bank Details Layout */
         .bank-details {
-            width: 58%;
+            width: 100%; /* Now takes full width since QR is removed */
         }
-        .bank-details h4 {
-            margin-top: 0;
+        .bank-details p {
+            margin-bottom: 3px;
         }
+
+        /* QR Layout (Moved to bottom) */
         .qr-container {
-            width: 38%;
+            margin-top: 25px; /* Significant gap before QR */
             text-align: center;
         }
         .qr-code {
             max-width: 100%;
             height: auto;
             margin: 0 auto;
-            display: block; /* Centers the image */
+            display: block;
         }
         .qr-hint {
-            font-weight: bold;
+            font-weight: normal;
             text-align: center;
-            margin-top: 3px;
+            margin-top: 6px;
         }
 
         .terms ul {
             padding-left: 15px;
             margin: 0;
         }
+        .terms li {
+            margin-bottom: 3px;
+        }
     </style>
 
     <style th:if="${printerType == null or printerType == 'THERMAL_2'}">
         @page { size: 58mm auto; margin: 0; }
-        body, p, h4 { font-size: 11px; }
-        h3 { font-size: 14px; }
-        .shop-logo { max-width: 48mm; max-height: 40px; }
+        body, p, h4 { font-size: 23px; }
+        h3 { font-size: 29px; }
+        .shop-logo { max-width: 48mm; max-height: 60px; }
 
-        .items-table .col-total, .col-desc strong { font-size: 12px; }
-        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 10px; }
-        .tax-breakdown { font-size: 9px; }
+        .items-table .col-total, .col-desc strong { font-size: 23px; }
+        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 19px; }
+        .tax-breakdown { font-size: 19px; }
 
-        .totals-summary .grand-total td { font-size: 14px; }
-        .payment-summary td, .payment-summary .due { font-size: 12px; }
+        .totals-summary .grand-total td { font-size: 27px; }
+        .payment-summary td, .payment-summary .due { font-size: 23px; }
 
-        /* 🟢 Increased QR Size */
-        .qr-display { width: 80px; height: 80px; }
+        .qr-display { width: 200px; height: 200px; }
     </style>
 
     <style th:if="${printerType == 'THERMAL_3'}">
         @page { size: 80mm auto; margin: 0; }
-        body, p, h4 { font-size: 13px; }
-        h3 { font-size: 18px; }
-        .shop-logo { max-width: 60mm; max-height: 50px; }
+        body, p, h4 { font-size: 27px; }
+        h3 { font-size: 35px; }
+        .shop-logo { max-width: 60mm; max-height: 80px; }
 
-        .items-table .col-total, .col-desc strong { font-size: 14px; }
-        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 12px; }
-        .tax-breakdown { font-size: 11px; }
+        .items-table .col-total, .col-desc strong { font-size: 27px; }
+        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 23px; }
+        .tax-breakdown { font-size: 23px; }
 
-        .totals-summary .grand-total td { font-size: 16px; }
-        .payment-summary td, .payment-summary .due { font-size: 14px; }
+        .totals-summary .grand-total td { font-size: 31px; }
+        .payment-summary td, .payment-summary .due { font-size: 27px; }
 
-        /* 🟢 Increased QR Size */
-        .qr-display { width: 120px; height: 120px; }
+        .qr-display { width: 300px; height: 300px; }
     </style>
 
     <style th:if="${printerType == 'THERMAL_4'}">
         @page { size: 112mm auto; margin: 0; }
-        body, p, h4 { font-size: 16px; }
-        h3 { font-size: 22px; }
-        .shop-logo { max-width: 80mm; max-height: 70px; }
+        body, p, h4 { font-size: 33px; }
+        h3 { font-size: 43px; }
+        .shop-logo { max-width: 80mm; max-height: 100px; }
 
-        .items-table .col-total, .col-desc strong { font-size: 18px; }
-        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 14px; }
-        .tax-breakdown { font-size: 12px; }
+        .items-table .col-total, .col-desc strong { font-size: 33px; }
+        .hsn-code, .item-desc, .item-discount, .terms ul, .qr-hint { font-size: 25px; }
+        .tax-breakdown { font-size: 25px; }
 
-        .totals-summary .grand-total td { font-size: 20px; }
-        .payment-summary td, .payment-summary .due { font-size: 16px; }
+        .totals-summary .grand-total td { font-size: 39px; }
+        .payment-summary td, .payment-summary .due { font-size: 33px; }
 
-        /* 🟢 Increased QR Size */
-        .qr-display { width: 160px; height: 160px; }
+        .qr-display { width: 500px; height: 500px; }
     </style>
 </head>
 
@@ -270,21 +279,21 @@
 <div class="receipt-container">
 
     <header class="shop-info center">
-        <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Logo" class="shop-logo"/>
-        <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}"></span>
+        <img th:if="${!#strings.isEmpty(shopLogoBase64)}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Logo" class="shop-logo"/>
+        <span th:unless="${!#strings.isEmpty(shopLogoBase64)}" th:text="${shopLogoText}" style="font-size: 1.2em; font-weight: bold; display: block; margin-bottom: 5px;"></span>
 
         <h3 th:text="${shopName}">Shop Name</h3>
         <p th:text="${shopAddress}">Shop Address</p>
         <p>
             <strong>Phone:</strong> <span th:text="${shopPhone}"></span>
         </p>
-        <p>
+        <p th:if="${!#strings.isEmpty(gstNumber)}">
             <strong>GSTIN:</strong> <span th:text="${gstNumber}"></span>
         </p>
         <p th:if="${showShopPanOnInvoice}">
             <strong>PAN:</strong> <span th:text="${panNumber}"></span>
         </p>
-        <p th:text="${shopSlogan}"></p>
+        <p th:text="${shopSlogan}" style="font-style: italic; margin-top: 4px;"></p>
     </header>
 
     <div class="invoice-meta">
@@ -294,7 +303,7 @@
             <tr>
                 <td class="left">
                     <strong>Inv No:</strong>
-                    <span th:text="${invoiceId}"></span>
+                    <span th:text="'#' + ${invoiceId}"></span>
                 </td>
                 <td class="right">
                     <strong>Date:</strong>
@@ -314,7 +323,7 @@
     <div class="customer-info" th:if="${customerName != 'Anonymous'}">
         <div class="separator"></div> <h4>Customer Details:</h4>
         <p><strong th:text="${customerName}"></strong></p>
-        <p th:text="'Phone: ' + ${customerPhone}"></p>
+        <p th:if="${!#strings.isEmpty(customerPhone)}" th:text="'Phone: ' + ${customerPhone}"></p>
         <p th:text="${combineAddress} ? 'Address: ' + ${customerBillingAddress} : 'Bill to: ' + ${customerBillingAddress}"></p>
         <p th:unless="${combineAddress}" th:text="'Ship to: ' + ${customerShippingAddress}"></p>
         <p th:if="${showCustomerGst and !#strings.isEmpty(customerGstNumber)}">
@@ -337,7 +346,7 @@
                 <td class="col-desc">
                     <strong th:text="${product['productName']}"></strong>
 
-                    <span class="hsn-code" th:if="${showHsnColumn}"
+                    <span class="hsn-code" th:if="${showHsnColumn and product['hsnCode'] != null}"
                           th:text="'(HSN: ' + ${product['hsnCode']} + ')'"></span>
 
                     <small class="item-desc"
@@ -345,26 +354,26 @@
                            th:text="${product['description']}"></small>
 
                     <div class="item-calc">
-                        <span th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></span>
+                        <span th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')}"></span>
                         x
-                        <span th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span th:text="${#numbers.formatDecimal(product['rate'], 1, 'NONE', 0, 'POINT')}"></span>
 
-                        <span class="item-discount" th:if="${showIndividualDiscountPercentage}"
-                              th:text="'(Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%)'"></span>
+                        <span class="item-discount" th:if="${showIndividualDiscountPercentage and product['discountPercentage'] > 0}"
+                              th:text="'(Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 'NONE', 0, 'POINT')} + '%)'"></span>
                     </div>
 
                     <div class="tax-breakdown">
                         <span th:if="${product['igstAmount'] > 0}"
-                              th:text="'IGST: ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+                              th:text="'IGST: ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
                         <span th:if="${product['cgstAmount'] > 0}"
-                              th:text="'CGST: ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                              th:text="'CGST: ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
                         <span th:if="${product['sgstAmount'] > 0}"
-                              th:text="'SGST: ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+                              th:text="'SGST: ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
                     </div>
                 </td>
 
                 <td class="col-total">
-                    <strong th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></strong>
+                    <strong th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'NONE', 0, 'POINT')}"></strong>
                 </td>
             </tr>
         </th:block>
@@ -376,22 +385,25 @@
         <tbody>
         <tr>
             <td class="label">Taxable Amount</td>
-            <td class="value" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="value" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'NONE', 0, 'POINT')}"></td>
         </tr>
 
         <tr th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
             <td class="label">Discount</td>
-            <td class="value" th:text="'-' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="value" th:text="'-' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'NONE', 0, 'POINT')}"></td>
         </tr>
 
         <tr th:each="gst : ${gstSummary}">
             <td class="label" th:text="${gst['type']} + ' @' + ${gst['percentage']} + '%'"></td>
-            <td class="value" th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="value" th:text="${#numbers.formatDecimal(gst['amount'], 1, 'NONE', 0, 'POINT')}"></td>
         </tr>
 
         <tr class="grand-total">
-            <td class="label">TOTAL</td>
-            <td class="value" th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
+            <td class="label">
+                <strong>TOTAL</strong>
+                <div style="font-size: 0.65em; font-weight: normal; margin-top: 3px; text-transform: lowercase;">*(rounded off)</div>
+            </td>
+            <td class="value" th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'NONE', 0, 'POINT')}"></td>
         </tr>
         </tbody>
     </table>
@@ -401,11 +413,11 @@
         <tbody>
         <tr th:if="${paidAmount != null && paidAmount > 0}">
             <td class="label">Paid Amount:</td>
-            <td class="value" th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="value" th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'NONE', 0, 'POINT')}"></td>
         </tr>
         <tr th:if="${dueAmount != null and dueAmount > 0}">
             <td class="label due">DUE AMOUNT:</td>
-            <td class="value due" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+            <td class="value due" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'NONE', 0, 'POINT')}"></td>
         </tr>
         </tbody>
     </table>
@@ -414,21 +426,16 @@
         <p><strong>In Words:</strong> <span th:text="${grandTotalInWords}"></span></p>
     </div>
 
-    <div class="footer-section payment-flex-container">
-
+    <div class="footer-section" th:if="${!#strings.isEmpty(bankAccountName)}">
         <div class="bank-details">
             <h4>Payment Details</h4>
-            <p th:if="${bankAccountName}"><strong>Bank:</strong> <span th:text="${bankName}"></span></p>
-            <p th:if="${bankAccountName}"><strong>A/C:</strong> <span th:text="${bankAccountNumber}"></span></p>
-            <p th:if="${bankAccountName}"><strong>IFSC:</strong> <span th:text="${bankIfscCode}"></span></p>
-            <p th:if="${upiId}"><strong>UPI ID:</strong> <span th:text="${upiId}"></span></p>
-        </div>
-
-        <div class="qr-container" th:if="${qrCodeBase64}">
-            <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code" class="qr-code qr-display"/>
-            <p class="qr-hint">Scan to pay</p>
+            <p><strong>Bank:</strong> <span th:text="${bankName}"></span></p>
+            <p><strong>A/C:</strong> <span th:text="${bankAccountNumber}"></span></p>
+            <p><strong>IFSC:</strong> <span th:text="${bankIfscCode}"></span></p>
+            <p th:if="${!#strings.isEmpty(upiId)}"><strong>UPI ID:</strong> <span th:text="${upiId}"></span></p>
         </div>
     </div>
+
     <div class="footer-section terms" th:unless="${removeTerms}">
         <h4>Terms & Conditions</h4>
         <ul>
@@ -441,7 +448,12 @@
         <p><strong>Phone:</strong> <span th:text="${shopPhone}"></span></p>
     </div>
 
-    <p class="center" style="margin-top: 10px; font-weight: bold;">
+    <div class="qr-container" th:if="${!#strings.isEmpty(qrCodeBase64)}">
+        <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="Invoice QR" class="qr-code qr-display"/>
+        <p class="qr-hint">Invoice QR</p>
+    </div>
+
+    <p class="center" style="margin-top: 20px; margin-bottom: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
         Thank You! Visit Again!
     </p>
 

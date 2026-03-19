@@ -27,67 +27,90 @@ public class PDFGSTInvoiceUtil {
 
     public byte[] generateGSTInvoice(InvoiceData data, String invoiceTemplate, String printerType)   {
 
-        // --- Core Calculations (null-safe) ---
+        // --- Core Calculations (null-safe & rounded to nearest integer) ---
         List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
 
-        double taxableAmount = rawProducts.stream()
+        long taxableAmount = Math.round(rawProducts.stream()
                 .mapToDouble(p -> safeGetDouble(p, "getRate", "getPrice") * safeGetDouble(p, "getQuantity", "getQty"))
-                .sum();
+                .sum());
 
-        double gstAmount = rawProducts.stream()
+        long gstAmount = Math.round(rawProducts.stream()
                 .mapToDouble(p -> safeGetDouble(p, "getTaxAmount", "getTax"))
-                .sum();
+                .sum());
 
-        double grandTotal = taxableAmount + gstAmount;
-        double currentBalance = grandTotal + safeGetDoubleFromPrimitive(data.getPreviousBalance()) - safeGetDoubleFromPrimitive(data.getReceivedAmount());
+        long grandTotal = taxableAmount + gstAmount;
+        long currentBalance = Math.round(grandTotal + safeGetDoubleFromPrimitive(data.getPreviousBalance()) - safeGetDoubleFromPrimitive(data.getReceivedAmount()));
 
-        String grandTotalInWords = NumberToWordsConverter.convert((long) Math.round(grandTotal));
+        String grandTotalInWords = NumberToWordsConverter.convert(grandTotal);
 
         // --- QR Code (UPI) ---
-        String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+data.getGrandTotal()+"&cu=INR";
+        // Using the rounded grandTotal for the UPI string instead of the raw data value
+        String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+grandTotal+"&cu=INR";
         String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(data.getInvoiceId()), 200, 200);
 
         // --- Barcode Generation for Invoice ID (Conditional) ---
         String invoiceId = nullSafeString(data.getInvoiceId());
         String invoiceBarcodeBase64 = "";
 
-        // 🟢 FIX 1: Dynamically size the barcode so it doesn't stretch the thermal page width
         if (Boolean.TRUE.equals(data.getShowInvoiceBarcode()) && !invoiceId.isEmpty()) {
             int barcodeWidth = 600; // Default for A4
-            int barcodeHeight = 50;
+            int barcodeHeight = 60; // Increased default A4 height
 
             if (printerType != null && printerType.contains("THERMAL")) {
+                // Scale width dynamically
                 barcodeWidth = switch (printerType) {
-                    case "THERMAL_2" -> 250; // Fits well inside 58mm paper
-                    case "THERMAL_3" -> 400; // Fits well inside 80mm paper
-                    case "THERMAL_4" -> 600; // Fits inside 112mm paper
+                    case "THERMAL_2" -> 250; // 58mm
+                    case "THERMAL_3" -> 400; // 80mm
+                    case "THERMAL_4" -> 650; // 112mm
                     default          -> 250;
                 };
-                barcodeHeight = 40;
+
+                // Scale height dynamically so it doesn't look like a tiny sliver on wider paper
+                barcodeHeight = switch (printerType) {
+                    case "THERMAL_2" -> 45; // Increased by 5 units
+                    case "THERMAL_3" -> 65;
+                    case "THERMAL_4" -> 90;
+                    default          -> 45;
+                };
             }
             invoiceBarcodeBase64 = generateBarcodeBase64(invoiceId, barcodeWidth, barcodeHeight);
         }
 
-        // --- Convert products to Map for template ---
+        // --- Convert products to Map for template (Rounding Amounts Only) ---
         List<Map<String, Object>> productsForTemplate = new ArrayList<>();
         for (OrderItemInvoice p : rawProducts) {
             Map<String, Object> m = new HashMap<>();
             m.put("productName", nullSafeString(safeGetString(p, "getProductName", "getName")));
             m.put("description", p.getDescription());
             m.put("hsnCode", nullSafeString(safeGetString(p, "getHsnCode", "getHsn")));
-            m.put("quantity", safeGetDouble(p, "getQuantity", "getQty"));
-            m.put("rate", safeGetDouble(p, "getRate", "getPrice"));
-            m.put("taxAmount", safeGetDouble(p, "getTaxAmount", "getTax"));
-            m.put("totalAmount", safeGetDouble(p, "getTotalAmount", "getAmount", "getTotal"));
-            m.put("discountPercentage", p.getDiscountPercentage());
-            m.put("igstAmount", p.getIgst());
+            m.put("quantity", safeGetDouble(p, "getQuantity", "getQty")); // Quantity left exact
+            m.put("discountPercentage", p.getDiscountPercentage()); // Percentages left exact
+
+            // Rounding monetary amounts
+            m.put("rate", getRoundedAmount(p, "getRate", "getPrice"));
+            m.put("taxAmount", getRoundedAmount(p, "getTaxAmount", "getTax"));
+            m.put("totalAmount", getRoundedAmount(p, "getTotalAmount", "getAmount", "getTotal"));
+            m.put("igstAmount", roundDouble(p.getIgst()));
+            m.put("cgstAmount", roundDouble(p.getCgst()));
+            m.put("sgstAmount", roundDouble(p.getSgst()));
+
             m.put("igstPercentage", p.getIgstPercentage());
-            m.put("cgstAmount", p.getCgst());
             m.put("cgstPercentage", p.getCgstPercentage());
-            m.put("sgstAmount", p.getSgst());
             m.put("sgstPercentage", p.getSgstPercentage());
 
             productsForTemplate.add(m);
+        }
+
+        // --- Process GST Summary to Round Amounts ---
+        List<Map<String, Object>> roundedGstSummary = new ArrayList<>();
+        if (data.getGstSummary() != null) {
+            for (Map<String, Object> gstMap : data.getGstSummary()) {
+                Map<String, Object> roundedGst = new HashMap<>(gstMap);
+                if (roundedGst.containsKey("amount")) {
+                    roundedGst.put("amount", Math.round(Double.parseDouble(String.valueOf(roundedGst.get("amount")))));
+                }
+                roundedGstSummary.add(roundedGst);
+            }
         }
 
         // --- Prepare Thymeleaf Context ---
@@ -122,17 +145,18 @@ public class PDFGSTInvoiceUtil {
 
         context.setVariable("products", productsForTemplate);
 
+        // Apply rounded amounts to the context
         context.setVariable("taxableAmount", taxableAmount);
         context.setVariable("grandTotal", grandTotal);
-        context.setVariable("paidAmount", safeGetDoubleFromPrimitive(data.getPaidAmount()));
-        context.setVariable("dueAmount", safeGetDoubleFromPrimitive(data.getDueAmount()));
-        context.setVariable("totalDiscountAmount", safeGetDoubleFromPrimitive(data.getDiscountPercentage()));
-        context.setVariable("receivedAmount", safeGetDoubleFromPrimitive(data.getReceivedAmount()));
-        context.setVariable("previousBalance", safeGetDoubleFromPrimitive(data.getPreviousBalance()));
+        context.setVariable("paidAmount", roundDouble(data.getPaidAmount()));
+        context.setVariable("dueAmount", roundDouble(data.getDueAmount()));
+        context.setVariable("totalDiscountAmount", roundDouble(data.getDiscountPercentage()));
+        context.setVariable("receivedAmount", roundDouble(data.getReceivedAmount()));
+        context.setVariable("previousBalance", roundDouble(data.getPreviousBalance()));
         context.setVariable("currentBalance", currentBalance);
         context.setVariable("grandTotalInWords", nullSafeString(grandTotalInWords));
 
-        context.setVariable("gstSummary", data.getGstSummary() != null ? data.getGstSummary() : Collections.emptyList());
+        context.setVariable("gstSummary", roundedGstSummary);
 
         context.setVariable("bankAccountName", nullSafeString(data.getBankAccountName()));
         context.setVariable("bankAccountNumber", nullSafeString(data.getBankAccountNumber()));
@@ -171,21 +195,19 @@ public class PDFGSTInvoiceUtil {
 
                 Browser.NewContextOptions contextOptions = new Browser.NewContextOptions();
 
-                // 🟢 THE FIX: Check printerType instead of invoiceTemplate name!
                 if (printerType != null && printerType.contains("THERMAL")) {
                     int viewportHeight = 800; // Base height, expands automatically
 
                     int viewportWidth = switch (printerType) {
-                        case "THERMAL_2" -> 384; // Standard 58mm thermal width in dots
-                        case "THERMAL_3" -> 576; // Standard 80mm thermal width in dots
-                        case "THERMAL_4" -> 832; // Standard 112mm thermal width in dots
+                        case "THERMAL_2" -> 384;
+                        case "THERMAL_3" -> 576;
+                        case "THERMAL_4" -> 832;
                         default          -> 384;
                     };
 
                     contextOptions.setViewportSize(viewportWidth, viewportHeight);
-                    contextOptions.setDeviceScaleFactor(1.0); // Keep at 1.0 to prevent double-scaling
+                    contextOptions.setDeviceScaleFactor(1.0);
                 } else {
-                    // Fallback for normal A4 web invoices
                     contextOptions.setViewportSize(794, 1123);
                     contextOptions.setDeviceScaleFactor(1.0);
                 }
@@ -219,6 +241,15 @@ public class PDFGSTInvoiceUtil {
             e.printStackTrace();
             return "";
         }
+    }
+
+    // --- Rounding Helpers ---
+    private long roundDouble(Double d) {
+        return d == null ? 0L : Math.round(d);
+    }
+
+    private long getRoundedAmount(Object bean, String... methodNames) {
+        return Math.round(safeGetDouble(bean, methodNames));
     }
 
     // --- Existing Helpers ---
