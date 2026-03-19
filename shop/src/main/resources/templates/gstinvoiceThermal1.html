@@ -2,16 +2,18 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <title th:text="'Invoice - ' + ${invoiceId}">Receipt</title>
 
     <style>
+        /* 🟢 Authentic Thermal Font Style */
         body {
-            font-family: 'Monospace', 'Courier New', Courier, monospace;
+            font-family: 'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace;
             color: #000;
             background: #fff;
             margin: 0;
             padding: 0;
-            line-height: 1.2;
+            line-height: 1.3;
         }
 
         .receipt-wrapper {
@@ -19,23 +21,22 @@
             max-width: 100%;
             box-sizing: border-box;
             margin: 0 auto;
-            padding: 3mm 0;
+            padding: 2mm 0;
         }
 
         /* Utilities */
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .bold { font-weight: 700; }
+        .bold { font-weight: bold; }
         .uppercase { text-transform: uppercase; }
-        .flex-between { display: flex; justify-content: space-between; align-items: flex-end; }
         .break-word { word-wrap: break-word; word-break: break-all; }
 
-        /* 🟢 Header Section - Increased margins & padding */
+        /* Header Section */
         .brand-section {
             text-align: center;
-            margin-bottom: 16px;
-            border-bottom: 2px dashed #000;
-            padding-bottom: 14px;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed #000; /* Thin dashed border */
+            padding-bottom: 10px;
         }
         .logo-img {
             margin-bottom: 6px;
@@ -43,183 +44,176 @@
             filter: grayscale(100%);
         }
         .shop-title {
-            font-weight: 900;
+            font-weight: bold;
             text-transform: uppercase;
             margin: 0 0 4px 0;
-            line-height: 1;
+            line-height: 1.1;
+            letter-spacing: 1px;
         }
         .shop-sub {
             color: #000;
-            line-height: 1.3;
+            line-height: 1.4;
         }
 
-        /* 🟢 Info Card - Increased margins & padding */
+        /* Info Card */
         .info-card {
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             border-bottom: 1px dashed #000;
-            padding-bottom: 12px;
+            padding-bottom: 10px;
         }
         .info-row {
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between; /* Spread evenly for clean thermal look */
             align-items: baseline;
-            gap: 6px;
-            margin-bottom: 4px;
-            white-space: nowrap;
+            margin-bottom: 3px;
         }
-        .info-label { font-weight: 600; }
-        .info-val { font-weight: bold; text-align: left;}
 
-        /* 🟢 Customer Section - Increased margins */
+        /* Customer Section */
         .customer-area {
-            margin: 12px 0 18px 0;
-            line-height: 1.3;
+            margin: 10px 0 14px 0;
+            line-height: 1.4;
         }
-        .cust-label { text-transform: uppercase; font-weight: bold; color: #000; margin-bottom: 2px; }
-        .cust-name { font-weight: 800; margin-bottom: 2px;}
+        .cust-label { text-transform: uppercase; font-weight: bold; margin-bottom: 2px; text-decoration: underline; }
+        .cust-name { font-weight: bold; margin-bottom: 2px;}
 
-        /* 🟢 Items Table - Increased bottom margin */
+        /* Items Table */
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
         .items-table thead {
-            border-top: 2px solid #000;
-            border-bottom: 2px solid #000;
+            border-top: 1px dashed #000;
+            border-bottom: 1px dashed #000;
         }
         .items-table tbody tr {
-            border-bottom: 1px dashed #aaa;
+            border-bottom: 1px dotted #ccc; /* Very light separator for items */
         }
         .items-table tbody tr:last-child {
             border-bottom: none;
         }
         .items-table th {
             text-align: left;
-            font-weight: 800;
+            font-weight: bold;
             padding: 6px 0;
             text-transform: uppercase;
         }
         .items-table td {
-            padding: 6px 0 8px 0;
+            padding: 6px 0;
             vertical-align: top;
         }
 
         /* Column Optimization */
-        .c-item { width: 45%; padding-right: 2px; }
-        .c-qty { width: 10%; text-align: center; }
+        .c-item { width: 45%; padding-right: 4px; }
+        .c-qty { width: 15%; text-align: center; }
         .c-price { width: 20%; text-align: right; }
-        .c-total { width: 25%; text-align: right; font-weight: bold; }
+        .c-total { width: 20%; text-align: right; font-weight: bold; }
 
         .sub-desc {
-            color: #444;
             display: block;
             margin-top: 2px;
-            font-style: italic;
+            font-size: 0.85em;
         }
 
-        /* 🟢 Totals Section - Increased top padding */
+        /* Totals Section */
         .totals-block {
             border-top: 1px dashed #000;
-            padding-top: 14px;
+            padding-top: 10px;
         }
         .t-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 4px;
         }
-        .t-label { color: #000; font-weight: 600; }
 
-        .grand-total-pill {
-            background-color: transparent;
-            color: #000;
-            border: 2px solid #000;
-            border-radius: 4px;
-            padding: 8px 10px;
-            margin-top: 12px;
-            margin-bottom: 12px; /* Extra space below total */
+        /* Replaced thick pill with a classic thermal grand-total row */
+        .grand-total-row {
+            border-top: 1px dashed #000;
+            border-bottom: 1px dashed #000;
+            padding: 6px 0;
+            margin-top: 8px;
+            margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .gt-label { font-weight: bold; text-transform: uppercase; }
-        .gt-value { font-weight: 900; }
+        .gt-value { font-weight: bold; }
 
-        /* 🟢 Footer - Increased spacing */
+        /* Footer */
         .footer-area {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 14px;
-            border-top: 1px solid #000;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px dashed #000;
         }
         .pay-info {
             font-weight: bold;
             margin-bottom: 8px;
-            border: 2px solid #000;
+            border: 1px dashed #000;
             display: inline-block;
             padding: 4px 10px;
         }
         .qr-display {
             display: block;
-            margin: 12px auto;
+            margin: 10px auto;
         }
         .terms-list {
-            color: #000;
             margin-top: 12px;
             text-align: left;
-            line-height: 1.3;
+            line-height: 1.4;
         }
     </style>
 
     <style th:if="${printerType == null or printerType == 'THERMAL_2'}">
         @page { size: 58mm auto; margin: 0; }
-        body { font-size: 12px; }
-        .logo-img { max-height: 45px; }
-        .shop-title { font-size: 16px; }
-        .shop-sub, .pay-info { font-size: 10px; }
-        .info-row, .customer-area, .t-row { font-size: 11px; }
+        body { font-size: 26px; } /* Increased from 11px */
+        .logo-img { max-height: 60px; }
+        .shop-title { font-size: 32px; }
+        .shop-sub, .pay-info { font-size: 24px; }
+        .info-row, .customer-area, .t-row { font-size: 24px; }
 
-        .items-table td { font-size: 10px; }
-        .sub-desc { font-size: 8px; }
+        .items-table td, .items-table th { font-size: 24px; }
+        .sub-desc { font-size: 22px; }
 
-        .cust-label, .items-table th, .terms-list { font-size: 9px; }
-        .cust-name, .gt-label { font-size: 12px; }
-        .gt-value { font-size: 16px; }
-        .qr-display { width: 80px; height: 80px; }
+        .cust-label, .terms-list { font-size: 22px; }
+        .cust-name, .gt-label { font-size: 26px; }
+        .gt-value { font-size: 30px; }
+        .qr-display { width: 120px; height: 120px; }
     </style>
 
     <style th:if="${printerType == 'THERMAL_3'}">
         @page { size: 80mm auto; margin: 0; }
-        body { font-size: 14px; }
-        .logo-img { max-height: 65px; }
-        .shop-title { font-size: 22px; }
-        .shop-sub, .pay-info { font-size: 12px; }
-        .info-row, .customer-area, .t-row { font-size: 13px; }
+        body { font-size: 30px; } /* Increased from 13px */
+        .logo-img { max-height: 80px; }
+        .shop-title { font-size: 38px; }
+        .shop-sub, .pay-info { font-size: 18px; }
+        .info-row, .customer-area, .t-row { font-size: 28px; }
 
-        .items-table td { font-size: 12px; }
-        .sub-desc { font-size: 10px; }
+        .items-table td, .items-table th { font-size: 28px; }
+        .sub-desc { font-size: 15px; }
 
-        .cust-label, .items-table th, .terms-list { font-size: 11px; }
-        .cust-name, .gt-label { font-size: 14px; }
-        .gt-value { font-size: 20px; }
-        .qr-display { width: 120px; height: 120px; }
+        .cust-label, .terms-list { font-size: 25px; }
+        .cust-name, .gt-label { font-size: 30px; }
+        .gt-value { font-size: 34px; }
+        .qr-display { width: 160px; height: 160px; }
     </style>
 
     <style th:if="${printerType == 'THERMAL_4'}">
         @page { size: 112mm auto; margin: 0; }
-        body { font-size: 16px; }
-        .logo-img { max-height: 85px; }
-        .shop-title { font-size: 26px; }
-        .shop-sub, .pay-info { font-size: 14px; }
-        .info-row, .customer-area, .t-row { font-size: 15px; }
+        body { font-size: 36px; } /* Increased from 15px */
+        .logo-img { max-height: 100px; }
+        .shop-title { font-size: 46px; }
+        .shop-sub, .pay-info { font-size: 32px; }
+        .info-row, .customer-area, .t-row { font-size: 32px; }
 
-        .items-table td { font-size: 14px; }
-        .sub-desc { font-size: 11px; }
+        .items-table td, .items-table th { font-size: 32px; }
+        .sub-desc { font-size: 28px; }
 
-        .cust-label, .items-table th, .terms-list { font-size: 13px; }
-        .cust-name, .gt-label { font-size: 16px; }
-        .gt-value { font-size: 26px; }
-        .qr-display { width: 160px; height: 160px; }
+        .cust-label, .terms-list { font-size: 28px; }
+        .cust-name, .gt-label { font-size: 36px; }
+        .gt-value { font-size: 42px; }
+        .qr-display { width: 400px; height: 400px; }
     </style>
 </head>
 
@@ -239,56 +233,59 @@
         <div class="shop-sub">
             <span th:text="${shopAddress}"></span><br>
             <span th:text="${shopPhone}"></span>
-            <div th:if="${gstNumber}" style="margin-top:4px; font-weight:bold;" th:text="'GST: ' + ${gstNumber}"></div>
+            <div th:if="${gstNumber}" style="margin-top:4px;" th:text="'GSTIN: ' + ${gstNumber}"></div>
         </div>
     </div>
 
     <div class="info-card">
         <div class="info-row">
-            <span class="info-label">Invoice No:</span>
-            <span class="info-val" th:text="'#' + ${invoiceId}"></span>
+            <span>INV NO:</span>
+            <span class="bold" th:text="'#' + ${invoiceId}"></span>
         </div>
         <div class="info-row">
-            <span class="info-label">Date:</span>
-            <span class="info-val" th:text="${orderedDate}"></span>
+            <span>DATE:</span>
+            <span class="bold" th:text="${orderedDate}"></span>
         </div>
         <div class="info-row" th:if="${showDueDate and dueAmount != null}">
-            <span class="info-label">Due Date:</span>
-            <span class="info-val" th:text="${dueDate}"></span>
+            <span>DUE DATE:</span>
+            <span class="bold" th:text="${dueDate}"></span>
         </div>
     </div>
 
     <div class="customer-area" th:if="${customerName != 'Anonymous'}">
-        <div class="cust-label">Billed To</div>
+        <div class="cust-label">BILLED TO</div>
         <div class="cust-name" th:text="${customerName}"></div>
         <div th:text="${customerPhone}"></div>
-        <div style="font-size: 0.9em; margin-top: 2px;" th:text="${combineAddress} ? ${customerBillingAddress} : ${customerBillingAddress}"></div>
+        <div style="margin-top: 2px;" th:text="${combineAddress} ? ${customerBillingAddress} : ${customerBillingAddress}"></div>
     </div>
 
-    <table class="items-table" style="font-size: 0.9em;">
+    <table class="items-table">
         <thead>
         <tr>
-            <th class="c-item">Item</th>
-            <th class="c-qty">Qt</th>
-            <th class="c-price">Rate</th>
-            <th class="c-total">Amt</th>
+            <th class="c-item">ITEM</th>
+            <th class="c-qty">QTY</th>
+            <th class="c-price">RATE</th>
+            <th class="c-total">AMT</th>
         </tr>
         </thead>
         <tbody>
         <th:block th:each="product : ${products}">
             <tr>
                 <td class="c-item">
-                    <div style="line-height: 1.1; margin-bottom: 2px;">
+                    <div style="margin-bottom: 2px;">
                         <span th:text="${product['productName']}" class="bold break-word"></span>
                     </div>
-                    <span class="sub-desc" th:if="${showHsnColumn}" th:text="'HSN:' + ${product['hsnCode']}"></span>
-                    <span class="sub-desc" th:if="${showIndividualDiscountPercentage}"
+                    <span class="sub-desc" th:if="${showHsnColumn and product['hsnCode'] != null}" th:text="'HSN:' + ${product['hsnCode']}"></span>
+
+                    <span class="sub-desc" th:if="${showIndividualDiscountPercentage and product['discountPercentage'] != null and product['discountPercentage'] > 0}"
                           th:text="'Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 0)} + '%'"></span>
+
+                    <span class="sub-desc" th:if="${gstBreakdown and product['taxPercentage'] != null and product['taxPercentage'] > 0}"
+                          th:text="'GST: ' + ${#numbers.formatDecimal(product['taxPercentage'], 1, 0)} + '%'"></span>
                 </td>
                 <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></td>
-
-                <td class="c-price" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 0, 'POINT')}"></td>
-                <td class="c-total" th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 0, 'POINT')}"></td>
+                <td class="c-price" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
+                <td class="c-total" th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
             </tr>
         </th:block>
         </tbody>
@@ -296,32 +293,34 @@
 
     <div class="totals-block">
         <div class="t-row">
-            <span class="t-label">Subtotal</span>
+            <span>SUBTOTAL</span>
             <span class="bold" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></span>
         </div>
 
         <div class="t-row" th:if="${showTotalDiscountPercentage and totalDiscountAmount > 0}">
-            <span class="t-label">Discount</span>
+            <span>DISCOUNT</span>
             <span class="bold" th:text="'-' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></span>
         </div>
 
-        <div class="t-row" th:each="gst : ${gstSummary}">
-            <span class="t-label" th:text="${gst['type']} + ' (' + ${gst['percentage']} + '%)'"></span>
-            <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
-        </div>
+        <th:block th:if="${gstBreakdown}">
+            <div class="t-row" th:each="gst : ${gstSummary}">
+                <span th:text="${gst['type']} + ' (' + ${gst['percentage']} + '%)'"></span>
+                <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
+            </div>
+        </th:block>
 
-        <div class="t-row" style="margin-top: 8px; border-top: 1px dotted #000; padding-top: 4px;"
+        <div class="t-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px dotted #000;"
              th:if="${showDueAmount and dueAmount != null and dueAmount > 0}">
-            <span class="bold uppercase">Balance Due</span>
-            <span class="bold" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+            <span class="bold uppercase">BALANCE DUE</span>
+            <span class="bold" th:text="'Rs. ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
         </div>
 
-        <div class="grand-total-pill">
-            <span class="gt-label">Total</span>
-            <span class="gt-value" th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></span>
+        <div class="grand-total-row">
+            <span class="gt-label">TOTAL</span>
+            <span class="gt-value" th:text="'Rs. ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 2, 'POINT')}"></span>
         </div>
 
-        <div class="text-center" style="font-size: 0.8em; margin-top: 8px; color: #000; font-weight: 500;" th:text="${grandTotalInWords}"></div>
+        <div class="text-center" style="font-size: 0.85em; margin-top: 8px; font-weight: bold;" th:text="${grandTotalInWords}"></div>
     </div>
 
     <div class="footer-area">
@@ -330,15 +329,15 @@
             <div th:if="${qrCodeBase64}">
                 <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-display"/>
             </div>
-            <div class="pay-info" th:if="${invoiceId != null and !#strings.isEmpty(invoiceId)}" th:text="'Invoice #: ' + ${invoiceId}"></div>
+            <div class="pay-info" th:if="${invoiceId != null and !#strings.isEmpty(invoiceId)}" th:text="'INV #: ' + ${invoiceId}"></div>
         </div>
 
         <div class="terms-list" th:unless="${removeTerms}">
-            <div th:each="term : ${termsAndConditions}" th:text="'• ' + ${term}"></div>
+            <div th:each="term : ${termsAndConditions}" th:text="'- ' + ${term}"></div>
         </div>
 
-        <div style="margin-top: 18px; font-weight: 900; font-size: 1.2em; text-transform: uppercase;">
-            Thank you!
+        <div style="margin-top: 16px; font-weight: bold; font-size: 1.1em; text-transform: uppercase; letter-spacing: 1px;">
+            THANK YOU
         </div>
     </div>
 

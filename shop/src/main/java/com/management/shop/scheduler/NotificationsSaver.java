@@ -52,6 +52,8 @@ public class NotificationsSaver {
     NotificationScheduler notificationScheduler;
 
 
+
+
     public String extractUsername() {
         //String username = SecurityContextHolder.getContext().getAuthentication().getName();
         // System.out.println("Current user: " + username);

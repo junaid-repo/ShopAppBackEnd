@@ -439,7 +439,6 @@ public class ShopController {
     }
 
     @PostMapping(path = "api/shop/bulk-upload-products", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('PREMIUM')")
     public ResponseEntity<?> bulkUploadFromImage(@RequestPart("file") MultipartFile file) {
         try {
             List<ProductRequest> products = serv.uploadBulkProductFromImage(file);

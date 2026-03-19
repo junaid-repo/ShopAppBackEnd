@@ -184,6 +184,9 @@ public class ShopService {
     @Autowired
     ApiSaveRepository apiSaveRepo;
 
+    @Autowired
+    SettingsService setServ;
+
     private final Random random = new Random();
 
     @Value("${aws.s3.bucket-name}")
@@ -1269,26 +1272,33 @@ public class ShopService {
 
     public List<ProductRequest> uploadBulkProductFromImage(MultipartFile file) {
 
-        try {
-            List<ProductRequest> prodList = util.validateDataFromImage(file);
-            System.out.println(prodList);
-            prodList.stream().forEach(obj -> {
-                ProductSuccessDTO prodsaveResponse = saveProductFromImage(obj);
-                System.out.println(prodsaveResponse);
-            });
+        Map<String, Object> importCheck=setServ.checkImportLimit();
 
+        if((boolean) importCheck.get("allowed")) {
             try {
-                salesCacheService.evictUserProducts(extractUsername());
+                List<ProductRequest> prodList = util.validateDataFromImage(file);
+                System.out.println(prodList);
+                prodList.stream().forEach(obj -> {
+                    ProductSuccessDTO prodsaveResponse = saveProductFromImage(obj);
+                    System.out.println(prodsaveResponse);
+                });
+
+                try {
+                    salesCacheService.evictUserProducts(extractUsername());
+
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                return prodList;
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            return prodList;
-
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        }
+        else{
+            System.out.println("Import limit exceeded for today");
         }
 
         return null;
