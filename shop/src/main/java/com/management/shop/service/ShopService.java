@@ -11,10 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.YearMonth;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -638,6 +635,9 @@ public class ShopService {
         if ("totalSpent".equalsIgnoreCase(sortField)) {
             sortField = "total_spent";
         }
+        if ("totalOrders".equalsIgnoreCase(sortField)) {
+            sortField = "total_orders";
+        }
 
 
         Sort.Direction direction = dir.equalsIgnoreCase("desc") ? Sort.Direction.ASC : Sort.Direction.DESC;
@@ -651,6 +651,7 @@ public class ShopService {
         Page<CustomerEntity> response = null;
         try {
             response = shopRepo.findAllCustomersWithPagination(username, search, pageable, Boolean.TRUE);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -837,7 +838,8 @@ public class ShopService {
             }
 
             try {
-                shopRepo.updateCustomerSpentAmount(request.getSelectedCustomer().getId(), request.getTotal(), extractUsername());
+                //shopRepo.updateCustomerSpentAmount(request.getSelectedCustomer().getId(), request.getTotal(), extractUsername());
+                shopRepo.updateCustomerSpentAmountAndOrdersCount(request.getSelectedCustomer().getId(), request.getTotal(), extractUsername());
             } catch (Exception e) {
                 // TODO Auto-generated catch block,
                 e.printStackTrace();
@@ -1437,6 +1439,26 @@ public class ShopService {
             throw new RuntimeException(e);
         }
 
+        try {
+            if(fileBytes!=null){
+              var reportData=  Report.builder().name(request.getReportType())
+                      .fileName(request.getReportId()+"."+request.getFormat())
+                        .reportType(request.getReportType())
+                        .fromDate(LocalDate.parse(request.getFromDate()))
+                        .toDate(LocalDate.parse(request.getToDate()))
+                        .fileFormat(request.getFormat())
+                        .status("READY")
+                        .userId(extractUsername())
+                        .createdAt(OffsetDateTime.now())
+                        .build();
+
+                reportDRepo.save(reportData);
+
+            }
+        } catch (Exception e) {
+           e.printStackTrace();
+        }
+
         return fileBytes;
     }
 
@@ -1453,6 +1475,8 @@ public class ShopService {
         return reportList.stream().map(obj -> {
 
             return ReportResponse.builder().name(obj.getName()).createdAt(obj.getCreatedAt())
+                    .type(obj.getReportType())
+                    .format(obj.getFileFormat())
                     .fileName(obj.getFileName()).fromDate(obj.getFromDate()).toDate(obj.getToDate()).id(obj.getId())
                     .status(obj.getStatus()).build();
 

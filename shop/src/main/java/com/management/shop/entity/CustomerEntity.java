@@ -32,4 +32,5 @@ public class CustomerEntity {
 	private LocalDateTime createdDate;
     private String userId;
     private LocalDateTime updatedDate;
+    private Integer totalOrders;
 }

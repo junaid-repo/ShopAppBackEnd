@@ -19,6 +19,10 @@ public class ReportResponse {
 
 	private String name;
 
+    private String type;
+
+    private String format;
+
 	private LocalDate fromDate;
 
 	private LocalDate toDate;
