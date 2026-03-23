@@ -360,7 +360,7 @@ public class ShopController {
 
         System.out.println("The request payload for billing app is-->" + request);
 
-        BillingResponse response = serv.doPayment(request);
+        BillingResponse response = serv.doPayment2(request);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
@@ -753,7 +753,7 @@ public class ShopController {
                 System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_signature());
 
                 // This replaces the direct call to /api/shop/do/billing
-                BillingResponse billingResponse = serv.doPayment(request.billingDetails);
+                BillingResponse billingResponse = serv.doPayment2(request.billingDetails);
 
                 if (billingResponse != null && request.getRazorpay_payment_id() != null) {
                     serv.updatePaymentReferenceNumber(request.getRazorpay_payment_id(), billingResponse.getInvoiceNumber());

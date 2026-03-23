@@ -186,6 +186,8 @@ public class ShopService {
 
     private final Random random = new Random();
 
+
+
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
@@ -640,7 +642,7 @@ public class ShopService {
         }
 
 
-        Sort.Direction direction = dir.equalsIgnoreCase("desc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Sort.Direction direction = dir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
 
         // ✅ Use mapped field name here
         Sort sortOrder = Sort.by(direction, sortField);
@@ -876,6 +878,213 @@ public class ShopService {
         }
 
         return BillingResponse.builder().status("FAILURE").build();
+    }
+
+    @Transactional
+    public BillingResponse doPayment2(BillingRequest request) throws Exception {
+        checkAnonymousCustomer(request);
+        String username = extractUsername();
+
+        // 1. Setup & Initial Billing Entity
+        UserSettingsEntity userSettings = userSettingsRepo.findByUsername(username);
+        int unitsSold = calculateTotalUnits(request.getCart());
+        BillingEntity billResponse = createInitialBill(request, unitsSold, username);
+
+        // 2. Generate Invoice Number
+        if (userSettings != null) {
+            assignInvoiceNumber(billResponse, userSettings);
+        }
+
+        if (billResponse.getId() == null) {
+            return BillingResponse.builder().status("FAILURE").build();
+        }
+
+        // 3. Process Cart Items (Calculates taxes, profits, stock)
+        double totalProfitOnCP = processCartItems(request, billResponse, userSettings, username);
+
+        // 4. Update Bill with final profit
+        billResponse.setTotalProfitOnCP(totalProfitOnCP);
+        billRepo.save(billResponse);
+
+        // 5. Process Payment
+        PaymentEntity payment = processPayment(request, billResponse, username);
+
+        // 6. Post-Payment Actions
+        savePaymentHistorySafe(billResponse, payment, request);
+        updateCustomerMetricsSafe(request, username);
+        handleInvoiceEmail(request, billResponse, userSettings);
+        clearSalesCachesSafe(username);
+
+        return BillingResponse.builder()
+                .paymentReferenceNumber(payment.getPaymentReferenceNumber())
+                .invoiceNumber(billResponse.getInvoiceNumber())
+                .status("SUCCESS")
+                .build();
+    }
+
+    private int calculateTotalUnits(List<ProductBillDTO> cart) { // Note: Replace CartItemDto with your actual class name
+        return cart.stream().mapToInt(obj -> obj.getQuantity()).sum();
+    }
+
+    private BillingEntity createInitialBill(BillingRequest request, int unitsSold, String username) {
+        BillingEntity billingEntity = BillingEntity.builder()
+                .customerId(request.getSelectedCustomer().getId())
+                .unitsSold(unitsSold)
+                .taxAmount(request.getTax())
+                .userId(username)
+                .totalAmount(request.getTotal())
+                .payingAmount(request.getPayingAmount())
+                .gstin(request.getGstin())
+                .dueReminderCount(0)
+                .remainingAmount(request.getRemainingAmount())
+                .discountPercent(request.getDiscountPercentage())
+                .remarks(request.getRemarks())
+                .subTotalAmount(request.getTotal() - request.getTax())
+                .createdDate(LocalDateTime.now())
+                .build();
+
+        return billRepo.save(billingEntity);
+    }
+
+    private void assignInvoiceNumber(BillingEntity billResponse, UserSettingsEntity userSettings) {
+        String orderPrefix = userSettings.getSerialNumberPattern();
+        String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+        String sequentialPart = String.format("%04d", billResponse.getId());
+
+        String invoiceNumber = (orderPrefix != null ? orderPrefix : "FMS") + "-" + datePart + "-" + sequentialPart;
+
+        billResponse.setInvoiceNumber(invoiceNumber);
+        billRepo.save(billResponse);
+    }
+
+    private double processCartItems(BillingRequest request, BillingEntity billResponse, UserSettingsEntity userSettings, String username) {
+        double totalProfit = 0d;
+        boolean allowNoStockBilling = userSettings != null && userSettings.getAllowNoStockBilling();
+
+        // Replaced stream with standard loop for cleaner exception handling and primitive math tracking
+        for (var obj : request.getCart()) {
+            ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getId(), username);
+
+            double discountedTotal = obj.getPrice();
+            if (obj.getDiscountPercentage() != 0) {
+                discountedTotal = obj.getPrice() - (obj.getDiscountPercentage() * obj.getPrice()) / 100;
+                obj.setPrice(discountedTotal);
+            }
+
+            double total = obj.getQuantity() * Math.round(discountedTotal);
+            double profitOnCp = (discountedTotal - prodRes.getCostPrice()) * obj.getQuantity();
+            totalProfit += Math.round(profitOnCp);
+
+            ProductSalesEntity gstCalc = getGSTBreakDown(request.getSelectedCustomer(), obj, prodRes, username);
+
+            ProductSalesEntity productSalesEntity = ProductSalesEntity.builder()
+                    .billingId(billResponse.getId())
+                    .profitOnCP(profitOnCp)
+                    .sgstPercentage(gstCalc.getSgstPercentage())
+                    .sgst(gstCalc.getSgst())
+                    .cgstPercentage(gstCalc.getCgstPercentage())
+                    .cgst(gstCalc.getCgst())
+                    .igstPercentage(gstCalc.getIgstPercentage())
+                    .igst(gstCalc.getIgst())
+                    .productId(obj.getId())
+                    .productDetails(obj.getDetails())
+                    .userId(username)
+                    .discountPercentage(obj.getDiscountPercentage())
+                    .quantity(obj.getQuantity())
+                    .tax(gstCalc.getTax())
+                    .subTotal(gstCalc.getSubTotal())
+                    .total(total)
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            ProductSalesEntity prodSalesResponse = prodSalesRepo.save(productSalesEntity);
+
+            try {
+                billingProcess.saveGstListing(billResponse.getInvoiceNumber(), username);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to save GST listing", e);
+            }
+
+            if (!allowNoStockBilling && prodSalesResponse.getId() != null) {
+                prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), username, LocalDateTime.now());
+            }
+        }
+        return totalProfit;
+    }
+
+    private PaymentEntity processPayment(BillingRequest request, BillingEntity billResponse, String username) {
+        String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH";
+        String payingStatus = "Paid";
+
+        if (request.getPayingAmount() == 0) {
+            payingStatus = "UnPaid";
+        } else if (request.getTotal() > request.getPayingAmount()) {
+            payingStatus = "SemiPaid";
+        }
+
+        PaymentEntity paymentEntity = PaymentEntity.builder()
+                .billingId(billResponse.getId())
+                .createdDate(LocalDateTime.now())
+                .paymentMethod(paymentMethod)
+                .status(payingStatus)
+                .tax(request.getTax())
+                .userId(username)
+                .orderNumber(billResponse.getInvoiceNumber())
+                .paid(request.getPayingAmount())
+                .toBePaid(request.getRemainingAmount())
+                .reminderCount(0)
+                .updatedBy(username)
+                .updatedDate(LocalDateTime.now())
+                .subtotal(request.getTotal() - request.getTax())
+                .total(request.getTotal())
+                .build();
+
+        return salesPaymentRepo.save(paymentEntity);
+    }
+
+    private void savePaymentHistorySafe(BillingEntity bill, PaymentEntity payment, BillingRequest request) {
+        try {
+            utils.asyncSavePaymentHistory(bill.getId(), payment.getId(), request.getPayingAmount(), bill.getInvoiceNumber());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save payment history", e);
+        }
+    }
+
+    private void updateCustomerMetricsSafe(BillingRequest request, String username) {
+        try {
+            shopRepo.updateCustomerSpentAmountAndOrdersCount(request.getSelectedCustomer().getId(), request.getTotal(), username);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleInvoiceEmail(BillingRequest request, BillingEntity billResponse, UserSettingsEntity userSettings) {
+        boolean sendInvoice = userSettings != null && userSettings.getAutoSendInvoice() != null ? userSettings.getAutoSendInvoice() : true;
+
+        if (sendInvoice && !("Anonymous".equals(request.getSelectedCustomer().getName()))) {
+            try {
+                sendInvoiceOverEmail(billResponse);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to send invoice over email", e);
+            }
+        }
+    }
+
+    private void clearSalesCachesSafe(String username) {
+        try {
+            salesCacheService.evictUserSales(username);
+            salesCacheService.evictUserProducts(username);
+            salesCacheService.evictUserPayments(username);
+            salesCacheService.evictUserCustomers(username);
+            salesCacheService.evictUserDasbhoard(username);
+            salesCacheService.evictsUserGoals(username);
+            salesCacheService.evictsUserAnalytics(username);
+            salesCacheService.evictsTopSelling(username);
+            salesCacheService.evictsTopOrders(username);
+            salesCacheService.evictsReportsCache(username);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendInvoiceOverEmail(BillingEntity billResponse) {
