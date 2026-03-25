@@ -135,11 +135,10 @@ public class ReportsGenerate {
 
     // --- DATA PREPARATION HELPERS ---
 
-    private ReportData prepareSalesReportData(LocalDateTime fromDate, LocalDateTime toDate, String userId, String duration) {
-        List<BillingEntity> listOfBills = billRepo.findPaymentsByDateRange(fromDate, toDate, userId);
+    private ReportData prepareSalesReportData(LocalDateTime fromDate, LocalDateTime toDate, String userId, String duration) {List<BillingEntity> listOfBills = billRepo.findPaymentsByDateRange(fromDate, toDate, userId);
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm");
 
-        List<String> headers = List.of("Invoice ID", "Customer", "Date", "Total (₹)", "Status");
+        List<String> headers = List.of("Invoice ID", "Customer", "GSTIN", "Date", "Total (₹)", "Status");
         List<List<String>> rows = new ArrayList<>();
         double totalSum = 0;
         long idCount = 0;
@@ -159,12 +158,15 @@ public class ReportsGenerate {
                 if (payment != null) status = payment.getStatus();
             } catch (Exception e) { /* ignore */ }
 
+            String gstin = (obj.getGstin() != null && !obj.getGstin().trim().isEmpty()) ? obj.getGstin() : "N/A";
+
             Double total = obj.getTotalAmount();
             String totalStr = (total != null) ? String.format("%.2f", total) : "0.00";
 
             rows.add(List.of(
                     obj.getInvoiceNumber() != null ? obj.getInvoiceNumber() : "",
                     customerName,
+                    gstin,
                     formattedDate,
                     totalStr,
                     status
@@ -177,6 +179,7 @@ public class ReportsGenerate {
         List<String> footerCells = List.of(
                 "TOTALS",
                 "Count: " + idCount,
+                "", // Empty cell for GSTIN
                 "", // Empty cell for Date
                 String.format("%.2f", totalSum), // Cell for Total
                 ""  // Empty cell for Status
@@ -188,8 +191,7 @@ public class ReportsGenerate {
         data.headers = headers;
         data.rows = rows;
         data.footerCells = footerCells;
-        return data;
-    }
+        return data;}
     private ReportData prepareSalesByCustomerData(LocalDateTime fromDate, LocalDateTime toDate, String userId, String duration) {
 
         // 1. Call the new JPQL method

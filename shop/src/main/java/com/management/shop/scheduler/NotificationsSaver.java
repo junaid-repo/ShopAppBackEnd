@@ -86,7 +86,7 @@ public class NotificationsSaver {
                         ? " of " + product.getCategory() + " category"
                         : "";
 
-                String title = "\uD83D\uDCE6 Product " + product.getName() + categoryText + " is out of stock.";
+                String title = "Product " + product.getName() + categoryText + " is out of stock.";
 
                 String details = "Product " + product.getName() + categoryText + " is out of stock. Please restock it as soon as possible by going through the Products tab.";
 
@@ -142,7 +142,7 @@ public class NotificationsSaver {
                     if (daysBetween > 0) {
 
                         String title = "Due Amount for Order No " + payment.getOrderNumber();
-                        String details = "\uD83D\uDCB5 Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment";
+                        String details = "Payment for " + payment.getOrderNumber() + " is due for " + String.valueOf(daysBetween) + " days. Please send reminder or connect with the customer for payment";
 
                         MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("sales")
                                 .title(title)

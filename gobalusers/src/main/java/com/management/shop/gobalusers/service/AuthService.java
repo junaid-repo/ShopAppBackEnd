@@ -443,7 +443,7 @@ public class AuthService {
     public String authAndsetCookies(AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
         System.out.println("Inside authAndsetCookies with username --> " + authRequest.getUsername());
         System.out.println("Inside authAndsetCookies with pass --> " + authRequest.getPassword());
-        UserInfo userInfo = userinfoRepo.findByPhoneNumber(authRequest.getUsername(), true);
+        UserInfo userInfo = userinfoRepo.findFirstByPhoneNumberOrUsernameOrEmail(authRequest.getUsername(), true);
         System.out.println("The userInfo fetched by phone number is --> " + userInfo);
         if (userInfo != null) {
             authRequest.setUsername(userInfo.getUsername());

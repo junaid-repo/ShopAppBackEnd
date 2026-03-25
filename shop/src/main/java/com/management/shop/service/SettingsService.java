@@ -3,15 +3,18 @@ package com.management.shop.service;
 import com.management.shop.dto.*;
 import com.management.shop.entity.GeminiTextExtract;
 import com.management.shop.entity.NotificationSetting;
+import com.management.shop.entity.ReportsRecordEntity;
 import com.management.shop.entity.UserSettingsEntity;
 import com.management.shop.repository.ApiSaveRepository;
 import com.management.shop.repository.NotificationSettingsRepository;
+import com.management.shop.repository.ReportRecodsRepository;
 import com.management.shop.repository.UserSettingsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +30,9 @@ public class SettingsService {
 
     @Autowired
     ApiSaveRepository apiSaveRepo;
+
+    @Autowired
+    ReportRecodsRepository reportRecordsRepo;
 
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -54,8 +60,32 @@ public class SettingsService {
     }
 
     public String saveUserSchedulerSettings(SchedulerSettings request) {
-        System.out.println("The scheulder settings to be saved  " + request);
-        settingsRepo.updateSchedulerSettings(request.isLowStockAlerts(), request.getAutoDeleteNotificationsDays(), request.getAutoDeleteCustomers().isEnabled(), request.getAutoDeleteCustomers().getInactiveDays(), request.getAutoDeleteCustomers().getMinSpent(), extractUsername(), LocalDateTime.now());
+        System.out.println("The scheulder settings to be saved  " + request.isDailySalesReport());
+        settingsRepo.updateSchedulerSettings(request.isLowStockAlerts(), request.getAutoDeleteNotificationsDays(), request.getAutoDeleteCustomers().isEnabled(), request.getAutoDeleteCustomers().getInactiveDays(), request.getAutoDeleteCustomers().getMinSpent(), extractUsername(), LocalDateTime.now(), request.isDailySalesReport());
+
+        if(request!=null) {
+
+            ReportsRecordEntity reportsRecord=  reportRecordsRepo.findByUsername(extractUsername()).stream().sorted(Comparator.comparing(ReportsRecordEntity::getUpdatedDate).reversed()).findFirst().orElse(ReportsRecordEntity.builder().id(0).build());
+
+            if(reportsRecord.getId().equals(0)) {
+
+               var reportRecords= ReportsRecordEntity.builder()
+                        .username(extractUsername())
+                        .reportType("dailySalesReport")
+                        .isActive(request.isDailySalesReport())
+                        .isSent(Boolean.FALSE)
+                        .last_report_date(LocalDateTime.now().minusDays(1))
+                        .updatedBy("SYSTEM")
+                        .updatedDate(LocalDateTime.now())
+                        .build();
+
+                reportRecordsRepo.save(reportRecords);
+            }
+            else{
+                reportRecordsRepo.updateReportRecord(extractUsername(), "SYSTEM", LocalDateTime.now(), request.isDailySalesReport());
+            }
+        }
+
 
         return "saved";
     }
@@ -81,6 +111,7 @@ public class SettingsService {
                 .schedulers(
                         SchedulerSettings.builder()
                                 .autoDeleteNotificationsDays(userSettings != null && userSettings.getAutoDeleteNotification() != null ? userSettings.getAutoDeleteNotification() : 0)
+                                .dailySalesReport(userSettings != null && userSettings.getSendDailyReports() != null ? userSettings.getSendDailyReports() : false)
                                 .lowStockAlerts(userSettings != null && userSettings.getLowStockAlert() != null ? userSettings.getLowStockAlert() : false)
                                 .autoDeleteCustomers(
                                         AutoDeleteCustomersSettings.builder()
@@ -136,7 +167,8 @@ public class SettingsService {
                 .isDarkModeDefault(Boolean.FALSE)
                 .isBillingPageDefault(Boolean.FALSE)
                 .lowStockAlert(Boolean.TRUE)
-                .serialNumberPattern("FMS")
+                .sendDailyReports(Boolean.FALSE)
+                .serialNumberPattern("CB")
                 .autoDeleteCustomers(Boolean.FALSE)
                 .autoDeleteNotification(2)
                 .autoDeleteCustomerForInactiveDays(30)

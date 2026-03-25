@@ -1629,6 +1629,10 @@ public class ShopService {
     @Cacheable(value = "reports", keyGenerator = "userScopedKeyGenerator")
     public byte[] generateReport(ReportRequest request) {
 
+        if(request.getUsername()==null){
+            request.setUsername(extractUsername());
+        }
+
         LocalDate fromDate = LocalDate.parse(request.getFromDate());
 
         // Combine with a time (e.g., start of day)
@@ -1643,7 +1647,7 @@ public class ShopService {
 
         byte[] fileBytes = null;
         try {
-            fileBytes = repogen.downloadReport(request.getReportType(), request.getFormat(), fromDateTime, toDateTime, extractUsername());
+            fileBytes = repogen.downloadReport(request.getReportType(), request.getFormat(), fromDateTime, toDateTime, request.getUsername());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -1657,7 +1661,7 @@ public class ShopService {
                         .toDate(LocalDate.parse(request.getToDate()))
                         .fileFormat(request.getFormat())
                         .status("READY")
-                        .userId(extractUsername())
+                        .userId(request.getUsername())
                         .createdAt(OffsetDateTime.now())
                         .build();
 
@@ -1917,9 +1921,9 @@ public class ShopService {
 
     public UpdateUserDTO getUserProfile(String username) {
 
-
+    if(username==null) {
         username = extractUsername();
-
+    }
 
         // ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(username);
 

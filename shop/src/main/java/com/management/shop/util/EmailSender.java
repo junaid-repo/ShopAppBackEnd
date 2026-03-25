@@ -1,15 +1,5 @@
 package com.management.shop.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Base64;
-import java.util.concurrent.CompletableFuture;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
-
 import com.mailjet.client.ClientOptions;
 import com.mailjet.client.MailjetClient;
 import com.mailjet.client.MailjetRequest;
@@ -17,6 +7,15 @@ import com.mailjet.client.MailjetResponse;
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.mailjet.client.resource.Emailv31;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+
+import java.io.ByteArrayOutputStream;
+import java.util.Base64;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class EmailSender {
@@ -160,6 +159,114 @@ public class EmailSender {
         System.out.println(response.getData());
         return CompletableFuture.completedFuture(response.getData().toString());
 
+    }
+
+    public String sendEmailReportWithAttachmentForReports(String emailId, String subject, String fileName, byte[] pdfStream, String htmlContent, String shopName) throws MailjetException, MailjetSocketTimeoutException {
+
+
+
+        String base64Content = "";
+        try {
+
+            base64Content = Base64.getEncoder().encodeToString(pdfStream);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+        }
+
+        MailjetClient client;
+        MailjetRequest request;
+        MailjetResponse response;
+        client = new MailjetClient("3e292e1e3e850abe850793dbb22554b9",
+                "2fa15000afb8c7ad2cd676c9828bcd5e", new ClientOptions("v3.1"));
+        request = new MailjetRequest(Emailv31.resource)
+                .property(Emailv31.MESSAGES, new JSONArray()
+                        .put(new JSONObject()
+                                .put(Emailv31.Message.FROM, new JSONObject().put("Email", "email@clearbill.store")
+                                        .put("Name", shopName))
+                                .put(Emailv31.Message.TO,
+                                        new JSONArray().put(
+                                                new JSONObject().put("Email", emailId).put(shopName, "Hello")))
+                                .put(Emailv31.Message.SUBJECT, subject)
+                                .put(Emailv31.Message.TEXTPART, "")
+                                .put(Emailv31.Message.HTMLPART, htmlContent
+                                        + "\n"
+                                        + "\n"
+                                        + "")
+                                .put(Emailv31.Message.ATTACHMENTS, new JSONArray()
+                                        .put(new JSONObject()
+                                                .put("ContentType", "application/pdf")
+                                                .put("Filename", fileName)
+                                                .put("Base64Content", base64Content)))));
+
+        response = client.post(request);
+        System.out.println(response.getStatus());
+        System.out.println(response.getData());
+        return  response.getData().toString();
+
+    }
+
+
+    public String sendEmailWithMultipleAttachments(String emailId, String subject, List<String> fileNames, List<byte[]> fileStreams, String htmlContent, String shopName) throws MailjetException, MailjetSocketTimeoutException {
+
+        // 1. Build the dynamic attachments JSON Array
+        JSONArray attachmentsArray = new JSONArray();
+
+        if (fileStreams != null && fileNames != null && fileStreams.size() == fileNames.size()) {
+            for (int i = 0; i < fileStreams.size(); i++) {
+                byte[] stream = fileStreams.get(i);
+                String fileName = fileNames.get(i);
+
+                String base64Content = "";
+                try {
+                    base64Content = Base64.getEncoder().encodeToString(stream);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    continue; // Skip this file if encoding fails, but continue with the rest
+                }
+
+                // Dynamically assign Content-Type based on extension
+                String contentType = "application/pdf"; // Default
+                if (fileName.toLowerCase().endsWith(".xlsx") || fileName.toLowerCase().endsWith(".xls")) {
+                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                } else if (fileName.toLowerCase().endsWith(".csv")) {
+                    contentType = "text/csv";
+                }
+
+                // Add the attachment object to our array
+                attachmentsArray.put(new JSONObject()
+                        .put("ContentType", contentType)
+                        .put("Filename", fileName)
+                        .put("Base64Content", base64Content));
+            }
+        }
+
+        // 2. Initialize Client
+        MailjetClient client = new MailjetClient("3e292e1e3e850abe850793dbb22554b9",
+                "2fa15000afb8c7ad2cd676c9828bcd5e", new ClientOptions("v3.1"));
+
+        // 3. Build and send the request
+        MailjetRequest request = new MailjetRequest(Emailv31.resource)
+                .property(Emailv31.MESSAGES, new JSONArray()
+                        .put(new JSONObject()
+                                .put(Emailv31.Message.FROM, new JSONObject()
+                                        .put("Email", "email@clearbill.store")
+                                        .put("Name", shopName))
+                                .put(Emailv31.Message.TO, new JSONArray()
+                                        .put(new JSONObject()
+                                                .put("Email", emailId)
+                                                .put("Name", "Customer"))) // Fixed to standard Mailjet property
+                                .put(Emailv31.Message.SUBJECT, subject)
+                                .put(Emailv31.Message.TEXTPART, "")
+                                .put(Emailv31.Message.HTMLPART, htmlContent)
+                                .put(Emailv31.Message.ATTACHMENTS, attachmentsArray))); // Pass our dynamic array here
+
+        MailjetResponse response = client.post(request);
+
+        System.out.println(response.getStatus());
+        System.out.println(response.getData());
+
+        return response.getData().toString();
     }
 
     @Async("mailAsync")

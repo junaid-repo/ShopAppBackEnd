@@ -561,7 +561,7 @@ public class OrderEmailTemplate {
               <div class="email-wrapper">
                 <div class="email-container">
                   <div class="header">
-                    <img src="https://i.imgur.com/EktPEdC.png" alt="Premium Crown">
+                    <img src="https://drive.google.com/file/d/1hA3qeONHSlYIsyugY1Kt_vdR8QAhpVTR/view" alt="Premium Crown">
                     <h1>Welcome to Premium!</h1>
                   </div>
                   <div class="content">
@@ -673,7 +673,7 @@ public class OrderEmailTemplate {
             <div class="email-container">
               <div class="header">
                 <!-- A generic report/document icon -->
-                <img src="https://i.imgur.com/w1kXgT4.png" alt="Report Icon">
+                <img src="https://drive.google.com/file/d/1hA3qeONHSlYIsyugY1Kt_vdR8QAhpVTR/view" alt="Report Icon">
                 <h1>Your Report is Ready</h1>
               </div>
               <div class="content">

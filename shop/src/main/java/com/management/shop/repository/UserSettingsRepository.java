@@ -18,8 +18,8 @@ public interface UserSettingsRepository extends JpaRepository<UserSettingsEntity
 
     @Modifying
     @Transactional
-    @Query(value="update user_settings_entity us set low_stock_alert=?1, auto_delete_notification=?2, auto_delete_customers=?3, auto_delete_customer_for_inactive_days=?4, auto_delete_customer_for_min_spent=?5, updated_date=?7 where username=?6", nativeQuery = true)
-    void updateSchedulerSettings(boolean lowStockAlerts, int autoDeleteNotificationsDays, boolean autoDeleteCustomers, int inactiveDays, int minSpent, String username, LocalDateTime updatedDate);
+    @Query(value="update user_settings_entity us set low_stock_alert=?1, auto_delete_notification=?2, auto_delete_customers=?3, auto_delete_customer_for_inactive_days=?4, auto_delete_customer_for_min_spent=?5, send_daily_reports=?8, updated_date=?7 where username=?6", nativeQuery = true)
+    void updateSchedulerSettings(boolean lowStockAlerts, int autoDeleteNotificationsDays, boolean autoDeleteCustomers, int inactiveDays, int minSpent, String username, LocalDateTime updatedDate, Boolean sendDailyReports);
 
     UserSettingsEntity findByUsername(String username);
 

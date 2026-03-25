@@ -5,32 +5,32 @@ import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface UserInfoRepository extends JpaRepository<UserInfo, Integer> {
+
     Optional<UserInfo> findByUsername(String username);
 
-	@Modifying
-	@Transactional
-	@Query(value = "UPDATE user_info SET is_active = true  WHERE username = ?1", nativeQuery = true)
-	void updateUserStatus(String username);
+    @Modifying
+    @Transactional
+    @Query("UPDATE UserInfo u SET u.isActive = true WHERE u.username = :username")
+    void updateUserStatus(@Param("username") String username);
 
-	
-	@Query(value = "SELECT   * FROM    user_info WHERE  is_active=?3 and (    email=?1 or phone_number=?2) order by updated_at desc", nativeQuery = true)
-	List<UserInfo> validateContact(String email, String phone, boolean isActive);
+    @Query("SELECT u FROM UserInfo u WHERE u.isActive = :isActive AND (u.email = :email OR u.phoneNumber = :phone) ORDER BY u.updatedAt DESC")
+    List<UserInfo> validateContact(@Param("email") String email, @Param("phone") String phone, @Param("isActive") boolean isActive);
 
-    @Query(value = "SELECT   * FROM    user_info WHERE   phone_number=?1 order by updated_at desc", nativeQuery = true)
-    List<UserInfo> validatePhone(String phone);
+    @Query("SELECT u FROM UserInfo u WHERE u.phoneNumber = :phone ORDER BY u.updatedAt DESC")
+    List<UserInfo> validatePhone(@Param("phone") String phone);
 
-    @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?3 and (    email=?1 or username=?2)", nativeQuery = true)
-    List<UserInfo> validateUser(String email, String userId, boolean b);
+    @Query("SELECT u FROM UserInfo u WHERE u.isActive = :isActive AND (u.email = :email OR u.username = :userId)")
+    List<UserInfo> validateUser(@Param("email") String email, @Param("userId") String userId, @Param("isActive") boolean isActive);
 
-    @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?3 and (    phone_number=?1 or username=?2)", nativeQuery = true)
-    List<UserInfo> validateUserPhone(String phoneNumber, String userId, boolean b);
+    @Query("SELECT u FROM UserInfo u WHERE u.isActive = :isActive AND (u.phoneNumber = :phoneNumber OR u.username = :userId)")
+    List<UserInfo> validateUserPhone(@Param("phoneNumber") String phoneNumber, @Param("userId") String userId, @Param("isActive") boolean isActive);
 
-
-    @Query(value = "SELECT   * FROM    user_info WHERE  is_active=?2 and (    phone_number=?1 or username=?1 or email=?1)  order by updated_at desc limit 1", nativeQuery = true)
-    UserInfo findByPhoneNumber(String phone, boolean b);
+     @Query("SELECT u FROM UserInfo u WHERE u.isActive = :isActive AND (u.phoneNumber = :identifier OR u.username = :identifier OR u.email = :identifier) ORDER BY u.updatedAt DESC")
+    UserInfo findFirstByPhoneNumberOrUsernameOrEmail(@Param("identifier") String identifier, @Param("isActive") boolean isActive);
 }

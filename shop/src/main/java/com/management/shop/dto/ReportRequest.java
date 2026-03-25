@@ -19,5 +19,6 @@ private String reportId;
 private String format;
 private String fromDate;
 private String toDate;
+private String username;
 	
 }

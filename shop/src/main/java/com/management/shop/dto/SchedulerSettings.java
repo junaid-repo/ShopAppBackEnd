@@ -10,7 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class SchedulerSettings {
+    private boolean dailySalesReport;
     private boolean lowStockAlerts;
     private int autoDeleteNotificationsDays;
     private AutoDeleteCustomersSettings autoDeleteCustomers;
+
+
 }

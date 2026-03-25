@@ -25,6 +25,7 @@ public class UserSettingsEntity {
     private Boolean isBillingPageDefault;
     private Boolean autoPrintInvoice;
     private Boolean lowStockAlert;
+    private Boolean sendDailyReports;
     private Integer autoDeleteNotification;
     private Boolean autoDeleteCustomers;
     private Integer autoDeleteCustomerForMinSpent;
