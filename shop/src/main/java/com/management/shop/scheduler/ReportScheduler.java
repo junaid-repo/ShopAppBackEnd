@@ -44,6 +44,7 @@ public class ReportScheduler {
 
         List<ReportsRecordEntity> reportRecordList = reportRecordsRepo.findAllByStatus(Boolean.TRUE);
 
+        System.out.println("Report records to process: " + reportRecordList.size());
 
         reportRecordList.stream().forEach(user -> {
 
