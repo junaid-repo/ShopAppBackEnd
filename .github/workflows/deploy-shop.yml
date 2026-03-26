@@ -2,11 +2,11 @@ name: Deploy Shop API
 
 on:
   push:
-    branches: [ "render-deployment" ]
+    branches: [ "**" ] # 🟢 UPDATED: This wildcard matches any branch name
     # Only run if files in the shop folder change!
     paths:
       - 'shop/**'
-  workflow_dispatch: #
+  workflow_dispatch:
 
 jobs:
   deploy:
