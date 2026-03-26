@@ -12,7 +12,9 @@
             </message>
         </format>
     </appender>
-
+    <logger name="com.management.shop.gobalusers" level="DEBUG" additivity="false">
+        <appender-ref ref="LOKI" />
+    </logger>
     <root level="INFO">
         <appender-ref ref="LOKI" />
     </root>
