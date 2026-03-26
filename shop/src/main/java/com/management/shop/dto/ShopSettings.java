@@ -15,4 +15,5 @@ public class ShopSettings {
     private SchedulerSettings schedulers;
     private BillingSettings billing;
     private InvoiceSettings invoice;
+    private ReportSchedulerSettings reports;
 }

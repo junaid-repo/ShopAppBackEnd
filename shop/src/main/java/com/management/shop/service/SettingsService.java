@@ -90,6 +90,38 @@ public class SettingsService {
         return "saved";
     }
 
+    public String saveUserReportSchedulerSettings(ReportSchedulerSettings request) {
+        System.out.println("The scheulder settings to be saved  " + request.getEnabled());
+
+        settingsRepo.updateReportSchedulerSettings(request.getEnabled(), request.getEmail(), request.getReportTypes(), extractUsername(), LocalDateTime.now());
+
+        if(request!=null) {
+
+            ReportsRecordEntity reportsRecord=  reportRecordsRepo.findByUsername(extractUsername()).stream().sorted(Comparator.comparing(ReportsRecordEntity::getUpdatedDate).reversed()).findFirst().orElse(ReportsRecordEntity.builder().id(0).build());
+
+            if(reportsRecord.getId().equals(0)) {
+
+                var reportRecords= ReportsRecordEntity.builder()
+                        .username(extractUsername())
+                        .reportType("dailySalesReport")
+                        .isActive(request.getEnabled())
+                        .isSent(Boolean.FALSE)
+                        .last_report_date(LocalDateTime.now().minusDays(1))
+                        .updatedBy("SYSTEM")
+                        .updatedDate(LocalDateTime.now())
+                        .build();
+
+                reportRecordsRepo.save(reportRecords);
+            }
+            else{
+                reportRecordsRepo.updateReportRecord(extractUsername(), "SYSTEM", LocalDateTime.now(), request.getEnabled());
+            }
+        }
+
+
+        return "saved";
+    }
+
     public ShopSettings getFullUserSettings() {
         System.out.println("Current user: " + extractUsername());
         UserSettingsEntity userSettings = settingsRepo.findByUsername(extractUsername());
@@ -149,6 +181,10 @@ public class SettingsService {
                         .showGSTBreakdown(userSettings != null && userSettings.getShowGstBreakdown() != null ? userSettings.getShowGstBreakdown() : false)
 
 
+                        .build())
+                .reports(ReportSchedulerSettings.builder().enabled(userSettings != null && userSettings.getIsDailyReportsEnabled() != null ? userSettings.getIsDailyReportsEnabled() : false)
+                        .email(userSettings != null && userSettings.getDailyReportEmailId()!= null ? userSettings.getDailyReportEmailId() : "")
+                        .reportTypes(userSettings != null && userSettings.getDailyReportTypes()!= null ? userSettings.getDailyReportTypes() : "")
                         .build())
                 .build();
 

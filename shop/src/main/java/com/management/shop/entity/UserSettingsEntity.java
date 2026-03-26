@@ -54,6 +54,10 @@ public class UserSettingsEntity {
     private Boolean showInvoiceBarcode;
     private Boolean showGstBreakdown;
 
+    private Boolean isDailyReportsEnabled;
+    private String  dailyReportEmailId;
+    private String dailyReportTypes;
+
     private String username;
     private String updatedBy;
     private LocalDateTime updatedDate;

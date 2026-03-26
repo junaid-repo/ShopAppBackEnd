@@ -4,11 +4,9 @@ import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.management.shop.dto.ReportRequest;
 import com.management.shop.dto.UpdateUserDTO;
-import com.management.shop.entity.MessageEntity;
-import com.management.shop.entity.PaymentEntity;
-import com.management.shop.entity.ReportsRecordEntity;
-import com.management.shop.entity.UserInfo;
+import com.management.shop.entity.*;
 import com.management.shop.repository.ReportRecodsRepository;
+import com.management.shop.repository.UserSettingsRepository;
 import com.management.shop.service.ShopService;
 import com.management.shop.util.EmailSender;
 import com.management.shop.util.OrderEmailTemplate;
@@ -21,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -38,6 +37,9 @@ public class ReportScheduler {
     EmailSender email;
     @Autowired
     OrderEmailTemplate emailTemplate;
+
+    @Autowired
+    UserSettingsRepository settingsRepo;
 
     @Scheduled(cron = "${scheduler.reportGeneration.cron}")
     public void sendDailyReports() {
@@ -57,30 +59,45 @@ public class ReportScheduler {
 
     private void sentReports(String username){
 
-        var salesSummaryReport= ReportRequest.builder().reportType("Sales Summary").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
-                .username(username)
-                .toDate(String.valueOf(LocalDate.now()))
-                .format("excel")
-                .build();
+        UserSettingsEntity userSettings= settingsRepo.findByUsername(username);
 
-        var gstr_summary= ReportRequest.builder().reportType("GSTR-1 Summary").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
-                .toDate(String.valueOf(LocalDate.now()))
-                .username(username)
-                .format("excel")
-                .build();
+        Boolean isEnabled=userSettings.getIsDailyReportsEnabled();
+        String emailId=userSettings.getDailyReportEmailId();
+        List<String> reportTypes= Arrays.asList(userSettings.getDailyReportTypes().split("##"));
+        byte[] salesSummary=null;
+        byte[] gstr_report=null;
+        byte[] payment_summary_report=null;
+        if(reportTypes.contains("Sales Summary")) {
+            var salesSummaryReport = ReportRequest.builder().reportType("Sales Summary").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
+                    .username(username)
+                    .toDate(String.valueOf(LocalDate.now()))
+                    .format("excel")
+                    .build();
 
-        var payment_summary= ReportRequest.builder().reportType("Total Payments").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
-                .toDate(String.valueOf(LocalDate.now()))
-                .username(username)
-                .format("excel")
-                .build();
+             salesSummary = shopServ.generateReport(salesSummaryReport);
+        }
 
-        byte[] salesSummary = shopServ.generateReport(salesSummaryReport);
-        byte[] gstr_report = shopServ.generateReport(gstr_summary);
-        byte[] payment_summary_report = shopServ.generateReport(payment_summary);
 
-        UpdateUserDTO userDetails = shopServ.getUserProfile(username);
-        String emailId = userDetails.getShopEmail();
+        if(reportTypes.contains("GSTR-1 Summary")) {
+            var gstr_summary = ReportRequest.builder().reportType("GSTR-1 Summary").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
+                    .toDate(String.valueOf(LocalDate.now()))
+                    .username(username)
+                    .format("excel")
+                    .build();
+            gstr_report = shopServ.generateReport(gstr_summary);
+        }
+        if(reportTypes.contains("Total Payments")) {
+            var payment_summary = ReportRequest.builder().reportType("Total Payments").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
+                    .toDate(String.valueOf(LocalDate.now()))
+                    .username(username)
+                    .format("excel")
+                    .build();
+
+            payment_summary_report = shopServ.generateReport(payment_summary);
+
+        }
+
+
         String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
 
         if (emailId != null && Pattern.matches(EMAIL_REGEX, emailId)) {

@@ -32,4 +32,11 @@ public interface UserSettingsRepository extends JpaRepository<UserSettingsEntity
     @Transactional
     @Query(value="update user_settings_entity us set add_due_date=?1, combine_addresses=?2, show_payment_status=?3, remove_terms=?4, show_customer_gstin=?5, updated_date=?7, show_total_discount=?8, show_item_discount=?9, show_shop_pan=?10, show_support_info=?11, show_rate_column=?12, show_hsn_column=?13, show_invoice_barcode=?14, show_gst_breakdown=?15   where username=?6", nativeQuery = true)
     void updateInvoiceSettings(Boolean addDueDate, Boolean combineAddresses, Boolean showPaymentStatus, Boolean removeTerms, Boolean showCustomerGstin, String s, LocalDateTime now, Boolean showTotalDiscountPercentage, Boolean showIndividualDiscountPercentage, Boolean showShopPanOnInvoice, Boolean showSupportInfoOnInvoice, Boolean showRateColumn, Boolean showHsnColumn, Boolean showInvoiceBarcode, Boolean showGstBreakdown);
+
+    @Modifying
+    @Transactional
+    @Query(value="update user_settings_entity us set is_daily_reports_enabled=?1, daily_report_email_id=?2, daily_report_types=?3, updated_date=?5 where username=?4", nativeQuery = true)
+    void updateReportSchedulerSettings(boolean isReportEnabled, String emaildId, String reportTypes,   String username, LocalDateTime updatedDate);
+
+
 }
