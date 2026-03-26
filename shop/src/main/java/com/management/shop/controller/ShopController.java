@@ -62,7 +62,7 @@ public class ShopController {
 
     @PostMapping("api/shop/user/updatepassword")
     public String addUpdatePassword(@RequestBody UserInfo userInfo) {
-        System.out.println("inside addUpdatePassword with details " + userInfo.toString());
+        log.info("inside addUpdatePassword with details " + userInfo.toString());
         return serv.updatePassword(userInfo);
     }
 
@@ -137,12 +137,12 @@ public class ShopController {
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "desc") String dir) {
 
-        System.out.println("Entered into getCustomersListCacheable with search term " + search);
+        log.info("Entered into getCustomersListCacheable with search term " + search);
 
         try {
             // Call the updated service method
             Page<CustomerEntity> customerPage = serv.getCacheableCustomersList(search, page, limit, sort, dir);
-            System.out.println("Exiting from getCustomersListCacheable with result  " + customerPage);
+            log.info("Exiting from getCustomersListCacheable with result  " + customerPage);
 
             // Build the response map to match the frontend's expected structure
             Map<String, Object> response = new HashMap<>();
@@ -150,7 +150,7 @@ public class ShopController {
             response.put("totalPages", customerPage.getTotalPages());
             response.put("totalCount", customerPage.getTotalElements());
             response.put("currentPage", customerPage.getNumber() + 1); // Send back the current page
-            System.out.println("Exiting from getCustomersListCacheable with result  " + response);
+            log.info("Exiting from getCustomersListCacheable with result  " + response);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -167,12 +167,12 @@ public class ShopController {
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "desc") String dir) {
 
-        System.out.println("Entered into getCustomersListCacheable with search term " + search);
+        log.info("Entered into getCustomersListCacheable with search term " + search);
 
         try {
             // Call the updated service method
             Page<CustomerEntity> customerPage = serv.getBillingCustomersList(search, page, limit, sort);
-            System.out.println("Exiting from getCustomersListCacheable with result  " + customerPage);
+            log.info("Exiting from getCustomersListCacheable with result  " + customerPage);
 
             // Build the response map to match the frontend's expected structure
             Map<String, Object> response = new HashMap<>();
@@ -180,7 +180,7 @@ public class ShopController {
             response.put("totalPages", customerPage.getTotalPages());
             response.put("totalCount", customerPage.getTotalElements());
             response.put("currentPage", customerPage.getNumber() + 1); // Send back the current page
-            System.out.println("Exiting from getCustomersListCacheable with result  " + response);
+            log.info("Exiting from getCustomersListCacheable with result  " + response);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -191,7 +191,7 @@ public class ShopController {
 
     @DeleteMapping("api/shop/customer/delete/{id}")
     ResponseEntity<String> deleteCustomer(@PathVariable Integer id) {
-        System.out.println("entered deleteCustomer");
+        log.info("entered deleteCustomer");
 
         serv.deleteCustomer(id);
 
@@ -201,7 +201,7 @@ public class ShopController {
 
     @PutMapping("api/shop/update/customer")
     ResponseEntity<CustomerSuccessDTO> editCustomer(@RequestBody CustomerRequest request) {
-        System.out.println("entered editCustomer");
+        log.info("entered editCustomer");
 
         CustomerSuccessDTO response = serv.saveCustomer(request);
 
@@ -211,7 +211,7 @@ public class ShopController {
 
     @DeleteMapping("api/shop/product/delete/{id}")
     ResponseEntity<String> deleteProduct(@PathVariable Integer id) {
-        System.out.println("entered deleteProduct");
+        log.info("entered deleteProduct");
 
         serv.deleteProduct(id);
 
@@ -287,7 +287,7 @@ public class ShopController {
             @RequestParam(defaultValue = "desc") String dir
     ) {
         try {
-            System.out.println("entered getProductsList");
+            log.info("entered getProductsList");
             // Call the updated service method
             Page<ProductEntity> productPage = serv.getAllProducts(search, page, limit, sort, dir);
 
@@ -317,7 +317,7 @@ public class ShopController {
             @RequestParam(defaultValue = "desc") String dir
     ) {
         try {
-            System.out.println("entered getProductsList");
+            log.info("entered getProductsList");
             // Call the updated service method
             Page<ProductEntity> productPage = serv.getAllProductsForBilling(search, page, limit, sort, dir);
 
@@ -344,10 +344,10 @@ public class ShopController {
                                                                       @RequestParam(defaultValue = "createdAt") String sort,
                                                                       @RequestParam(defaultValue = "desc") String dir) {
 
-        System.out.println("the page param is -->" + page);
-        System.out.println("the size param is -->" + size);
-        System.out.println("the sort param is -->" + sort);
-        System.out.println("the dir param is -->" + dir);
+        log.info("the page param is -->" + page);
+        log.info("the size param is -->" + size);
+        log.info("the sort param is -->" + sort);
+        log.info("the dir param is -->" + dir);
 
         Page<SalesResponseDTO> response = serv.getAllSalesWithPagination(page, size, sort, dir);
 
@@ -358,7 +358,7 @@ public class ShopController {
     @PostMapping("api/shop/do/billing")
     ResponseEntity<BillingResponse> doBilling(@RequestBody BillingRequest request) throws Exception {
 
-        System.out.println("The request payload for billing app is-->" + request);
+        log.info("The request payload for billing app is-->" + request);
 
         BillingResponse response = serv.doPayment2(request);
 
@@ -371,7 +371,7 @@ public class ShopController {
                                                         @RequestParam(defaultValue = "desc") String dir,
                                                         @RequestParam String search) {
 
-        System.out.println("the search param is -->" + search);
+        log.info("the search param is -->" + search);
         Page<SalesResponseDTO> response = serv.getAllSales(page, size, sort, dir, search);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
@@ -392,7 +392,7 @@ public class ShopController {
     @GetMapping("api/shop/get/top/sales/{range}")
     ResponseEntity<List<SalesResponseDTO>> getLastTopSales(@RequestParam(defaultValue = "3") int count, @PathVariable String range) {
 
-        System.out.println("Entered getLastTopSales with the range param is -->" + range);
+        log.info("Entered getLastTopSales with the range param is -->" + range);
         List<SalesResponseDTO> response = serv.getTopNSales(count, range);
 
 
@@ -467,7 +467,7 @@ public class ShopController {
     @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<byte[]> generateReport(@RequestBody ReportRequest request) {
 
-        System.out.println("The request payload for billing app is-->" + request);
+        log.info("The request payload for billing app is-->" + request);
 
         byte[] response = serv.generateReport(request);
 
@@ -480,7 +480,7 @@ public class ShopController {
     @PostMapping("api/shop/report/saveDetails")
     ResponseEntity<String> saveReportDetails(@RequestBody Report request) {
 
-        System.out.println("The request payload for saveReportDetails  is-->" + request);
+        log.info("The request payload for saveReportDetails  is-->" + request);
 
         String response = serv.saveReportDetails(request);
 
@@ -490,7 +490,7 @@ public class ShopController {
     @GetMapping("api/shop/report/recent")
     ResponseEntity<List<ReportResponse>> getReportDetails(@RequestParam Integer limit) {
 
-        System.out.println("The request payload for getReportDetails  is-->" + limit);
+        log.info("The request payload for getReportDetails  is-->" + limit);
 
         List<ReportResponse> response = serv.getReportsList(limit);
 
@@ -573,7 +573,7 @@ public class ShopController {
     public ResponseEntity<AnalyticsResponse> getAnalytics(
             @RequestBody AnalyticsRequest request) {
 
-        System.out.println("Entered analytic controller with payload-->" + request);
+        log.info("Entered analytic controller with payload-->" + request);
 
         AnalyticsResponse response = serv.getAnalytics(request);
 
@@ -602,7 +602,7 @@ public class ShopController {
     public ResponseEntity<InvoiceDetails> getOrderDetails(
             @PathVariable String saleId) {
 
-        System.out.println("Entered analytic getOrderDetails with payload-->" + saleId);
+        log.info("Entered analytic getOrderDetails with payload-->" + saleId);
 
         InvoiceDetails response = serv.getOrderDetails(saleId);
 
@@ -615,7 +615,7 @@ public class ShopController {
             HttpServletRequest request,
             HttpServletResponse httpResponse) {
 
-        System.out.println("Inside the logout method");
+        log.info("Inside the logout method");
 
         Map<String, Object> responseMap = new HashMap<>();
 
@@ -656,7 +656,7 @@ public class ShopController {
         response2.put("count", response.getNotifications().size());
 
 
-        System.out.println(response);
+        log.info(String.valueOf(response));
 
         return ResponseEntity.status(HttpStatus.OK).body(response2);
 
@@ -678,7 +678,7 @@ public class ShopController {
         response2.put("totalPages", response.getCount());
 
 
-        System.out.println(response);
+        log.info(String.valueOf(response));
 
         return ResponseEntity.status(HttpStatus.OK).body(response2);
 
@@ -696,7 +696,7 @@ public class ShopController {
             @RequestBody Map<String, Boolean> requestBody) {
 
         Boolean flagged = requestBody.get("flagged");
-        System.out.println(flagged);
+        log.info(String.valueOf(flagged));
         Map<String, Object> response = serv.flagNotifications(notificationId, flagged);
         return ResponseEntity.ok(response);
     }
@@ -718,10 +718,10 @@ public class ShopController {
 
     @PostMapping("/api/razorpay/create-order")
     public String createOrder(@RequestBody CreateOrderRequest request) throws RazorpayException {
-        System.out.println("Inside the createOrder method for card payment");
+        log.info("Inside the createOrder method for card payment");
         RazorpayClient razorpayClient = new RazorpayClient(keyId, keySecret);
-        System.out.println("Razorpay client created with keyId: " + keyId);
-        System.out.println("Razorpay client created with keySecret: " + keySecret);
+        log.info("Razorpay client created with keyId: " + keyId);
+        log.info("Razorpay client created with keySecret: " + keySecret);
 
         JSONObject orderRequest = new JSONObject();
         orderRequest.put("amount", request.getAmount()); // amount in the smallest currency unit (e.g., paise)
@@ -736,7 +736,7 @@ public class ShopController {
     @PostMapping("/api/razorpay/verify-payment")
     // 2. Use the new combined request DTO
     public ResponseEntity<?> verifyPayment(@RequestBody VerifyAndBillRequest request) {
-        System.out.println("Inside the verifyPayment method for card payment");
+        log.info("Inside the verifyPayment method for card payment");
 
         try {
             JSONObject options = new JSONObject();
@@ -748,9 +748,9 @@ public class ShopController {
 
             if (isValid) {
                 // 3. If signature is valid, call your billing service!
-                System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_payment_id());
-                System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_order_id());
-                System.out.println("Payment verified. Proceeding to save the bill." + request.getRazorpay_signature());
+                log.info("Payment verified. Proceeding to save the bill." + request.getRazorpay_payment_id());
+                log.info("Payment verified. Proceeding to save the bill." + request.getRazorpay_order_id());
+                log.info("Payment verified. Proceeding to save the bill." + request.getRazorpay_signature());
 
                 // This replaces the direct call to /api/shop/do/billing
                 BillingResponse billingResponse = serv.doPayment2(request.billingDetails);
@@ -773,7 +773,7 @@ public class ShopController {
     @GetMapping("api/shop/get/analytics/weekly-sales/{range}")
     public ResponseEntity<List<WeeklySales>> getWeeklyAnalytics(@PathVariable String range) {
 
-        System.out.println("Entered getWeeklyAnalytics controller with payload-->");
+        log.info("Entered getWeeklyAnalytics controller with payload-->");
 
         List<WeeklySales> response = serv.getWeeklyAnalytics(range);
 
@@ -784,7 +784,7 @@ public class ShopController {
     @PostMapping("api/shop/update/goals")
     public ResponseEntity<String> updateSalesEstimates(@RequestBody GoalRequest goalRequest) {
 
-        System.out.println("Entered updateSalesEstimates controller with payload-->" + goalRequest);
+        log.info("Entered updateSalesEstimates controller with payload-->" + goalRequest);
 
         String response = serv.updateEstimatedGoals(goalRequest);
         return ResponseEntity.ok(response);
@@ -793,7 +793,7 @@ public class ShopController {
     @GetMapping("api/shop/get/dashboard/goals/{timeRange}")
     public ResponseEntity<GoalData> getGoalData(@PathVariable String timeRange) {
 
-        System.out.println("Entered getGoalData controller with payload-->" + timeRange);
+        log.info("Entered getGoalData controller with payload-->" + timeRange);
 
         GoalData goalData = serv.getTimeRangeGoalData(timeRange);
         return ResponseEntity.ok(goalData);
@@ -805,7 +805,7 @@ public class ShopController {
             @RequestParam("timeRange") String timeRange,
             @RequestParam("factor") String factor) {
 
-        System.out.println("Entered getTopProducts controller with count: " + count +
+        log.info("Entered getTopProducts controller with count: " + count +
                 ", timeRange: " + timeRange + ", factor: " + factor);
         // Call the service to get the data
         List<TopProductDto> topProducts = serv.getTopProducts(count, timeRange, factor);
@@ -819,7 +819,7 @@ public class ShopController {
             @RequestParam(name = "count", defaultValue = "3") int count,
             @RequestParam("timeRange") String timeRange) {
 
-        System.out.println("Entered getTopProducts controller with count: " + count +
+        log.info("Entered getTopProducts controller with count: " + count +
                 ", timeRange: " + timeRange);
         // Call the service to get the data
         List<TopOrdersDto> topOrders = serv.getTopOrders(count, timeRange);
@@ -832,7 +832,7 @@ public class ShopController {
     public ResponseEntity<Map<String, Double>> getPaymentBreakdown(@PathVariable String timeRange) {
 
 
-        System.out.println("Entered getPaymentBreakdown controller " +
+        log.info("Entered getPaymentBreakdown controller " +
                 ", timeRange: " + timeRange);
         // Call the service to get the data
         Map<String, Double> response = serv.getPaymentBreakdown(timeRange);
@@ -845,7 +845,7 @@ public class ShopController {
     public ResponseEntity<Map<String, Double>> getPaymentStatusBreakdown(@PathVariable String timeRange) {
 
 
-        System.out.println("Entered getPaymentBreakdown controller " +
+        log.info("Entered getPaymentBreakdown controller " +
                 ", timeRange: " + timeRange);
         // Call the service to get the data
         Map<String, Double> response = serv.getPaymentStatusBreakdown(timeRange);
@@ -879,7 +879,7 @@ public class ShopController {
     // 4️⃣ Update Other Details
     @PutMapping("api/shop/user/edit/details/others")
     public ResponseEntity<String> updateOtherDetails(@RequestBody ShopInvoiceTerms request) {
-        System.out.println("Entered updateOtherDetails controller with payload-->" + request);
+        log.info("Entered updateOtherDetails controller with payload-->" + request);
         String response = serv.updateOtherDetails(request);
         return ResponseEntity.ok("Other details updated successfully");
     }
@@ -1087,7 +1087,7 @@ public class ShopController {
     @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<AnalyticsRes> getSuperAnalytics(@RequestBody AnalyticsRequest request) {
 
-        System.out.println("Entered super analytic controller with request-->" + request);
+        log.info("Entered super analytic controller with request-->" + request);
 
         AnalyticsRes response = serv.getSuperAnalytics(request);
 
@@ -1160,7 +1160,7 @@ public class ShopController {
     @GetMapping("api/shop/invoice/{invoiceId}/print-data")
     public ResponseEntity<InvoiceData> getFullInvoiceDetails(@PathVariable String invoiceId) {
 
-        System.out.println("Entered getFullInvoiceDetails controller with invoiceId-->" + invoiceId);
+        log.info("Entered getFullInvoiceDetails controller with invoiceId-->" + invoiceId);
 
         // Call the service to perform the business logic
         InvoiceData invoiceData = serv.getFullInvoiceDetails(invoiceId);
@@ -1193,7 +1193,7 @@ public class ShopController {
 
     @GetMapping("api/shop/get/categories")
     public ResponseEntity<List<String>> getCategories() {
-        System.out.println("Entered getCategories controller");
+        log.info("Entered getCategories controller");
         List<String> categories = serv.getCategories();
 
         return ResponseEntity.ok(categories);
@@ -1201,7 +1201,7 @@ public class ShopController {
 
     @PostMapping("api/shop/add-categories")
     public ResponseEntity<SaveCategoryDto> saveCategories(@RequestBody Map<String, List> newCategories) {
-        System.out.println("Entered getCategories controller");
+        log.info("Entered getCategories controller");
         SaveCategoryDto response= serv.saveCategories(newCategories);
 
         return ResponseEntity.ok(response);

@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import jakarta.servlet.http.Cookie;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -25,6 +26,7 @@ import java.util.Map;
 
 
 @RestController
+@Slf4j
 public class AuthController {
 
     @Autowired
@@ -66,7 +68,7 @@ public class AuthController {
 
 
         GoogleAuthResponse response = serv.googleLogin(loginRequest, request, httpResponse);
-        System.out.println("The final response from googleLogin in controller is --> " + response);
+        log.info("The final response from googleLogin in controller is --> " + response);
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
@@ -74,25 +76,25 @@ public class AuthController {
 
     @PostMapping("/auth/validate-contact")
     public ValidateContactResponse validateContact(@RequestBody ValidateContactRequest userInfo) {
-        System.out.println("Entered validateContact with payload  " + userInfo);
+        log.info("Entered validateContact with payload  " + userInfo);
         return serv.validateContact(userInfo);
     }
 
     @PostMapping("/auth/forgot-password")
     public ValidateContactResponse forgotPassword(@RequestBody ForgotPassRequest forgotPassRequest) {
-        System.out.println("Entered forgotPassword with payload  " + forgotPassRequest);
+        log.info("Entered forgotPassword with payload  " + forgotPassRequest);
         return serv.forgotPaswrod(forgotPassRequest);
     }
 
     @PostMapping("/auth/update-password")
     public ValidateContactResponse confirmOtpAndUpdatePassword(@RequestBody UpdatePasswordRequest updatePassRequest) {
-        System.out.println("Entered confirmOtpAndUpdatePassword with payload  " + updatePassRequest);
+        log.info("Entered confirmOtpAndUpdatePassword with payload  " + updatePassRequest);
         return serv.confirmOtpAndUpdatePassword(updatePassRequest);
     }
 
     @PostMapping("/auth/register/newuser")
     public RegisterResponse addNewThirdPartyUser(@RequestBody RegisterRequest userInfo) {
-        System.out.println("Entered addNewThirdPartyUser with payload  " + userInfo);
+        log.info("Entered addNewThirdPartyUser with payload  " + userInfo);
         return serv.registerNewUser(userInfo);
     }
 
@@ -100,13 +102,13 @@ public class AuthController {
 
     @PostMapping("/auth/resend-otp")
     public OtpVerifyResponse reEnterOtp(@RequestBody OtpVerifyRequest userInfo) {
-        System.out.println("Entered reEnterOtp with payload  for user" + userInfo);
+        log.info("Entered reEnterOtp with payload  for user" + userInfo);
         return serv.reEnterOtp(userInfo);
     }
 
     @GetMapping("auth/otp-retry-count")
     public Map<String, String> fetchRetries(@RequestParam String username) {
-        System.out.println("Entered fetchRetries with payload  from frontend" + username);
+        log.info("Entered fetchRetries with payload  from frontend" + username);
         return serv.fetchRetries(username);
     }
 
@@ -114,7 +116,7 @@ public class AuthController {
 
     @PostMapping("/auth/verify-otp")
     public OtpVerifyResponse verifyOTP(@RequestBody OtpVerifyRequest userInfo) {
-        System.out.println("Entered verifyOTP with payload  " + userInfo);
+        log.info("Entered verifyOTP with payload  " + userInfo);
         return serv.verifyOTP(userInfo);
     }
 
@@ -130,24 +132,24 @@ public class AuthController {
 
     @GetMapping("auth/phone/otp-retry-count")
     public Map<String, String> fetchRetiesForToday(@RequestParam String phone) {
-        System.out.println("Entered fetchRetries for today with payload  " + phone);
+        log.info("Entered fetchRetries for today with payload  " + phone);
         return authPhoneService.fetchRetriesForToday(phone);
     }
 
     @PostMapping("/auth/register/phone/newuser")
     public RegisterResponse addNewThirdPartyUserWithPhone(@RequestBody RegisterRequest userInfo) {
-        System.out.println("Entered addNewThirdPartyUser with payload  " + userInfo);
+        log.info("Entered addNewThirdPartyUser with payload  " + userInfo);
         return authPhoneService.registerNewUserWithPhone(userInfo);
     }
 
     @PostMapping("/auth/phone/resend-otp")
     public OtpVerifyResponse reSendOtpPhone(@RequestBody OtpVerifyRequest userInfo) {
-        System.out.println("Entered reSendOtpPhone with payload  " + userInfo);
+        log.info("Entered reSendOtpPhone with payload  " + userInfo);
         return authPhoneService.reSendOtpPhone(userInfo);
     }
     @PostMapping("/auth/phone/verify-otp")
     public OtpVerifyResponse verifyOTPPhone(@RequestBody OtpVerifyRequest userInfo) {
-        System.out.println("Entered verifyOTP with payload  " + userInfo);
+        log.info("Entered verifyOTP with payload  " + userInfo);
         return authPhoneService.verifyOTP(userInfo);
     }
 
@@ -155,13 +157,13 @@ public class AuthController {
 
     @PostMapping("/auth/phone/forgot-password")
     public ValidateContactResponse forgotPasswordPhone(@RequestBody ForgotPassRequest forgotPassRequest) {
-        System.out.println("Entered forgotPassword with payload  " + forgotPassRequest);
+        log.info("Entered forgotPassword with payload  " + forgotPassRequest);
         return authPhoneService.forgotPasswordPhone(forgotPassRequest);
     }
 
     @PostMapping("/auth/phone/update-password")
     public ValidateContactResponse confirmOtpAndUpdatePasswordPhone(@RequestBody UpdatePasswordRequest updatePassRequest) {
-        System.out.println("Entered confirmOtpAndUpdatePassword with payload  " + updatePassRequest);
+        log.info("Entered confirmOtpAndUpdatePassword with payload  " + updatePassRequest);
         return authPhoneService.confirmOtpAndUpdatePasswordPhone(updatePassRequest);
     }
 }
