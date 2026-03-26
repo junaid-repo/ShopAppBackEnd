@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .requestMatchers("/ping").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
 
                         // ✅ Use EndpointRequest to match Actuator traffic on ANY port
                         .requestMatchers(EndpointRequest.toAnyEndpoint()).permitAll()
