@@ -2,6 +2,7 @@ package com.management.shop.gobalusers.security;
 
 import com.management.shop.gobalusers.filter.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,13 +35,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf(csrf -> csrf.disable()) // ✅ disable CSRF
-                .cors(cors -> {})             // ✅ enable CORS with default configuration
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
-                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/ping").permitAll()
+
+
+                        .requestMatchers(EndpointRequest.toAnyEndpoint()).permitAll()
+
+
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

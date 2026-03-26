@@ -83,4 +83,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         // Spring Security Config will decide if they are allowed to access the endpoint.
         filterChain.doFilter(request, response);
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        // Skip the JWT filter entirely for actuator endpoints
+        return path.startsWith("/actuator");
+    }
 }
