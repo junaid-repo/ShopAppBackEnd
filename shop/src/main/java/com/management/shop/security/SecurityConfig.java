@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/ping").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
                 )
                 .sessionManagement(session -> session

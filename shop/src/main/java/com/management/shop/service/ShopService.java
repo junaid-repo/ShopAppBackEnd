@@ -210,7 +210,7 @@ public class ShopService {
     public String extractRole() {
         String userrole= SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().toList().get(0).getAuthority();
 
-        System.out.println("Current user: " + userrole);
+        log.info("Current user: " + userrole);
         //  username="junaid1";
         return userrole;
     }
@@ -219,7 +219,7 @@ public class ShopService {
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         SecurityContextHolder.getContext().getAuthentication().getAuthorities().forEach(auth -> {
-            System.out.println("Authority: " + auth.getAuthority());
+            log.info("Authority: " + auth.getAuthority());
         });
         return username;
     }
@@ -230,7 +230,7 @@ public class ShopService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        System.out.println("Current user roles: " + roles);
+        log.info("Current user roles: " + roles);
         return roles;
     }
 
@@ -245,7 +245,7 @@ public class ShopService {
 
 
     public CustomerSuccessDTO saveCustomer(CustomerRequest request) {
-        System.out.println("entered into saveCustomer with" + request.toString());
+        log.info("entered into saveCustomer with" + request.toString());
         List<CustomerEntity> existingCustomer = new ArrayList<>();
 
         if (!request.getPhone().equals("") && !(request.getPhone() == null) && !request.getPhone().equals("0000000000")) {
@@ -300,7 +300,7 @@ public class ShopService {
 
     @CacheEvict(value = "customers", key = "#root.target.extractUsername()")
     public CustomerEntity saveCustomerForBilling(CustomerRequest request) {
-        System.out.println("entered into saveCustomer with" + request.toString());
+        log.info("entered into saveCustomer with" + request.toString());
         List<CustomerEntity> existingCustomer = new ArrayList<>();
 
         if (!request.getPhone().equals("") && !(request.getPhone() == null) && !request.getPhone().equals("0000000000")) {
@@ -349,7 +349,7 @@ public class ShopService {
 
     @Cacheable(value = "customers", key = "#root.target.extractUsername()")
     public List<CustomerEntity> getAllCustomer() {
-        System.out.println("The extracted username is " + extractUsername());
+        log.info("The extracted username is " + extractUsername());
 
         return shopRepo.findAllActiveCustomer("ACTIVE", extractUsername());
     }
@@ -361,7 +361,7 @@ public class ShopService {
         if (request.getStock() < 0)
             status = "Out of Stock";
 
-        System.out.println("The new request" + request.getTax());
+        log.info("The new request" + request.getTax());
 
         ProductEntity productEntity = null;
 
@@ -430,7 +430,7 @@ public class ShopService {
         if (request.getStock() < 0)
             status = "Out of Stock";
 
-        System.out.println("The new request" + request.getTax());
+        log.info("The new request" + request.getTax());
 
         ProductEntity productEntity = null;
 
@@ -513,7 +513,7 @@ public class ShopService {
         String status = "In Stock";
         if (request.getStock() < 1)
             status = "Out of Stock";
-        System.out.println("The updated request" + request.getTax());
+        log.info("The updated request" + request.getTax());
         var productEntity = ProductEntity.builder().id(request.getSelectedProductId()).name(request.getName())
                 .active(true).category(request.getCategory()).userId(extractUsername()).status(status).stock(request.getStock())
                 .updatedDate(LocalDateTime.now())
@@ -743,7 +743,7 @@ public class ShopService {
             request.getCart().stream().forEach(obj -> {
 
                 ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getId(), extractUsername());
-                System.out.println("Product details " + prodRes);
+                log.info("Product details " + prodRes);
                 Double tax = (prodRes.getTaxPercent() * obj.getQuantity() * obj.getPrice()) / 100;
                 Double discountedTotal = 0d;
 
@@ -1131,7 +1131,7 @@ public class ShopService {
          /*           CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
                             billResponse.getInvoiceNumber(), order.getCustomerName(),
                             generateGSTInvoicePdf(billResponse.getInvoiceNumber()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
-                    System.out.println(futureResult);*/
+                    log.info(futureResult);*/
             // }
 
 
@@ -1156,7 +1156,7 @@ public class ShopService {
                         .status("ACTIVE").userId(extractUsername()).totalSpent(0d).build();
 
                 CustomerEntity ent = shopRepo.save(customerEntity);
-                System.out.println("The saved customer details is " + ent);
+                log.info("The saved customer details is " + ent);
                 request.getSelectedCustomer().setId(ent.getId());
             } else {
                 request.getSelectedCustomer().setId(existingCustomer.getId());
@@ -1371,12 +1371,12 @@ public class ShopService {
 
     @Cacheable(value = "dashboard", keyGenerator = "userScopedKeyGenerator")
     public DasbboardResponseDTO getDashBoardDetails(String range) {
-        System.out.println("selected day range" + range);
+        log.info("selected day range" + range);
         List<BillingEntity> billList = new ArrayList<>();
         List<ProductEntity> prodList = new ArrayList<>();
 
         List<String> roles = extractRoles();
-        System.out.println("The user roles" + roles);
+        log.info("The user roles" + roles);
         Integer days = 0;
 
         if (!range.equals("today")) {
@@ -1458,10 +1458,10 @@ public class ShopService {
 
         try {
             List<ProductRequest> prodList = util.parseCsv(file);
-            System.out.println(prodList);
+            log.info(prodList.toString());
             prodList.stream().forEach(obj -> {
                 ProductSuccessDTO prodsaveResponse = saveProduct(obj);
-                System.out.println(prodsaveResponse);
+                log.info(String.valueOf(prodsaveResponse));
             });
 
             try {
@@ -1488,10 +1488,10 @@ public class ShopService {
         if((boolean) importCheck.get("allowed")) {
             try {
                 List<ProductRequest> prodList = util.validateDataFromImage(file);
-                System.out.println(prodList);
+                log.info(prodList.toString());
                 prodList.stream().forEach(obj -> {
                     ProductSuccessDTO prodsaveResponse = saveProductFromImage(obj);
-                    System.out.println(prodsaveResponse);
+                    log.info(String.valueOf(prodsaveResponse));
                 });
 
                 try {
@@ -1509,7 +1509,7 @@ public class ShopService {
             }
         }
         else{
-            System.out.println("Import limit exceeded for today");
+            log.info("Import limit exceeded for today");
         }
 
         return null;
@@ -1562,7 +1562,7 @@ public class ShopService {
                 username2 = billDetails.getUserId();
             }
 
-            System.out.println("The productId is " + obj.getProductId());
+            log.info("The productId is " + obj.getProductId());
             ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), username2);
 
             var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
@@ -1610,7 +1610,7 @@ public class ShopService {
 
         List<OrderItem> items = prodSales.stream().map(obj -> {
 
-            System.out.println("The productId is " + obj.getProductId());
+            log.info("The productId is " + obj.getProductId());
             ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), extractUsername());
 
             var orderItems = OrderItem.builder().productName(prodRes.getName()).unitPrice(obj.getTotal()).gst(obj.getTax())
@@ -1643,7 +1643,7 @@ public class ShopService {
         // Combine with a time (e.g., start of day)
         LocalDateTime toDateTime = toDate.atTime(LocalTime.MAX);
 
-        System.out.println(toDateTime);
+        log.info(String.valueOf(toDateTime));
 
         byte[] fileBytes = null;
         try {
@@ -1698,12 +1698,12 @@ public class ShopService {
     }
 
     public String updatePassword(UserInfo userInfo) {
-        System.out.println("entered updatePassword with request " + userInfo);
+        log.info("entered updatePassword with request " + userInfo);
 
         if (userInfo.getUsername() == null) {
             userInfo.setUsername(extractUsername());
         }
-        System.out.println("updated updatePassword with request " + userInfo);
+        log.info("updated updatePassword with request " + userInfo);
 
         UserInfo userRes = userinfoRepo.findByUsername(userInfo.getUsername()).get();
         userRes.setPassword(passwordEncoder.encode(userInfo.getPassword()));
@@ -1715,7 +1715,7 @@ public class ShopService {
 
     public UpdateUserDTO saveEditableUser(UpdateUserDTO request, String username) throws IOException {
 
-        System.out.println("entered saveEditableUser with request " + request + " and username " + username);
+        log.info("entered saveEditableUser with request " + request + " and username " + username);
         request.setUsername(username);
         UserInfo userinfo = userinfoRepo.findByUsername(username).get();
 
@@ -1751,7 +1751,7 @@ public class ShopService {
     }
 
   /*  public String saveEditableUserProfilePic(MultipartFile profilePic, String username) throws IOException {
-        System.out.println("entered saveEditableUserProfilePic with  username " + username);
+        log.info("entered saveEditableUserProfilePic with  username " + username);
 
         String keyName = profilePic.getOriginalFilename();
 
@@ -1783,7 +1783,7 @@ public class ShopService {
 
 
     public String saveEditableUserProfilePicInOracleCloud(MultipartFile profilePic, String username) throws Exception {
-        System.out.println("entered saveEditableUserProfilePic with username " + username);
+        log.info("entered saveEditableUserProfilePic with username " + username);
 
         // 1. Create a unique filename (e.g., "junaid_profile.jpg")
         String originalFilename = profilePic.getOriginalFilename();
@@ -1831,7 +1831,7 @@ public class ShopService {
     }
 
     public byte[] generateInvoicePdf(String orderId) throws Exception {
-        System.out.println(orderId);
+        log.info(orderId);
         InvoiceDetails order = getOrderDetails(orderId);
         LocalDate orderedDate = LocalDate.parse(order.getOrderedDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         UpdateUserDTO userProfile = getUserProfile(extractUsername());
@@ -1858,7 +1858,7 @@ public class ShopService {
     }
 
     public byte[] generateGSTInvoicePdf(String orderId) throws Exception {
-        System.out.println("Generating invoice for orderNumber-->" + orderId);
+        log.info("Generating invoice for orderNumber-->" + orderId);
 
         String username = "";
         if (orderId != null) {
@@ -1882,14 +1882,14 @@ public class ShopService {
         }
 
         byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName, invoicePrinter);
-        System.out.println("The full invoice Data is " + invoiceData);
+        log.info("The full invoice Data is " + invoiceData);
 
 
         return response;
     }
 
     public byte[] generateGSTInvoicePdf(String orderId, String username) {
-        System.out.println("Generating invoice for orderNumber-->" + orderId);
+        log.info("Generating invoice for orderNumber-->" + orderId);
 
       /*  String username = "";
         if (orderId != null) {
@@ -1913,7 +1913,7 @@ public class ShopService {
         }
 
         byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName, invoicePrinter);
-        System.out.println("The full invoice Data is " + invoiceData);
+        log.info("The full invoice Data is " + invoiceData);
 
 
         return response;
@@ -1940,7 +1940,7 @@ public class ShopService {
         ShopInvoiceTermsEnity shopInvoiceTermsEntity = shopInvoiceTermsRepo.findByUserId(username);
 
 
-        System.out.println("entered getUserProfile with request  username " + username);
+        log.info("entered getUserProfile with request  username " + username);
 
         UserInfo userinfo = userinfoRepo.findByUsername(username).get();
 
@@ -2000,7 +2000,7 @@ public class ShopService {
 
     /*public byte[] getProfilePic(String username) throws IOException {
 
-        System.out.println("entered getProfilePic with request  username " + username);
+        log.info("entered getProfilePic with request  username " + username);
 
         UserInfo res = userinfoRepo.findByUsername(username).get();
 
@@ -2052,7 +2052,7 @@ public class ShopService {
 
     public byte[] getProfilePicOracle(String username) throws IOException {
 
-        System.out.println("entered getProfilePic with request username " + username);
+        log.info("entered getProfilePic with request username " + username);
 
         UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
                 new RuntimeException("User not found: " + username));
@@ -2072,7 +2072,7 @@ public class ShopService {
                     if (Files.exists(imagePath)) {
                         content = Files.readAllBytes(imagePath);
                     } else {
-                        System.out.println("File not found on server: " + imagePath.toString());
+                        log.info("File not found on server: " + imagePath.toString());
                     }
                 }
             } catch (IOException e) {
@@ -2105,7 +2105,7 @@ public class ShopService {
 
     @Transactional
     public void deleteProduct(Integer id) {
-        System.out.println("endtered deleteProduct with productId " + id);
+        log.info("endtered deleteProduct with productId " + id);
 
         prodRepo.deActivateProduct(id, Boolean.FALSE, extractUsername());
 
@@ -2180,7 +2180,7 @@ public class ShopService {
 
         for (Object[] row : resultsSales) {
             double percentage = 0.08 + (0.20 - 0.08) * random.nextDouble();
-            System.out.println("The profits on cp are " + ((Number) row[2]).longValue());
+            log.info("The profits on cp are " + ((Number) row[2]).longValue());
             Long count = ((Number) row[1]).longValue();
             Long estimatedProfit = ((Number) row[1]).longValue();
             profits.add(((Number) row[2]).longValue());
@@ -2199,7 +2199,7 @@ public class ShopService {
 
     public Map<String, String> getUserProfileDetails() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        System.out.println("Current user: " + username);
+        log.info("Current user: " + username);
         Map<String, String> response = new HashMap<>();
         response.put("username", username);
         return response;
@@ -2212,7 +2212,7 @@ public class ShopService {
 
         UserProfileDto response = UserProfileDto.builder().username(username).phoneNumber(res.getPhoneNumber()).name(res.getName()).roles(extractRoles()).build();
 
-        System.out.println("getUserProfileWithRoles: " + response);
+        log.info("getUserProfileWithRoles: " + response);
         return response;
 
 
@@ -2303,7 +2303,7 @@ public class ShopService {
     public Map<String, Boolean> getAvailablePaymentMethods() {
         UserPaymentModes paymentModes = paymentModesRepo.getUserPaymentModes(extractUsername());
         Map<String, Boolean> response = new HashMap<>();
-        System.out.println("The paymentModes are " + paymentModes);
+        log.info("The paymentModes are " + paymentModes);
         if (paymentModes != null) {
             if (paymentModes.getCard())
                 response.put("card", true);
@@ -2320,7 +2320,7 @@ public class ShopService {
             else
                 response.put("upi", false);
         }
-        System.out.println("the getAvailablePaymentMethods response is " + response);
+        log.info("the getAvailablePaymentMethods response is " + response);
         return response;
     }
 
@@ -2474,7 +2474,7 @@ public class ShopService {
     public GoalData getTimeRangeGoalData(String range) {
 
         EstimatedGoalsEntity existingGoals = estimatedGoalsRepo.findByUserId(extractUsername());
-        System.out.println("The existing goals are " + existingGoals);
+        log.info("The existing goals are " + existingGoals);
         String username = extractUsername();
         List<BillingEntity> billingDetails = new ArrayList<>();
         if (range.equals("today")) {
@@ -2512,7 +2512,7 @@ public class ShopService {
                 .fromDate(fromDateStr)
                 .toDate(toDateStr)
                 .build();
-        System.out.println("response for the goals-->" + response);
+        log.info("response for the goals-->" + response);
 
         return response;
     }
@@ -2555,7 +2555,7 @@ public class ShopService {
         }
 
 
-        System.out.println("The top products are " + response);
+        log.info("The top products are " + response);
 
 
         return response;
@@ -2657,7 +2657,7 @@ public class ShopService {
         }
         List<Map<String, Object>> rawData = salesPaymentRepo.getPaymentStatusBreakdown(extractUsername(), startDate, endDate);
 
-        System.out.println("The raw payment status breakdown data is " + rawData);
+        log.info("The raw payment status breakdown data is " + rawData);
 
         Map<String, Double> result = new HashMap<>();
         for (Map<String, Object> row : rawData) {
@@ -2674,7 +2674,7 @@ public class ShopService {
     /*public String updateShopLogo(MultipartFile shopLogo) throws IOException {
 
         String username = extractUsername();
-        System.out.println("entered saveEditableUserProfilePic with  username " + username);
+        log.info("entered saveEditableUserProfilePic with  username " + username);
 
         String keyName = shopLogo.getOriginalFilename();
 
@@ -2703,7 +2703,7 @@ public class ShopService {
     public String updateShopLogoOracle(MultipartFile shopLogo) throws IOException {
 
         String username = extractUsername();
-        System.out.println("entered updateShopLogo with username " + username);
+        log.info("entered updateShopLogo with username " + username);
 
         // 1. Create a unique filename (e.g., "junaid_logo_16789..._logo.png")
         String originalFilename = shopLogo.getOriginalFilename();
@@ -2747,7 +2747,7 @@ public class ShopService {
     @Transactional
     public String updateBasicDetails(ShopBasicDetailsRequest request) {
 
-        System.out.println("ShopBasicDetailsRequest with request->" + request);
+        log.info("ShopBasicDetailsRequest with request->" + request);
 
         shopBasicRepo.removeExistingBasicDetails(extractUsername());
 
@@ -2846,7 +2846,7 @@ public class ShopService {
 
    /* public byte[] getShopLogo(String username) throws IOException {
 
-        System.out.println("entered getProfilePic with request  username " + username);
+        log.info("entered getProfilePic with request  username " + username);
 
         UserInfo res = userinfoRepo.findByUsername(username).get();
 
@@ -2873,7 +2873,7 @@ public class ShopService {
     public byte[] getShopLogoOracle(String username) throws IOException {
 
         // Fixed the print statement typo (was saying getProfilePic)
-        System.out.println("Entered getShopLogo with request username " + username);
+        log.info("Entered getShopLogo with request username " + username);
 
         // Safer retrieval to prevent server crashes on bad usernames
         UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
@@ -2894,10 +2894,10 @@ public class ShopService {
                 if (Files.exists(logoPath)) {
                     content = Files.readAllBytes(logoPath);
                 } else {
-                    System.out.println("Shop logo file not found on server: " + logoPath.toString());
+                    log.info("Shop logo file not found on server: " + logoPath.toString());
                 }
             } else {
-                System.out.println("No shop logo assigned for user: " + username);
+                log.info("No shop logo assigned for user: " + username);
             }
 
         } catch (IOException e) {
@@ -2939,7 +2939,7 @@ public class ShopService {
 
         });
 
-        System.out.println("The result list for the query " + query + " is " + response);
+        log.info("The result list for the query " + query + " is " + response);
 
 
         return response;
@@ -3089,7 +3089,7 @@ public class ShopService {
     }
 
     public Map<String, Object> sendInvoiceOverEmail(String invoiceNumber) {
-        System.out.println("Entered sending email by listner with refrenece Number " + invoiceNumber);
+        log.info("Entered sending email by listner with refrenece Number " + invoiceNumber);
         InvoiceDetails order = getOrderDetails(invoiceNumber);
         Map<String, Object> response = new HashMap<>();
         try {
@@ -3110,7 +3110,7 @@ public class ShopService {
             CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
                     invoiceNumber, order.getCustomerName(),
                     generateGSTInvoicePdf(invoiceNumber, extractUsername()), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
-            System.out.println(futureResult);
+            log.info(String.valueOf(futureResult));
 
 
             // }
@@ -3138,7 +3138,7 @@ public class ShopService {
 
         }).collect(Collectors.toList());
 
-        System.out.println("The global search response is " + response);
+        log.info("The global search response is " + response);
 
         return response;
     }
@@ -3388,7 +3388,7 @@ public class ShopService {
                 } catch (MailjetSocketTimeoutException e) {
                     throw new RuntimeException(e);
                 }
-                System.out.println(futureResult);
+                log.info(String.valueOf(futureResult));
 
             });
 
@@ -3430,7 +3430,7 @@ public class ShopService {
 
         String response = geminiCalls.geminiApiCall(base64Image, mimeType);
 
-        System.out.println("The response of textExtraction is " + response);
+        log.info("The response of textExtraction is " + response);
 
 
         return response;
@@ -3458,13 +3458,13 @@ public class ShopService {
 
         List<String> existingList = productCategoryList.stream().map(i -> i.getCategoryName().replaceAll("[^a-zA-Z0-9]", "")).collect(Collectors.toList());
 
-        System.out.println("The existing category list is " + existingList);
+        log.info("The existing category list is " + existingList);
 
         List<String> newCategories = request.get("categories");
 
         List<String> categoriesToAdd = newCategories.stream().filter(i -> !(existingList.contains(i.replaceAll("[^a-zA-Z0-9]", "")))).collect(Collectors.toList());
 
-        System.out.println("The categoriesToAdd  list is " + categoriesToAdd);
+        log.info("The categoriesToAdd  list is " + categoriesToAdd);
 
         List<ProductCategory> categoryEntitiesToAdd = categoriesToAdd.stream().map(i -> ProductCategory.builder().categoryName(i).type("product").username(extractUsername()).updatedBy(extractUsername()).updateDate(LocalDateTime.now()).build()).collect(Collectors.toList());
 
