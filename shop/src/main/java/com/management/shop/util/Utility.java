@@ -8,6 +8,7 @@ import com.management.shop.dto.UpdateUserDTO;
 import com.management.shop.entity.*;
 import com.management.shop.repository.*;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -30,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Component
+@Slf4j
 public class Utility {
 
     //<-- All @Autowired repositories remain the same -->
@@ -127,7 +129,7 @@ public class Utility {
         try {
             shopLogoBytes = getShopLogoOracle(username);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            log.info(e.getMessage());
             shopLogoBytes = null;
         }
 
@@ -488,7 +490,7 @@ public class Utility {
 
     /*public byte[] getShopLogo(String username) {
 
-        System.out.println("entered getProfilePic with request  username " + username);
+        log.info("entered getProfilePic with request  username " + username);
 
         UserInfo res = userinfoRepo.findByUsername(username).get();
 
@@ -514,7 +516,7 @@ public class Utility {
     public byte[] getShopLogoOracle(String username) throws IOException {
 
         // Fixed the print statement typo (was saying getProfilePic)
-        System.out.println("Entered getShopLogo with request username " + username);
+        log.info("Entered getShopLogo with request username " + username);
 
         // Safer retrieval to prevent server crashes on bad usernames
         UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
@@ -535,10 +537,10 @@ public class Utility {
                 if (Files.exists(logoPath)) {
                     content = Files.readAllBytes(logoPath);
                 } else {
-                    System.out.println("Shop logo file not found on server: " + logoPath.toString());
+                    log.info("Shop logo file not found on server: " + logoPath.toString());
                 }
             } else {
-                System.out.println("No shop logo assigned for user: " + username);
+                log.info("No shop logo assigned for user: " + username);
             }
 
         } catch (IOException e) {
@@ -700,11 +702,11 @@ public class Utility {
             }
 
             if(paymentHisResponse!=null){
-                System.out.println("Payment history saved successfully for order "+paymentHisResponse.getTokenNo());
+                log.info("Payment history saved successfully for order "+paymentHisResponse.getTokenNo());
             }else {
                 return "some error while saving payment history";
             }
-       System.out.println("Async method invoked for saving payment history ");
+       log.info("Async method invoked for saving payment history ");
 
             return "done";
 
