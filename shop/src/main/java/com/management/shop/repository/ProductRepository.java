@@ -94,7 +94,7 @@ FROM shop_product p
 WHERE p.stock <= ?1 
 AND p.user_id = ?2 
 AND p.active = ?3
-AND p.updated_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+AND p.updated_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)
 """, nativeQuery = true)
     List<ProductEntity> findByStock(int stock, String username, Boolean isActive);
 
