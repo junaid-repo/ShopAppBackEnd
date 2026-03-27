@@ -11,6 +11,7 @@ import com.management.shop.service.ShopService;
 import com.management.shop.util.EmailSender;
 import com.management.shop.util.OrderEmailTemplate;
 import com.management.shop.util.Utility;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -25,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 @Component
+@Slf4j
 public class ReportScheduler {
 
     @Autowired
@@ -48,6 +50,8 @@ public class ReportScheduler {
 
     @Scheduled(cron = "${scheduler.reportGeneration.cron}")
     public void sendDailyReports() {
+
+        log.info("Sending report generation cron at {}", LocalDateTime.now());
 
         List<ReportsRecordEntity> reportRecordList = reportRecordsRepo.findAllByStatus(Boolean.TRUE);
 
