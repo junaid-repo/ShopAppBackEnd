@@ -73,6 +73,9 @@ public class Utility {
     private ShopRepository custRepo;
 
     @Autowired
+    private SchedulerDetailsReporsitory schedulerDetailsRepo;
+
+    @Autowired
     SelectedInvoiceRepository invoiceRepo;
 
   /*  @Value("${aws.s3.bucket-name}")
@@ -717,5 +720,26 @@ public class Utility {
     public List<PaymentHistory> getPaymentHistory(String orderNo) {
 
         return paymentHisRepo.findPaymentHistoryByOrderNumber(orderNo, extractUsername());
+    }
+
+    public void saveSchedulerDetails(Map<String, Object> request){
+
+        try {
+            var schedulerEntity=  SchedulerRecordEntity.builder()
+                      .schedulerName(request.get("schedulerName").toString())
+                      .cronExpression(request.get("cronExpression").toString())
+                      .startDateTime((LocalDateTime)(request.get("startDateTime")))
+                      .endDateTime((LocalDateTime)(request.get("endDateTime")))
+                      .isCompleted(request.get("isCompleted")!=null? (Boolean)(request.get("isCompleted")):false)
+                      .durationInSeconds(request.get("durationInSeconds")!=null? (Long)(request.get("durationInSeconds")):0L)
+                      .updatedDate(LocalDateTime.now())
+                      .updatedBy("SYSTEM")
+                      .build();
+
+            schedulerDetailsRepo.save(schedulerEntity);
+        } catch (Exception e) {
+
+        }
+
     }
 }

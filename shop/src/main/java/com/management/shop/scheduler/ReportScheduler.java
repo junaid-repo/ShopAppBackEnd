@@ -10,7 +10,9 @@ import com.management.shop.repository.UserSettingsRepository;
 import com.management.shop.service.ShopService;
 import com.management.shop.util.EmailSender;
 import com.management.shop.util.OrderEmailTemplate;
+import com.management.shop.util.Utility;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -18,10 +20,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
@@ -41,21 +40,46 @@ public class ReportScheduler {
     @Autowired
     UserSettingsRepository settingsRepo;
 
+    @Autowired
+    Utility utils;
+
+    @Value("${scheduler.reportGeneration.cron}")
+    private String reportGenerationCron;
+
     @Scheduled(cron = "${scheduler.reportGeneration.cron}")
     public void sendDailyReports() {
 
         List<ReportsRecordEntity> reportRecordList = reportRecordsRepo.findAllByStatus(Boolean.TRUE);
 
         System.out.println("Report records to process: " + reportRecordList.size());
-
+        LocalDateTime startTime = LocalDateTime.now();
         reportRecordList.stream().forEach(user -> {
 
 
                 sentReports(user.getUsername());
 
         });
+        try {
+            LocalDateTime endTime = LocalDateTime.now();
+            String cronExpression = "${scheduler.reportGeneration.cron}";
+            long durationInSeconds = ChronoUnit.SECONDS.between(startTime, endTime);
+            Boolean isCompleted = Boolean.TRUE;
+
+            Map<String, Object> request = new HashMap<>();
+            request.put("schedulerName", "Daily Report Scheduler");
+            request.put("cronExpression", reportGenerationCron);
+            request.put("startDateTime", startTime);
+            request.put("endDateTime", endTime);
+            request.put("isCompleted", isCompleted);
+            request.put("durationInSeconds", durationInSeconds);
+            utils.saveSchedulerDetails(request);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
 
     }
+
 
     public void sentReports(String username){
 
