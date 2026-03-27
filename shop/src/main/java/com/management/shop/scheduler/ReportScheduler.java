@@ -57,96 +57,98 @@ public class ReportScheduler {
 
     }
 
-    private void sentReports(String username){
+    public void sentReports(String username){
 
         UserSettingsEntity userSettings= settingsRepo.findByUsername(username);
 
         Boolean isEnabled=userSettings.getIsDailyReportsEnabled();
         String emailId=userSettings.getDailyReportEmailId();
-        List<String> reportTypes= Arrays.asList(userSettings.getDailyReportTypes().split("##"));
-        byte[] salesSummary=null;
-        byte[] gstr_report=null;
-        byte[] payment_summary_report=null;
-        if(reportTypes.contains("Sales Summary")) {
-            var salesSummaryReport = ReportRequest.builder().reportType("Sales Summary").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
-                    .username(username)
-                    .toDate(String.valueOf(LocalDate.now()))
-                    .format("excel")
-                    .build();
+        if(userSettings.getDailyReportTypes()!=null && emailId!=null && isEnabled!=null && isEnabled) {
+            List<String> reportTypes = Arrays.asList(userSettings.getDailyReportTypes().split("##"));
+            byte[] salesSummary = null;
+            byte[] gstr_report = null;
+            byte[] payment_summary_report = null;
+            if (reportTypes.contains("Sales Summary")) {
+                var salesSummaryReport = ReportRequest.builder().reportType("Sales Summary").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
+                        .username(username)
+                        .toDate(String.valueOf(LocalDate.now()))
+                        .format("excel")
+                        .build();
 
-             salesSummary = shopServ.generateReport(salesSummaryReport);
-        }
-
-
-        if(reportTypes.contains("GSTR-1 Summary")) {
-            var gstr_summary = ReportRequest.builder().reportType("GSTR-1 Summary").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
-                    .toDate(String.valueOf(LocalDate.now()))
-                    .username(username)
-                    .format("excel")
-                    .build();
-            gstr_report = shopServ.generateReport(gstr_summary);
-        }
-        if(reportTypes.contains("Total Payments")) {
-            var payment_summary = ReportRequest.builder().reportType("Total Payments").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
-                    .toDate(String.valueOf(LocalDate.now()))
-                    .username(username)
-                    .format("excel")
-                    .build();
-
-            payment_summary_report = shopServ.generateReport(payment_summary);
-
-        }
-
-
-        String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
-
-        if (emailId != null && Pattern.matches(EMAIL_REGEX, emailId)) {
-
-            List<byte[]> fileStreams = new ArrayList<>();
-            List<String> fileNames = new ArrayList<>();
-
-            String dateSuffix = LocalDate.now().toString();
-
-            // Safely add Sales Summary if it generated correctly
-            if (salesSummary != null) {
-                fileStreams.add(salesSummary);
-                fileNames.add("Daily_Sales_Summary_" + dateSuffix + ".xlsx");
+                salesSummary = shopServ.generateReport(salesSummaryReport);
             }
 
-            // Safely add GSTR Summary if it generated correctly
-            if (gstr_report != null) {
-                fileStreams.add(gstr_report);
-                fileNames.add("GSTR-1_Summary_" + dateSuffix + ".xlsx");
+
+            if (reportTypes.contains("GSTR-1 Summary")) {
+                var gstr_summary = ReportRequest.builder().reportType("GSTR-1 Summary").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
+                        .toDate(String.valueOf(LocalDate.now()))
+                        .username(username)
+                        .format("excel")
+                        .build();
+                gstr_report = shopServ.generateReport(gstr_summary);
             }
-            if (payment_summary_report != null) {
-                fileStreams.add(payment_summary_report);
-                fileNames.add("Payment_summary_" + dateSuffix + ".xlsx");
+            if (reportTypes.contains("Total Payments")) {
+                var payment_summary = ReportRequest.builder().reportType("Total Payments").fromDate(String.valueOf(LocalDate.now().minusDays(1)))
+                        .toDate(String.valueOf(LocalDate.now()))
+                        .username(username)
+                        .format("excel")
+                        .build();
+
+                payment_summary_report = shopServ.generateReport(payment_summary);
+
             }
 
-            // Only attempt to send the email if we have at least one valid report
-            if (!fileStreams.isEmpty()) {
-                String template = emailTemplate.getReportEmailContent("Sir", "Your Daily  Reports", "Daily");
-                String result = null;
 
-                try {
-                    // Call the new multiple attachments method
-                    result = email.sendEmailWithMultipleAttachments(
-                            emailId,
-                            "Daily Reports",
-                            fileNames,
-                            fileStreams,
-                            template,
-                            "ClearBills"
-                    );
+            String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
 
-                    reportRecordsRepo.updateReportRecordAfterSending(username, "SYSTEM", LocalDateTime.now(), Boolean.TRUE);
+            if (emailId != null && Pattern.matches(EMAIL_REGEX, emailId)) {
 
-                } catch (MailjetException | MailjetSocketTimeoutException e) {
-                    throw new RuntimeException(e);
+                List<byte[]> fileStreams = new ArrayList<>();
+                List<String> fileNames = new ArrayList<>();
+
+                String dateSuffix = LocalDate.now().toString();
+
+                // Safely add Sales Summary if it generated correctly
+                if (salesSummary != null) {
+                    fileStreams.add(salesSummary);
+                    fileNames.add("Daily_Sales_Summary_" + dateSuffix + ".xlsx");
                 }
-                System.out.println(result);
+
+                // Safely add GSTR Summary if it generated correctly
+                if (gstr_report != null) {
+                    fileStreams.add(gstr_report);
+                    fileNames.add("GSTR-1_Summary_" + dateSuffix + ".xlsx");
+                }
+                if (payment_summary_report != null) {
+                    fileStreams.add(payment_summary_report);
+                    fileNames.add("Payment_summary_" + dateSuffix + ".xlsx");
+                }
+
+                // Only attempt to send the email if we have at least one valid report
+                if (!fileStreams.isEmpty()) {
+                    String template = emailTemplate.getReportEmailContent("Sir", "Your Daily  Reports", "Daily");
+                    String result = null;
+
+                    try {
+                        // Call the new multiple attachments method
+                        result = email.sendEmailWithMultipleAttachments(
+                                emailId,
+                                "Daily Reports",
+                                fileNames,
+                                fileStreams,
+                                template,
+                                "ClearBills"
+                        );
+
+                        reportRecordsRepo.updateReportRecordAfterSending(username, "SYSTEM", LocalDateTime.now(), Boolean.TRUE);
+
+                    } catch (MailjetException | MailjetSocketTimeoutException e) {
+                        throw new RuntimeException(e);
+                    }
+                    System.out.println(result);
+                }
             }
-        } }
+        }}
 
 
     @Scheduled(cron = "${scheduler.resetreportsentstatus.cron}")
