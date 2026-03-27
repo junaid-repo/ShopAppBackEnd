@@ -494,4 +494,13 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     List<Object[]> getPeakPurchaseHours(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate,
                                         @Param("userId") String userId);
+
+    @Query(value = "SELECT " +
+            "CASE WHEN total_orders > 1 THEN 'Returning' ELSE 'New' END AS customer_type, " +
+            "COUNT(id) AS count " +
+            "FROM shop_customer " +
+            "WHERE user_id = :userId AND total_orders > 0 " + // Only count customers who have actually purchased
+            "GROUP BY CASE WHEN total_orders > 1 THEN 'Returning' ELSE 'New' END",
+            nativeQuery = true)
+    List<Object[]> getCustomerRetentionSummary(@Param("userId") String userId);
 }
