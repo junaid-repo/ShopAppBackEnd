@@ -17,7 +17,7 @@ public interface SupportTicketRepository extends JpaRepository<TicketsEntity, In
 
     @Transactional
     @Modifying
-    @Query(value="update support_tickets set status=?2, updated_date=?4, closing_remarks=?3 where username=?5 and ticket_number=?1", nativeQuery=true)
+    @Query(value="update support_tickets set status=?2, updated_date=?4, closing_remarks=?3 where ticket_number=?1", nativeQuery=true)
     public void  updateExistingTicket(String ticketNumber, String closed, String closingRemarks, LocalDateTime now, String s);
 
     @Query(value="select * from support_tickets where status=?1 order by created_date desc", nativeQuery=true)
