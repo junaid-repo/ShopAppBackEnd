@@ -3226,12 +3226,15 @@ public class ShopService {
         superResponse.setPaymentStatus(paymentStatusList);
         superResponse.setInvoiceStatus(invoiceStatusList);
 
-        // --- 3. Monthly Profits, Revenue, Stock, and Sales ---
+        // --- 3. Monthly Profits, Revenue, Stock, Sales AND AOV ---
         List<Object[]> billingResults = billRepo.getMonthlyBillingSummary(startDate, endDate, userId);
         List<PieAnalyticsMap> monthlyProfitsList = new ArrayList<>();
         List<PieAnalyticsMap> monthlyRevenueList = new ArrayList<>();
         List<PieAnalyticsMap> monthlyStockList = new ArrayList<>();
         List<PieAnalyticsMap> monthlySalesList = new ArrayList<>();
+
+        // 🟢 NEW: List to hold AOV Data
+        List<Map<String, Object>> aovDataList = new ArrayList<>();
 
         double totalProfit = 0.0, totalRevenue = 0.0;
         Double totalStockSold = 0d, totalSales = 0d;
@@ -3268,6 +3271,14 @@ public class ShopService {
                 salesMap.setValue(salesCountValue);
                 monthlySalesList.add(salesMap);
                 totalSales += salesCountValue;
+
+                // 🟢 NEW: Calculate Average Order Value
+                double aov = salesCountValue > 0 ? Math.round(revenueValue / salesCountValue) : 0.0;
+                Map<String, Object> aovMap = new HashMap<>();
+                aovMap.put("name", month);
+                aovMap.put("orders", salesCountValue);
+                aovMap.put("aov", aov);
+                aovDataList.add(aovMap);
             }
         }
         superResponse.setMonthlyProfits(monthlyProfitsList);
@@ -3279,57 +3290,60 @@ public class ShopService {
         superResponse.setMonthlySales(monthlySalesList);
         superResponse.setTotalSales(totalSales);
 
-        // --- 4. NEW: Monthly New Customers ---
+        // 🟢 Set AOV Data
+        superResponse.setAovData(aovDataList);
+
+        // --- 4. Monthly New Customers ---
         List<Object[]> newCustomerResults = shopRepo.getMonthlyCustomerCount(startDate, endDate, userId);
         List<PieAnalyticsMap> monthlyNewCustomers = new ArrayList<>();
         if (newCustomerResults != null) {
             for (Object[] row : newCustomerResults) {
                 if (row == null || row[0] == null) continue;
                 PieAnalyticsMap map = new PieAnalyticsMap();
-                map.setName(row[0].toString()); // Month Name
-                map.setValue(((Number) row[1]).doubleValue()); // Count
+                map.setName(row[0].toString());
+                map.setValue(((Number) row[1]).doubleValue());
                 monthlyNewCustomers.add(map);
             }
         }
         superResponse.setMonthlyNewCustomers(monthlyNewCustomers);
 
-        // --- 5. NEW: Peak Hours (Hourly order distribution) ---
+        // --- 5. Peak Hours ---
         List<Object[]> peakHourResults = billRepo.getPeakPurchaseHours(startDate, endDate, userId);
         List<PieAnalyticsMap> peakHours = new ArrayList<>();
         if (peakHourResults != null) {
             for (Object[] row : peakHourResults) {
                 if (row == null || row[0] == null) continue;
                 PieAnalyticsMap map = new PieAnalyticsMap();
-                map.setName(row[0].toString() + ":00"); // e.g., "14:00"
-                map.setValue(((Number) row[1]).doubleValue()); // Order Count
+                map.setName(row[0].toString() + ":00");
+                map.setValue(((Number) row[1]).doubleValue());
                 peakHours.add(map);
             }
         }
         superResponse.setPeakHours(peakHours);
 
-        // --- 6. NEW: Category Revenue ---
+        // --- 6. Category Revenue ---
         List<Object[]> categoryResults = prodSalesRepo.getRevenueByCategory(startDate, endDate, userId);
         List<PieAnalyticsMap> categoryRevenue = new ArrayList<>();
         if (categoryResults != null) {
             for (Object[] row : categoryResults) {
                 if (row == null || row[0] == null) continue;
                 PieAnalyticsMap map = new PieAnalyticsMap();
-                map.setName(row[0].toString()); // Category Name
-                map.setValue(((Number) row[1]).doubleValue()); // Total Revenue
+                map.setName(row[0].toString());
+                map.setValue(((Number) row[1]).doubleValue());
                 categoryRevenue.add(map);
             }
         }
         superResponse.setCategoryRevenue(categoryRevenue);
 
-        // --- 7. NEW: Payment Methods (Cash, Card, UPI) ---
+        // --- 7. Payment Methods ---
         List<Object[]> paymentMethodResults = salesPaymentRepo.getPaymentMethodSummary(startDate, endDate, userId);
         List<PieAnalyticsMap> paymentMethods = new ArrayList<>();
         if (paymentMethodResults != null) {
             for (Object[] row : paymentMethodResults) {
                 if (row == null || row[0] == null) continue;
                 PieAnalyticsMap map = new PieAnalyticsMap();
-                map.setName(row[0].toString()); // Method Name
-                map.setValue(((Number) row[1]).doubleValue()); // Amount
+                map.setName(row[0].toString());
+                map.setValue(((Number) row[1]).doubleValue());
                 paymentMethods.add(map);
             }
         }
@@ -3363,6 +3377,54 @@ public class ShopService {
             }
         }
         superResponse.setCustomerGst(customerGstList);
+
+        // --- 10. 🟢 NEW: Customer Retention Logic ---
+        List<Object[]> retentionResults = shopRepo.getCustomerRetentionSummary(startDate, endDate, userId);
+        List<Map<String, Object>> retentionList = new ArrayList<>();
+
+        // 10a. Add the transparent outer target ring required by Recharts
+        Map<String, Object> targetMap = new HashMap<>();
+        targetMap.put("name", "Total Target");
+        targetMap.put("value", 100.0);
+        targetMap.put("fill", "transparent");
+        retentionList.add(targetMap);
+
+        double totalCustomers = 0;
+        double returningCount = 0;
+        double newCount = 0;
+
+        if (retentionResults != null) {
+            for (Object[] row : retentionResults) {
+                if (row == null || row[0] == null) continue;
+                String type = row[0].toString();
+                double count = ((Number) row[1]).doubleValue();
+
+                totalCustomers += count;
+                if ("Returning".equalsIgnoreCase(type)) {
+                    returningCount = count;
+                } else {
+                    newCount = count;
+                }
+            }
+        }
+
+        // 10b. Calculate percentages and format the Maps
+        double returningPct = totalCustomers > 0 ? Math.round((returningCount / totalCustomers) * 100.0) : 0.0;
+        double newPct = totalCustomers > 0 ? Math.round((newCount / totalCustomers) * 100.0) : 0.0;
+
+        Map<String, Object> returningMap = new HashMap<>();
+        returningMap.put("name", "Returning");
+        returningMap.put("value", returningPct);
+        returningMap.put("fill", "var(--primary-color)");
+        retentionList.add(returningMap);
+
+        Map<String, Object> newMap = new HashMap<>();
+        newMap.put("name", "New");
+        newMap.put("value", newPct);
+        newMap.put("fill", "#71a894"); // Matches the warning color in your frontend Theme
+        retentionList.add(newMap);
+
+        superResponse.setRetentionData(retentionList);
 
         log.info("SuperAnalytics processing complete for user: {}", userId);
         return superResponse;

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Builder
 @AllArgsConstructor
@@ -27,6 +28,8 @@ public class AnalyticsRes {
     Double totalStockSold;
     List<PieAnalyticsMap> topProducts;
     List<PieAnalyticsMap> monthlySales;
+    private List<Map<String, Object>> aovData;
+    private List<Map<String, Object>> retentionData;
     Double totalSales;
 
 }

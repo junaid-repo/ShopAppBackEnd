@@ -115,5 +115,20 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
     @Query(value = "SELECT * FROM shop_customer WHERE user_id = ?1 AND name = ?2", nativeQuery = true)
     CustomerEntity findByNameAndId(String s, String name);
 
+    @Query(value = "SELECT " +
+            "CASE WHEN total_orders > 1 THEN 'Returning' ELSE 'New' END AS customer_type, " +
+            "COUNT(id) AS count " +
+            "FROM shop_customer " +
+            "WHERE user_id = :userId " +
+            "AND total_orders > 0 " +
+            "AND updated_date BETWEEN :startDate AND :endDate " +
+            "GROUP BY CASE WHEN total_orders > 1 THEN 'Returning' ELSE 'New' END",
+            nativeQuery = true)
+    List<Object[]> getCustomerRetentionSummary(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("userId") String userId
+    );
+
     //List<Object[]> getMonthlyNewCustomerCount(LocalDateTime startDate, LocalDateTime endDate, String userId);
 }

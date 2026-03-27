@@ -1091,6 +1091,8 @@ public class ShopController {
 
         AnalyticsRes response = serv.getSuperAnalytics(request);
 
+        log.info("The response from super analytics is-->" + response);
+
         return ResponseEntity.ok(response);
 
     }
