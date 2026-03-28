@@ -1722,9 +1722,13 @@ public class ShopService {
         request.setUsername(username);
         UserInfo userinfo = userinfoRepo.findByUsername(username).get();
 
+        if(!(userinfo.getSource().equalsIgnoreCase("google"))){
+            userinfo.setEmail(request.getEmail());
+        }
+
         userinfo.setName(request.getName());
         //userinfo.setPhoneNumber(request.getPhone());
-        userinfo.setEmail(request.getEmail());
+
         userinfoRepo.save(userinfo);
 
         ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(request.getUsername());
@@ -1787,6 +1791,11 @@ public class ShopService {
 
     public String saveEditableUserProfilePicInOracleCloud(MultipartFile profilePic, String username) throws Exception {
         log.info("entered saveEditableUserProfilePic with username " + username);
+        UserInfo userinfo = userinfoRepo.findByUsername(username).get();
+
+        if(userinfo.getSource().equalsIgnoreCase("google")){
+            throw new RuntimeException("Profile picture cannot be updated for Google authenticated users");
+        }
 
         // 1. Create a unique filename (e.g., "junaid_profile.jpg")
         String originalFilename = profilePic.getOriginalFilename();
