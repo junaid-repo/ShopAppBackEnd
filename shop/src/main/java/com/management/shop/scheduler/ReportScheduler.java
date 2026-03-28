@@ -182,7 +182,9 @@ public class ReportScheduler {
     @Scheduled(cron = "${scheduler.resetreportsentstatus.cron}")
     public void updateReportSentStatus() {
 
-        reportRecordsRepo.updateAllRecordAfterCompletion( "SYSTEM", LocalDateTime.now(), Boolean.TRUE);
+        log.info("Entered into updateReportSentStatus");
+
+        reportRecordsRepo.updateAllRecordAfterCompletion( "SYSTEM", LocalDateTime.now(), Boolean.FALSE);
 
 
     }

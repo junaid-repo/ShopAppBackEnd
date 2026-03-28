@@ -577,6 +577,9 @@ public class ShopService {
             if ("costPrice".equalsIgnoreCase(sortField)) {
                 sortField = "cost_price";
             }
+            if ("tax".equalsIgnoreCase(sortField)) {
+                sortField = "taxPercent";
+            }
 
             Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
