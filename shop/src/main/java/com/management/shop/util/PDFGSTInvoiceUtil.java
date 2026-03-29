@@ -46,7 +46,17 @@ public class PDFGSTInvoiceUtil {
         // --- QR Code (UPI) ---
         // Using the rounded grandTotal for the UPI string instead of the raw data value
         String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+grandTotal+"&cu=INR";
-        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(data.getInvoiceId()), 200, 200);
+        String qrCodeBase64="";
+
+        if(printerType != null && printerType.contains("THERMAL")){
+
+            qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(data.getInvoiceId()), 200, 200);
+        }
+        else{
+            qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 300, 300);
+        }
+
+
 
         // --- Barcode Generation for Invoice ID (Conditional) ---
         String invoiceId = nullSafeString(data.getInvoiceId());
@@ -73,7 +83,7 @@ public class PDFGSTInvoiceUtil {
                     default          -> 45;
                 };
             }
-            invoiceBarcodeBase64 = generateBarcodeBase64(invoiceId, barcodeWidth, barcodeHeight);
+            invoiceBarcodeBase64 = generateBarcodeBase64ForInvoice(invoiceId, barcodeWidth, barcodeHeight);
         }
 
         // --- Convert products to Map for template (Rounding Amounts Only) ---
@@ -242,6 +252,21 @@ public class PDFGSTInvoiceUtil {
             return "";
         }
     }
+
+    // --- Helper Method for Barcode ---
+    private String generateBarcodeBase64ForInvoice(String text, int width, int height) {try {
+        // Safely extract from n-5 to the end (the last 5 characters)
+        String barcodeText = text.length() >= 5 ? text.substring(text.length() - 5) : text;
+
+        BitMatrix bitMatrix = new MultiFormatWriter().encode(barcodeText, BarcodeFormat.CODE_128, width, height);
+        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+        return Base64.getEncoder().encodeToString(pngOutputStream.toByteArray());
+    } catch (Exception e) {
+        System.err.println("Failed to generate barcode for text: " + text);
+        e.printStackTrace();
+        return "";
+    }}
 
     // --- Rounding Helpers ---
     private long roundDouble(Double d) {
