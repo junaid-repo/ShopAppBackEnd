@@ -187,7 +187,6 @@ public class ShopService {
     private final Random random = new Random();
 
 
-
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
@@ -208,7 +207,7 @@ public class ShopService {
     }
 
     public String extractRole() {
-        String userrole= SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().toList().get(0).getAuthority();
+        String userrole = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().toList().get(0).getAuthority();
 
         log.info("Current user: " + userrole);
         //  username="junaid1";
@@ -888,41 +887,84 @@ public class ShopService {
         checkAnonymousCustomer(request);
         String username = extractUsername();
 
+        Map<String, Object> validateMap = validateBillingRequest(request);
+
         // 1. Setup & Initial Billing Entity
-        UserSettingsEntity userSettings = userSettingsRepo.findByUsername(username);
-        int unitsSold = calculateTotalUnits(request.getCart());
-        BillingEntity billResponse = createInitialBill(request, unitsSold, username);
+        if((boolean) validateMap.get("validated")) {
+            UserSettingsEntity userSettings = userSettingsRepo.findByUsername(username);
+            int unitsSold = calculateTotalUnits(request.getCart());
+            BillingEntity billResponse = createInitialBill(request, unitsSold, username);
 
-        // 2. Generate Invoice Number
-        if (userSettings != null) {
-            assignInvoiceNumber(billResponse, userSettings);
+            // 2. Generate Invoice Number
+            if (userSettings != null) {
+                assignInvoiceNumber(billResponse, userSettings);
+            }
+
+            if (billResponse.getId() == null) {
+                return BillingResponse.builder().status("FAILURE").build();
+            }
+
+            // 3. Process Cart Items (Calculates taxes, profits, stock)
+            double totalProfitOnCP = processCartItems(request, billResponse, userSettings, username);
+
+            // 4. Update Bill with final profit
+            billResponse.setTotalProfitOnCP(totalProfitOnCP);
+            billRepo.save(billResponse);
+
+            // 5. Process Payment
+            PaymentEntity payment = processPayment(request, billResponse, username);
+
+            // 6. Post-Payment Actions
+            savePaymentHistorySafe(billResponse, payment, request);
+            updateCustomerMetricsSafe(request, username);
+            handleInvoiceEmail(request, billResponse, userSettings);
+            clearSalesCachesSafe(username);
+
+            return BillingResponse.builder()
+                    .paymentReferenceNumber(payment.getPaymentReferenceNumber())
+                    .invoiceNumber(billResponse.getInvoiceNumber())
+                    .status("SUCCESS")
+                    .build();
+        }
+        else{
+            return (BillingResponse) validateMap.get("validateResponse");
+        }
+    }
+
+    private Map<String, Object> validateBillingRequest(BillingRequest request) {
+        Map<String, Object> res=new HashMap<>();
+        if(request.getPayingAmount()>request.getTotal()) {
+          var validateResponse=  BillingResponse.builder()
+                    .errorCode("401")
+                    .errorMessage("Paying amount cannnot be more than total amount")
+                    .status("VALIDATED")
+                    .build();
+            res.put("validated", Boolean.FALSE);
+            res.put("validateResponse", validateResponse);
+        }
+        if(request.getSelectedCustomer()==null) {
+            var validateResponse=  BillingResponse.builder()
+                    .errorCode("401")
+                    .errorMessage("Please select valid customer")
+                    .status("VALIDATED")
+                    .build();
+            res.put("validated", Boolean.FALSE);
+            res.put("validateResponse", validateResponse);
+        }
+        if(request.getCart().size()<1) {
+            var validateResponse=  BillingResponse.builder()
+                    .errorCode("401")
+                    .errorMessage("No item in cart")
+                    .status("VALIDATED")
+                    .build();
+            res.put("validated", Boolean.FALSE);
+            res.put("validateResponse", validateResponse);
+        }
+        else{
+            res.put("validated", Boolean.TRUE);
         }
 
-        if (billResponse.getId() == null) {
-            return BillingResponse.builder().status("FAILURE").build();
-        }
-
-        // 3. Process Cart Items (Calculates taxes, profits, stock)
-        double totalProfitOnCP = processCartItems(request, billResponse, userSettings, username);
-
-        // 4. Update Bill with final profit
-        billResponse.setTotalProfitOnCP(totalProfitOnCP);
-        billRepo.save(billResponse);
-
-        // 5. Process Payment
-        PaymentEntity payment = processPayment(request, billResponse, username);
-
-        // 6. Post-Payment Actions
-        savePaymentHistorySafe(billResponse, payment, request);
-        updateCustomerMetricsSafe(request, username);
-        handleInvoiceEmail(request, billResponse, userSettings);
-        clearSalesCachesSafe(username);
-
-        return BillingResponse.builder()
-                .paymentReferenceNumber(payment.getPaymentReferenceNumber())
-                .invoiceNumber(billResponse.getInvoiceNumber())
-                .status("SUCCESS")
-                .build();
+        return res;
     }
 
     private int calculateTotalUnits(List<ProductBillDTO> cart) { // Note: Replace CartItemDto with your actual class name
@@ -1486,9 +1528,9 @@ public class ShopService {
 
     public List<ProductRequest> uploadBulkProductFromImage(MultipartFile file) {
 
-        Map<String, Object> importCheck=setServ.checkImportLimit();
+        Map<String, Object> importCheck = setServ.checkImportLimit();
 
-        if((boolean) importCheck.get("allowed")) {
+        if ((boolean) importCheck.get("allowed")) {
             try {
                 List<ProductRequest> prodList = util.validateDataFromImage(file);
                 log.info(prodList.toString());
@@ -1510,8 +1552,7 @@ public class ShopService {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-        }
-        else{
+        } else {
             log.info("Import limit exceeded for today");
         }
 
@@ -1632,7 +1673,7 @@ public class ShopService {
     @Cacheable(value = "reports", keyGenerator = "userScopedKeyGenerator")
     public byte[] generateReport(ReportRequest request) {
 
-        if(request.getUsername()==null){
+        if (request.getUsername() == null) {
             request.setUsername(extractUsername());
         }
 
@@ -1656,9 +1697,9 @@ public class ShopService {
         }
 
         try {
-            if(fileBytes!=null){
-              var reportData=  Report.builder().name(request.getReportType())
-                      .fileName(request.getReportId()+"."+request.getFormat())
+            if (fileBytes != null) {
+                var reportData = Report.builder().name(request.getReportType())
+                        .fileName(request.getReportId() + "." + request.getFormat())
                         .reportType(request.getReportType())
                         .fromDate(LocalDate.parse(request.getFromDate()))
                         .toDate(LocalDate.parse(request.getToDate()))
@@ -1672,7 +1713,7 @@ public class ShopService {
 
             }
         } catch (Exception e) {
-           e.printStackTrace();
+            e.printStackTrace();
         }
 
         return fileBytes;
@@ -1722,7 +1763,7 @@ public class ShopService {
         request.setUsername(username);
         UserInfo userinfo = userinfoRepo.findByUsername(username).get();
 
-        if(!(userinfo.getSource().equalsIgnoreCase("google"))){
+        if (!(userinfo.getSource().equalsIgnoreCase("google"))) {
             userinfo.setEmail(request.getEmail());
         }
 
@@ -1793,7 +1834,7 @@ public class ShopService {
         log.info("entered saveEditableUserProfilePic with username " + username);
         UserInfo userinfo = userinfoRepo.findByUsername(username).get();
 
-        if(userinfo.getSource().equalsIgnoreCase("google")){
+        if (userinfo.getSource().equalsIgnoreCase("google")) {
             throw new RuntimeException("Profile picture cannot be updated for Google authenticated users");
         }
 
@@ -1933,9 +1974,9 @@ public class ShopService {
 
     public UpdateUserDTO getUserProfile(String username) {
 
-    if(username==null) {
-        username = extractUsername();
-    }
+        if (username == null) {
+            username = extractUsername();
+        }
 
         // ShopDetailsEntity shopDetails = shopDetailsRepo.findbyUsername(username);
 
@@ -3482,11 +3523,11 @@ public class ShopService {
     public String extractTextFromImage(MultipartFile file) throws IOException {
 
         LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
-        List<GeminiTextExtract> apiLogs= apiSaveRepo.findCreatedWithinLast24Hours(last24Hours, extractUsername(), "Gemini Text Extraction API");
-        Integer count=apiLogs.size();
+        List<GeminiTextExtract> apiLogs = apiSaveRepo.findCreatedWithinLast24Hours(last24Hours, extractUsername(), "Gemini Text Extraction API");
+        Integer count = apiLogs.size();
 
 
-        if(extractRole().equals("USER")){
+        if (extractRole().equals("USER")) {
             if (count > 2) {
 
                 return "Sorry, you have exceeded the free usage limit for text extraction. Please upgrade to Premium for unlimited access.";

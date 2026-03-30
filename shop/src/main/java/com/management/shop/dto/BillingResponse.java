@@ -14,5 +14,7 @@ public class BillingResponse {
 	private String invoiceNumber;
 	private String status;
 	private String paymentReferenceNumber;
+    private String errorCode;
+    private String errorMessage;
 
 }
