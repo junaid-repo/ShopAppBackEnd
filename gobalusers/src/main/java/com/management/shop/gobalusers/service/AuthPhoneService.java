@@ -16,11 +16,13 @@ import com.management.shop.gobalusers.util.OTPSender;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.net.http.HttpResponse;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +53,7 @@ public class AuthPhoneService {
     @Autowired
     private AuthService authService;
 
-
+    @Transactional
     public RegisterResponse registerNewUserWithPhone(RegisterRequest regRequest) {
 
         ValidateContactResponse validateContactResponse=    validatePhone(ValidateContactRequest.builder().phone(regRequest.getPhone()).email(regRequest.getEmail()).build());
@@ -62,7 +64,7 @@ public class AuthPhoneService {
             }
             else {
 
-                Random random = new Random();
+                final SecureRandom random = new SecureRandom();
                 int number = 100000 + random.nextInt(900000);
 
                 List<RegisterUserOTPEntity> res2 = otpRepo.getByPhoneNumber(regRequest.getPhone());
@@ -112,7 +114,7 @@ public class AuthPhoneService {
 
             if (res != null) {
 
-                Random random = new Random();
+                final SecureRandom random = new SecureRandom();
                 int number = 100000 + random.nextInt(900000);
 
                 RegisterUserOTPEntity res2 = otpRepo.getByUsername(userInfo.getUsername());
@@ -186,7 +188,7 @@ public class AuthPhoneService {
     @Transactional
     public OtpVerifyResponse reSendOtpPhone(OtpVerifyRequest otpVerifyReq) {
 
-        Random random = new Random();
+        final SecureRandom random = new SecureRandom();
         int number = 100000 + random.nextInt(900000);
 
         List<RegisterUserOTPEntity> res2 = otpRepo.getByPhoneNumber(otpVerifyReq.getPhone());
@@ -221,7 +223,7 @@ public class AuthPhoneService {
         if (res.getOtp().equals(otpInfo.getOtp())) {
 
             userinfoRepo.updateUserStatus(res.getUsername());
-            UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).get();
+            UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
             //paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
 
@@ -263,7 +265,7 @@ public class AuthPhoneService {
 
         if (res.size() > 0) {
             System.out.println(res.get(0));
-            Random random = new Random();
+            final SecureRandom random = new SecureRandom();
             int otp = 100000 + random.nextInt(900000);
             var otpVerifyReq = OtpVerifyRequest.builder().otp(String.valueOf(otp)).username(res.get(0).getUsername()).build();
 

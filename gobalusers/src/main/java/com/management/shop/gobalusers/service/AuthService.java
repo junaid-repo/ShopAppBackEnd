@@ -97,6 +97,7 @@ public class AuthService {
         return null;
     }
 
+    @Transactional
     public RegisterResponse registerNewUser(RegisterRequest regRequest) {
 
         ValidateContactResponse validateContactResponse = validateContact(ValidateContactRequest.builder().phone(regRequest.getPhone()).email(regRequest.getEmail()).build());
@@ -106,7 +107,7 @@ public class AuthService {
                 return RegisterResponse.builder().message("Email/Phone already registered").success(false).build();
             } else {
 
-                Random random = new Random();
+                final SecureRandom random = new SecureRandom();
                 int number = 100000 + random.nextInt(900000);
 
                 RegisterUserOTPEntity res2 = otpRepo.getByUsername(validateContactResponse.getUsername());
@@ -151,7 +152,7 @@ public class AuthService {
 
             if (res != null) {
 
-                Random random = new Random();
+                final SecureRandom random = new SecureRandom();
                 int number = 100000 + random.nextInt(900000);
 
                 RegisterUserOTPEntity res2 = otpRepo.getByUsername(userInfo.getUsername());
@@ -197,7 +198,7 @@ public class AuthService {
 
         if (res.size() > 0) {
             log.info(String.valueOf(res.get(0)));
-            Random random = new Random();
+            final SecureRandom random = new SecureRandom();
             int otp = 100000 + random.nextInt(900000);
             var otpVerifyReq = OtpVerifyRequest.builder().otp(String.valueOf(otp)).username(res.get(0).getUsername()).build();
 
@@ -228,11 +229,11 @@ public class AuthService {
     public OtpVerifyResponse reEnterOtp(OtpVerifyRequest otpVerifyReq) {
 
         RegisterUserOTPEntity res = otpRepo.getByUsername(otpVerifyReq.getUsername());
-        UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).get();
+        UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         if (res != null) {
             otpRepo.updateOldOTP(res.getId(), "stale");
-            Random random = new Random();
+            final SecureRandom random = new SecureRandom();
             int number = 100000 + random.nextInt(900000);
 
             try {
@@ -259,7 +260,7 @@ public class AuthService {
         if (res.getOtp().equals(otpInfo.getOtp())) {
 
             userinfoRepo.updateUserStatus(res.getUsername());
-            UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).get();
+            UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
             paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
 
@@ -350,7 +351,7 @@ public class AuthService {
                     updatePassword(UserInfo.builder().username(res.get(0).getUsername()).password(secureToken).build());
                 } else {
                     secureToken= randomPassword(15);
-                    log.info("The secure token generated for google login is --> " + secureToken);
+
                     var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
                             .phoneNumber("0000000000")
                             .password(passwordEncoder.encode(secureToken))
@@ -362,7 +363,9 @@ public class AuthService {
                     UserInfo userRes = userinfoRepo.save(userInfo);
 
                     if (userRes.getId() > 0) {
-                        String username = userRes.getName().replace(" ", "").substring(0, 7).toLowerCase() + String.valueOf(userRes.getId());
+                        String cleanName = userRes.getName().replace(" ", "").toLowerCase();
+                        String prefix = cleanName.length() >= 7 ? cleanName.substring(0, 7) : cleanName;
+                        String username = prefix + userRes.getId();
                         userInfo.setUsername(username);
                         userinfoRepo.save(userInfo);
                         paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
@@ -442,7 +445,7 @@ public class AuthService {
 
     public String authAndsetCookies(AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
         log.info("Inside authAndsetCookies with username --> " + authRequest.getUsername());
-        log.info("Inside authAndsetCookies with pass --> " + authRequest.getPassword());
+
         UserInfo userInfo = userinfoRepo.findFirstByPhoneNumberOrUsernameOrEmail(authRequest.getUsername(), true);
         log.info("The userInfo fetched by phone number is --> " + userInfo);
         if (userInfo != null) {
@@ -455,7 +458,7 @@ public class AuthService {
         log.info("The userSource --> " + userSource);
         boolean isUserActive = checkUserStatus(authRequest.getUsername());
 
-        if (userSource.equals("phone") || authRequest.getUsername().equals("junaid1") ||userSource.equals("google") ) {
+        if (userSource.equals("phone") || userSource.equals("google") ) {
             log.info("Inside authAndsetCookies with userSource --> " + userSource);
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
@@ -485,7 +488,7 @@ public class AuthService {
                     );
                     response.addHeader("Set-Cookie", cookieHeader);
                 }
-                log.info("The generated token --> " + token);
+
                 return token;
             }
         }  else {
