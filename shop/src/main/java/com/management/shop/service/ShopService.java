@@ -1974,7 +1974,7 @@ public class ShopService {
 
     public UpdateUserDTO getUserProfile(String username) {
 
-        if (username == null) {
+        if (username == null||username == "null"||username.equals("null")) {
             username = extractUsername();
         }
 

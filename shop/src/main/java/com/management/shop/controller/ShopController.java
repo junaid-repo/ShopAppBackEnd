@@ -527,6 +527,7 @@ public class ShopController {
             @PathVariable String username) throws IOException {
 
         UpdateUserDTO response = serv.getUserProfile(username);
+        log.info("The response from getUserProfile  is-->" + response);
         return ResponseEntity.ok(response);
     }
 
