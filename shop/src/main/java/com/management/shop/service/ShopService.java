@@ -3534,6 +3534,10 @@ public class ShopService {
             }
 
         }
+        if (count > 10) {
+
+            return "Sorry, you have exceeded the   usage limit for text extraction for the day. Please retry tomorrow.";
+        }
 
         String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
 
