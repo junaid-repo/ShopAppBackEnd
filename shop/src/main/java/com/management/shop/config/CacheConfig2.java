@@ -1,3 +1,4 @@
+/*
 
 package com.management.shop.config;
 
@@ -12,14 +13,15 @@ import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableCaching
-public class CacheConfig {
+public class CacheConfig2 {
 
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("customers", "orders", "sales", "payments", "products", "dashboard", "goals", "analytics", "notifications", "topSellings", "topOrders", "paymentBreakdowns", "reports");
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager("customers", "orders", "sales", "payments", "products", "dashboard", "goals", "analytics", "notifications", "topSellings", "topOrders", "paymentBreakdowns", "reports", "userSettings");
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(10, TimeUnit.MINUTES)
                 .maximumSize(1000));
         return cacheManager;
     }
 }
+*/

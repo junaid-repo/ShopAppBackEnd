@@ -1,5 +1,6 @@
 package com.management.shop.entity;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -20,7 +21,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Entity
 @Table(name="shop_product")
-public class ProductEntity {
+public class ProductEntity implements Serializable {
 	
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)

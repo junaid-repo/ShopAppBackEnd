@@ -3551,6 +3551,7 @@ public class ShopService {
         return response;
     }
 
+    @Cacheable(value = "productCategories", key = "#root.target.extractUsername()")
     public List<String> getCategories() {
 
         List<String> response = new ArrayList<>();

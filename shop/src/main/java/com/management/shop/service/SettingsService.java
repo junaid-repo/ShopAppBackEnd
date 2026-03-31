@@ -10,6 +10,7 @@ import com.management.shop.repository.NotificationSettingsRepository;
 import com.management.shop.repository.ReportRecodsRepository;
 import com.management.shop.repository.UserSettingsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -122,6 +123,7 @@ public class SettingsService {
         return "saved";
     }
 
+    @Cacheable(value = "userSettings", key = "#root.target.extractUsername()")
     public ShopSettings getFullUserSettings() {
         System.out.println("Current user: " + extractUsername());
         UserSettingsEntity userSettings = settingsRepo.findByUsername(extractUsername());

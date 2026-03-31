@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Builder
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name="shop_customer")
-public class CustomerEntity {
+public class CustomerEntity implements Serializable {
 	
 	@Id
 	@GeneratedValue(strategy=GenerationType.AUTO)

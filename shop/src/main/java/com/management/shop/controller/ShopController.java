@@ -1204,7 +1204,7 @@ public class ShopController {
 
     @PostMapping("api/shop/add-categories")
     public ResponseEntity<SaveCategoryDto> saveCategories(@RequestBody Map<String, List> newCategories) {
-        log.info("Entered getCategories controller");
+        log.info("Entered saveCategories controller");
         SaveCategoryDto response= serv.saveCategories(newCategories);
 
         return ResponseEntity.ok(response);

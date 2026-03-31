@@ -1,5 +1,6 @@
 package com.management.shop.dto;
 
+import java.io.Serializable;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class AnalyticsResponse {
+public class AnalyticsResponse implements Serializable {
 	private List<String> labels;
 	private List<Long> revenues;
 	private List<Long> stocks;

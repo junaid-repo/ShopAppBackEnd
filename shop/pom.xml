@@ -135,11 +135,11 @@
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
 
-        <dependency>
+   <!--     <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>3.1.8</version> <!-- check latest stable -->
-        </dependency>
+            <version>3.1.8</version> &lt;!&ndash; check latest stable &ndash;&gt;
+        </dependency>-->
 
         <!-- ZXing core -->
         <dependency>
