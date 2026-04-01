@@ -1441,7 +1441,12 @@ public class ShopService {
         String username = "";
 
         if (orderReferenceNumber != null) {
-            BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+            BillingEntity billDetails = null;
+            try {
+                billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+            } catch (Exception e) {
+                billRepo.findOrderByReference(orderReferenceNumber, extractUsername());
+            }
             username = billDetails.getUserId();
         }
 
