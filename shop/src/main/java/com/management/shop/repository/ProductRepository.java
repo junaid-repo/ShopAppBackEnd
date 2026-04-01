@@ -129,4 +129,8 @@ AND p.updated_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)
     ProductEntity findByNameAndUserId(String productName, String s);
 
 
+    @Modifying
+    @Transactional
+    @Query("update ProductEntity  pe set pe.stock = pe.stock + :quantity, pe.updatedBy = :username, pe.updatedDate = :updatedDate where pe.id = :productId and pe.userId = :username")
+    void restoreProductStocks(@Param("productId") Integer productId,@Param("quantity") Integer quantity, @Param("username")String username, @Param("updatedDate")LocalDateTime now);
 }

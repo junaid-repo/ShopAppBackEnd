@@ -6,6 +6,7 @@ import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.management.shop.gobalusers.constants.EventConstants;
 import com.management.shop.gobalusers.dto.*;
+import com.management.shop.gobalusers.entity.InvoiceSequence;
 import com.management.shop.gobalusers.entity.RegisterUserOTPEntity;
 import com.management.shop.gobalusers.entity.UserInfo;
 import com.management.shop.gobalusers.entity.UserPaymentModes;
@@ -76,6 +77,9 @@ public class AuthService {
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
+    @Autowired
+    InvoiceSequenceRepository invoiceSeqRepo;
+
     public AuthService(AuthenticationManager authenticationManager, JwtService jwtService) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
@@ -130,8 +134,8 @@ public class AuthService {
                     otpRepo.save(regsiterUserTemp);
                     return RegisterResponse.builder().message("User created successfully. Please verify the OTP sent to your email to activate your account.").success(true).username(validateContactResponse.getUsername()).build();
                 } else {
-                    log.error("Failed to send OTP email to " + regRequest.getEmail() + ". Mailjet response status: " + mailResponse.getStatus());
-                    return RegisterResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+                    log.error("Failed to send OTP phone to " + regRequest.getEmail() + ". Mailjet response status: " + mailResponse.getStatus());
+                    return RegisterResponse.builder().message("Failed to send OTP phone. Please try again later.").success(false).build();
                 }
             }
         }
@@ -175,8 +179,8 @@ public class AuthService {
                     otpRepo.save(regsiterUserTemp);
                     return RegisterResponse.builder().message("User created successfully. Please verify the OTP sent to your email to activate your account.").success(true).username(res.getUsername()).build();
                 } else {
-                    log.error("Failed to send OTP email to " + regRequest.getEmail() + ". Mailjet response status: " + mailResponse.getStatus());
-                    return RegisterResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+                    log.error("Failed to send OTP phone to " + regRequest.getEmail() + ". Mailjet response status: " + mailResponse.getStatus());
+                    return RegisterResponse.builder().message("Failed to send OTP phone. Please try again later.").success(false).build();
                 }
             }
         }
@@ -262,7 +266,22 @@ public class AuthService {
             userinfoRepo.updateUserStatus(res.getUsername());
             UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-            paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
+            paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("SYSTEM").updatedBy("SYSTEM").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
+
+            var invoiceSequence= InvoiceSequence.builder().shopId(res.getUsername())
+                            .financialYear("2026")
+                                    .prefix("CB")
+                    .updatedDate(LocalDateTime.now())
+                    .username(res.getUsername())
+                                            .currentValue(0)
+                                                    .build();
+
+            try {
+                invoiceSeqRepo.save(invoiceSequence);
+            } catch (Exception e) {
+
+            }
+
 
             String htmlContent = emailTemplateUtil.registerUserSucess(userInfo.getName(), userInfo.getUsername());
 

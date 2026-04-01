@@ -5,6 +5,7 @@ import com.management.shop.dto.ReportSchedulerSettings;
 import com.management.shop.dto.SchedulerSettings;
 import com.management.shop.dto.ShopSettings;
 import com.management.shop.dto.UiSettings;
+import com.management.shop.repository.SelectedInvoiceRepository;
 import com.management.shop.service.SettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ public class SettingsController {
 
     @Autowired
     SettingsService serv;
+
 
     @PutMapping("api/shop/settings/user/save/ui")
     ResponseEntity<Map<String, String>> saveUserUISettings(@RequestBody UiSettings request) {

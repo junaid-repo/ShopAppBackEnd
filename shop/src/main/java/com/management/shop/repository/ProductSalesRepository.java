@@ -12,8 +12,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity, Integer>{
 
-	@Query(value="select * from product_sales where billing_id=?1 and user_id=?2", nativeQuery=true)
-	List<ProductSalesEntity> findByOrderId(Integer id, String userId);
+    // 🟢 Left untouched so the frontend modal can still fetch items for cancelled invoices
+    @Query(value="select * from product_sales where billing_id=?1 and user_id=?2", nativeQuery=true)
+    List<ProductSalesEntity> findByOrderId(Integer id, String userId);
 
     @Query(value = "SELECT sp.name AS productName, " +
             "       sp.category AS category, " +
@@ -27,7 +28,7 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             "JOIN billing_details bd ON ps.billing_id = bd.id " +
             "JOIN shop_product sp ON ps.product_id = sp.id " +
             "WHERE bd.created_date BETWEEN :fromDate AND :toDate " +
-            "  AND bd.user_id = :userId " +
+            "  AND bd.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
             "GROUP BY sp.id, sp.name, sp.category, ps.total, ps.tax, bd.invoice_number " +
             "ORDER BY invoiceDate DESC",
             nativeQuery = true)
@@ -35,7 +36,6 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate,
             @Param("userId") String userId);
-
 
     @Query(value = """
             SELECT
@@ -47,7 +47,7 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             FROM product_sales ps
             JOIN shop_product sp ON ps.product_id = sp.id
             JOIN billing_details bd ON ps.billing_id = bd.id
-            WHERE ps.user_id = :userId
+            WHERE ps.user_id = :userId AND bd.invoice_status = 'ACTIVE'
               AND bd.created_date BETWEEN :startDate AND :endDate
             GROUP BY sp.id, sp.name, sp.category, sp.stock
             ORDER BY unitsSold DESC
@@ -72,7 +72,7 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             FROM product_sales ps
             JOIN shop_product sp ON ps.product_id = sp.id
             JOIN billing_details bd ON ps.billing_id = bd.id
-            WHERE ps.user_id = :userId
+            WHERE ps.user_id = :userId AND bd.invoice_status = 'ACTIVE'
               AND bd.created_date BETWEEN :startDate AND :endDate
             GROUP BY sp.id, sp.name, sp.category, sp.stock
             ORDER BY revenue DESC
@@ -84,16 +84,15 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             @Param("endDate") LocalDateTime endDate,
             @Param("count") int count);
 
-
     @Query(value = "SELECT sp.name AS productName, " +
             "SUM(ps.quantity) AS totalQuantity " +
             "FROM product_sales ps " +
             "JOIN billing_details bd ON ps.billing_id = bd.id " +
-            "JOIN shop_product sp ON ps.product_id = sp.id " + // <-- 1. JOINED shop_product
+            "JOIN shop_product sp ON ps.product_id = sp.id " +
             "WHERE bd.created_date BETWEEN :fromDate AND :toDate " +
-            "AND bd.user_id = :userId " +
-            "AND sp.name IS NOT NULL AND sp.name != '' " + // <-- 2. FILTERED null/empty names
-            "GROUP BY sp.name " + // <-- Group by the REAL name
+            "AND bd.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
+            "AND sp.name IS NOT NULL AND sp.name != '' " +
+            "GROUP BY sp.name " +
             "ORDER BY totalQuantity DESC " +
             "LIMIT :n",
             nativeQuery = true)
@@ -103,6 +102,7 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             @Param("userId") String userId,
             @Param("n") Integer n
     );
+
     @Query(value = "SELECT " +
             "    p.hsn as hsn, " +
             "    p.name as productName, " +
@@ -120,7 +120,7 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             "    billing_details b ON ps.billing_id = b.id AND ps.user_id = b.user_id " +
             "WHERE " +
             "    b.created_date BETWEEN ?1 AND ?2 " +
-            "    AND ps.user_id = ?3 " +
+            "    AND ps.user_id = ?3 AND b.invoice_status = 'ACTIVE' " +
             "GROUP BY " +
             "    p.hsn, p.name " +
             "ORDER BY " +
@@ -143,22 +143,25 @@ public interface ProductSalesRepository extends JpaRepository<ProductSalesEntity
             "    billing_details b ON ps.billing_id = b.id AND ps.user_id = b.user_id " +
             "WHERE " +
             "    b.created_date BETWEEN ?1 AND ?2 " +
-            "    AND ps.user_id = ?3 " +
+            "    AND ps.user_id = ?3 AND b.invoice_status = 'ACTIVE' " +
             "GROUP BY " +
             "    DATE_FORMAT(b.created_date, '%Y-%m') " +
             "ORDER BY " +
             "    monthYear ASC", nativeQuery = true)
     List<MonthlyGstSummaryDto> findMonthlyGstSummary(LocalDateTime fromDate, LocalDateTime toDate, String userId);
 
+    // 🟢 UPDATED: Added JOIN to billing_details to filter by ACTIVE status
     @Query(value = "SELECT COALESCE(sp.category, 'Uncategorized') AS category_name, " +
             "SUM(ps.total) AS total_revenue " +
             "FROM product_sales ps " +
+            "JOIN billing_details bd ON ps.billing_id = bd.id " +
             "LEFT JOIN shop_product sp ON ps.product_id = sp.id " +
-            "WHERE ps.user_id = :userId " +
+            "WHERE ps.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
             "AND ps.updated_at >= :startDate AND ps.updated_at <= :endDate " +
             "GROUP BY sp.category " +
             "ORDER BY total_revenue DESC",
             nativeQuery = true)
     List<Object[]> getRevenueByCategory(@Param("startDate") LocalDateTime startDate,
                                         @Param("endDate") LocalDateTime endDate,
-                                        @Param("userId") String userId);}
+                                        @Param("userId") String userId);
+}

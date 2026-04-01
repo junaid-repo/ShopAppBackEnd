@@ -19,17 +19,18 @@ import com.management.shop.entity.BillingEntity;
 
 public interface BillingRepository extends JpaRepository<BillingEntity, Integer> {
 
-	@Query(value = "select * from billing_details where invoice_number=?1  and user_id = ?2", nativeQuery = true)
-	BillingEntity findOrderByReference(String orderReferenceNumber, String userId);
+    // Keep this without ACTIVE check so users can still view details of cancelled orders
+    @Query(value = "select * from billing_details where invoice_number=?1 and user_id = ?2", nativeQuery = true)
+    BillingEntity findOrderByReference(String orderReferenceNumber, String userId);
 
-	@Query(value = "select * from billing_details where created_date BETWEEN ?1 AND ?2 and user_id=?3", nativeQuery = true)
-	List<BillingEntity> findPaymentsByDateRange(LocalDateTime fromDate, LocalDateTime toDate, String userId);
+    @Query(value = "select * from billing_details where created_date BETWEEN ?1 AND ?2 and user_id=?3 and invoice_status = 'ACTIVE'", nativeQuery = true)
+    List<BillingEntity> findPaymentsByDateRange(LocalDateTime fromDate, LocalDateTime toDate, String userId);
 
-	@Query(value = "select * from billing_details where created_date>=?1  and user_id = ?2", nativeQuery = true)
-	List<BillingEntity> findAllByDayRange(LocalDateTime localDateTime, String userId);
+    @Query(value = "select * from billing_details where created_date>=?1 and user_id = ?2 and invoice_status = 'ACTIVE'", nativeQuery = true)
+    List<BillingEntity> findAllByDayRange(LocalDateTime localDateTime, String userId);
 
-	@Query(value = "SELECT * FROM billing_details WHERE created_date >= ?1 	   AND created_date < ?2 and user_id=?3", nativeQuery = true)
-	List<BillingEntity> findAllCreatedToday(LocalDateTime startOfDay, LocalDateTime endOfDay, String userId);
+    @Query(value = "SELECT * FROM billing_details WHERE created_date >= ?1 AND created_date < ?2 and user_id=?3 and invoice_status = 'ACTIVE'", nativeQuery = true)
+    List<BillingEntity> findAllCreatedToday(LocalDateTime startOfDay, LocalDateTime endOfDay, String userId);
 
     @Query(value = "SELECT DATE_FORMAT(bp.created_date, '%b') AS month, " +
             "SUM(bp.total) AS count, " +
@@ -37,7 +38,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "FROM billing_payments bp " +
             "JOIN billing_details bd ON bp.billing_id = bd.id " +
             "WHERE bp.created_date BETWEEN :fromDate AND :toDate " +
-            "AND bp.user_id = :userId " +
+            "AND bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
             "GROUP BY MONTH(bp.created_date), DATE_FORMAT(bp.created_date, '%b') " +
             "ORDER BY MONTH(bp.created_date)",
             nativeQuery = true)
@@ -49,35 +50,38 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "SUM(ps.quantity) AS totalStocksSold " +
             "FROM billing_payments bp " +
             "JOIN product_sales ps ON bp.id = ps.billing_id " +
+            "JOIN billing_details bd ON bp.billing_id = bd.id " + // Added join to check status
             "WHERE bp.created_date BETWEEN :fromDate AND :toDate " +
-            "AND bp.user_id = :userId " +
-               "GROUP BY MONTH(bp.created_date), DATE_FORMAT(bp.created_date, '%b') " +
-                       "ORDER BY MONTH(bp.created_date)", nativeQuery = true)
+            "AND bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
+            "GROUP BY MONTH(bp.created_date), DATE_FORMAT(bp.created_date, '%b') " +
+            "ORDER BY MONTH(bp.created_date)", nativeQuery = true)
     List<Object[]> getMonthlyStocksSold(@Param("fromDate") LocalDateTime fromDate,
                                         @Param("toDate") LocalDateTime toDate,
                                         @Param("userId") String userId);
 
+    @Query(value = "SELECT DATE_FORMAT(bp.created_date, '%b') AS month, " +
+            "SUM(bp.tax) AS count " +
+            "FROM billing_payments bp " +
+            "JOIN billing_details bd ON bp.billing_id = bd.id " + // Added join to check status
+            "WHERE bp.created_date BETWEEN :fromDate AND :toDate AND bp.user_id=:userId AND bd.invoice_status = 'ACTIVE' " +
+            "GROUP BY MONTH(bp.created_date), DATE_FORMAT(bp.created_date, '%b') " +
+            "ORDER BY MONTH(bp.created_date)", nativeQuery = true)
+    List<Object[]> getMonthlyTaxesSummary(@Param("fromDate") LocalDateTime fromDate,
+                                          @Param("toDate") LocalDateTime toDate, @Param("userId") String userId);
 
-	@Query(value = "SELECT DATE_FORMAT(created_date, '%b') AS month, " + "SUM(tax) AS count " + "FROM billing_payments "
-			+ "WHERE created_date BETWEEN :fromDate AND :toDate and user_id=:userId "
-			+ "GROUP BY MONTH(created_date), DATE_FORMAT(created_date, '%b') "
-			+ "ORDER BY MONTH(created_date)", nativeQuery = true)
-	List<Object[]> getMonthlyTaxesSummary(@Param("fromDate") LocalDateTime fromDate,
-			@Param("toDate") LocalDateTime toDate, @Param("userId") String userId);
-
-    @Query(value = "select * from billing_details where user_id=?1 and created_date BETWEEN ?2 AND ?3", nativeQuery = true)
+    @Query(value = "select * from billing_details where user_id=?1 and created_date BETWEEN ?2 AND ?3 and invoice_status = 'ACTIVE'", nativeQuery = true)
     List<BillingEntity> findAllWithUserId(String userId, LocalDateTime startDate, LocalDateTime endDate);
 
-    @Query(value = "select * from billing_details where user_id=?1 order by created_date desc limit ?2", nativeQuery = true)
+    @Query(value = "select * from billing_details where user_id=?1 and invoice_status = 'ACTIVE' order by created_date desc limit ?2", nativeQuery = true)
     List<BillingEntity> findNNumberWithUserId(String userId, int count);
 
-    @Query(value = "select * from billing_details where user_id=?1", nativeQuery = true)
+    @Query(value = "select * from billing_details where user_id=?1 ", nativeQuery = true)
     Page<BillingEntity> findAllByUserId(String userId, Pageable pageable);
 
     @Query(
             value = "SELECT b.* FROM billing_details b " +
                     "JOIN shop_customer s ON b.customer_id = s.id " +
-                    "WHERE b.user_id = :userId " +
+                    "WHERE b.user_id = :userId  " +
                     "AND (" +
                     "  LOWER(b.invoice_number) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
                     "  OR LOWER(s.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
@@ -85,7 +89,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
                     ")",
             countQuery = "SELECT COUNT(*) FROM billing_details b " +
                     "JOIN shop_customer s ON b.customer_id = s.id " +
-                    "WHERE b.user_id = :userId " +
+                    "WHERE b.user_id = :userId  " +
                     "AND (" +
                     "  LOWER(b.invoice_number) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
                     "  OR LOWER(s.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
@@ -103,34 +107,39 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "SUM(ps.quantity) AS totalStocksSold " +
             "FROM billing_payments bp " +
             "JOIN product_sales ps ON bp.id = ps.billing_id " +
+            "JOIN billing_details bd ON bp.billing_id = bd.id " + // Added join to check status
             "WHERE bp.created_date BETWEEN DATE_SUB(:currentDateMax, INTERVAL 6 DAY) AND :currentDateMax " +
-            "AND bp.user_id = :userId " +
+            "AND bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
             "GROUP BY DATE(bp.created_date), DATE_FORMAT(bp.created_date, '%a') " +
             "ORDER BY DATE(bp.created_date)",
             nativeQuery = true)
     List<Object[]> getWeeklyStocksSold(@Param("fromDate") LocalDateTime fromDate,
-                                        @Param("currentDateMax") LocalDateTime currentDateMax,
-                                        @Param("userId") String userId);
+                                       @Param("currentDateMax") LocalDateTime currentDateMax,
+                                       @Param("userId") String userId);
 
-
-
+    // Refactored to match your cleaner CTE approach so cancelled payments don't bleed into left joins
     @Query(value = "WITH RECURSIVE days AS ( " +
             "  SELECT DATE(DATE_SUB(:currentDateMax, INTERVAL 6 DAY)) AS d " +
             "  UNION ALL " +
             "  SELECT DATE_ADD(d, INTERVAL 1 DAY) FROM days WHERE d < DATE(:currentDateMax) " +
+            "), " +
+            "daily_sales AS ( " +
+            "  SELECT DATE(bp.created_date) AS sale_date, SUM(bp.total) AS count, SUM(bd.total_profit_oncp) AS totalProfit " +
+            "  FROM billing_payments bp " +
+            "  JOIN billing_details bd ON bp.billing_id = bd.id " +
+            "  WHERE bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
+            "  GROUP BY sale_date " +
             ") " +
-            "SELECT DATE_FORMAT(d, '%a') AS day, " +
-            "COALESCE(SUM(bp.total), 0) AS count, " +
-            "COALESCE(SUM(bd.total_profit_oncp), 0) AS totalProfit " +
-            "FROM days " +
-            "LEFT JOIN billing_payments bp ON DATE(bp.created_date) = d AND bp.user_id = :userId " +
-            "LEFT JOIN billing_details bd ON bp.billing_id = bd.id " +
-            "GROUP BY d " +
-            "ORDER BY d",
+            "SELECT DATE_FORMAT(d.d, '%a') AS day, " +
+            "COALESCE(ds.count, 0) AS count, " +
+            "COALESCE(ds.totalProfit, 0) AS totalProfit " +
+            "FROM days d " +
+            "LEFT JOIN daily_sales ds ON d.d = ds.sale_date " +
+            "ORDER BY d.d",
             nativeQuery = true)
     List<Object[]> getWeeklySalesSummary(@Param("fromDate") LocalDateTime fromDate,
-                                          @Param("currentDateMax") LocalDateTime currentDateMax,
-                                          @Param("userId") String userId);
+                                         @Param("currentDateMax") LocalDateTime currentDateMax,
+                                         @Param("userId") String userId);
 
     @Query(value = "WITH RECURSIVE days AS ( " +
             "  SELECT DATE(DATE_SUB(:currentDateMax, INTERVAL 6 DAY)) AS d " +
@@ -142,19 +151,19 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "    DATE(bp.created_date) AS sale_date, " +
             "    SUM(bd.total_amount) AS daily_total, " +
             "    SUM(bd.total_profit_oncp) AS daily_profit, " +
-            "    SUM(bd.units_sold) AS daily_stocks_sold " + // Added this line
+            "    SUM(bd.units_sold) AS daily_stocks_sold " +
             "  FROM billing_payments bp " +
             "  JOIN billing_details bd ON bp.billing_id = bd.id " +
-            "  WHERE bp.user_id = :userId AND bp.created_date >= DATE_SUB(:currentDateMax, INTERVAL 7 DAY) " +
+            "  WHERE bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' AND bp.created_date >= DATE_SUB(:currentDateMax, INTERVAL 7 DAY) " +
             "  GROUP BY sale_date " +
             ") " +
             "SELECT " +
             "  DATE_FORMAT(d.d, '%a') AS day, " +
             "  COALESCE(ds.daily_total, 0) AS count, " +
             "  COALESCE(ds.daily_profit, 0) AS totalProfit, " +
-            "  COALESCE(ds.daily_stocks_sold, 0) AS totalStocksSold " + // Updated to use 'ds' alias
+            "  COALESCE(ds.daily_stocks_sold, 0) AS totalStocksSold " +
             "FROM days d " +
-            "LEFT JOIN daily_sales ds ON d.d = ds.sale_date " + // Removed the join to daily_stocks
+            "LEFT JOIN daily_sales ds ON d.d = ds.sale_date " +
             "ORDER BY d.d",
             nativeQuery = true)
     List<Object[]> getWeeklySalesAndStocks(@Param("currentDateMax") LocalDateTime currentDateMax,
@@ -172,7 +181,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "    SUM(bd.total_profit_oncp) AS daily_profit " +
             "  FROM billing_payments bp " +
             "  JOIN billing_details bd ON bp.billing_id = bd.id " +
-            "  WHERE bp.user_id = :userId AND bp.created_date >= DATE_SUB(:currentDateMax, INTERVAL 7 DAY) " +
+            "  WHERE bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' AND bp.created_date >= DATE_SUB(:currentDateMax, INTERVAL 7 DAY) " +
             "  GROUP BY sale_date " +
             "), " +
             "stocks AS ( " +
@@ -181,7 +190,8 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "    SUM(ps.quantity) AS daily_stocks_sold " +
             "  FROM billing_payments bp " +
             "  JOIN product_sales ps ON bp.id = ps.billing_id " +
-            "  WHERE bp.user_id = :userId AND bp.created_date >= DATE_SUB(:currentDateMax, INTERVAL 7 DAY) " +
+            "  JOIN billing_details bd ON bp.billing_id = bd.id " + // Added join here too
+            "  WHERE bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' AND bp.created_date >= DATE_SUB(:currentDateMax, INTERVAL 7 DAY) " +
             "  GROUP BY sale_date " +
             ") " +
             "SELECT " +
@@ -190,12 +200,12 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "  COALESCE(ds.daily_profit, 0) AS totalProfit, " +
             "  COALESCE(d_stocks.daily_stocks_sold, 0) AS totalStocksSold " +
             "FROM days d " +
-            "LEFT JOIN daily_sales ds ON d.d = ds.sale_date " +
-            "LEFT JOIN daily_stocks d_stocks ON d.d = d_stocks.sale_date " +
+            "LEFT JOIN sales ds ON d.d = ds.sale_date " + // Fixed alias from ds to sales
+            "LEFT JOIN stocks d_stocks ON d.d = d_stocks.sale_date " +
             "ORDER BY d.d",
             nativeQuery = true)
     List<Object[]> getWeeklySalesAndStocksWeekly(@Param("currentDateMax") LocalDateTime currentDateMax,
-                                           @Param("userId") String userId);
+                                                 @Param("userId") String userId);
 
 
     @Query(value = "WITH time_slots AS ( " +
@@ -218,17 +228,17 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "    END AS slot_start_hour, " +
             "    SUM(bd.total_amount) AS hourly_total, " +
             "    SUM(bd.total_profit_oncp) AS hourly_profit, " +
-            "    SUM(bd.units_sold) AS hourly_stocks_sold " + // Fetches stocks from billing_details
+            "    SUM(bd.units_sold) AS hourly_stocks_sold " +
             "  FROM billing_payments bp " +
             "  JOIN billing_details bd ON bp.billing_id = bd.id " +
-            "  WHERE bp.user_id = :userId AND DATE(bp.created_date) = DATE(:currentDate) " +
+            "  WHERE bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' AND DATE(bp.created_date) = DATE(:currentDate) " +
             "  GROUP BY slot_start_hour " +
             ") " +
             "SELECT " +
             "  ts.slot_label AS timeOfDay, " +
             "  COALESCE(hs.hourly_total, 0) AS count, " +
             "  COALESCE(hs.hourly_profit, 0) AS totalProfit, " +
-            "  COALESCE(hs.hourly_stocks_sold, 0) AS totalStocksSold " + // Uses the new column from hourly_sales
+            "  COALESCE(hs.hourly_stocks_sold, 0) AS totalStocksSold " +
             "FROM time_slots ts " +
             "LEFT JOIN hourly_sales hs ON ts.start_hour = hs.slot_start_hour " +
             "ORDER BY ts.start_hour",
@@ -252,7 +262,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "  FROM weeks w " +
             "  JOIN billing_payments bp ON DATE(bp.created_date) BETWEEN DATE_SUB(w.week_end_date, INTERVAL 6 DAY) AND w.week_end_date " +
             "  JOIN billing_details bd ON bp.billing_id = bd.id " +
-            "  WHERE bp.user_id = :userId " +
+            "  WHERE bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
             "  GROUP BY w.week_end_date " +
             ") " +
             "SELECT " +
@@ -277,10 +287,10 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "    DATE(DATE_FORMAT(bp.created_date, '%Y-%m-01')) AS month_period, " +
             "    SUM(bd.total_amount) AS total, " +
             "    SUM(bd.total_profit_oncp) AS profit, " +
-            "    SUM(bd.units_sold) AS stocks_sold " + // Added this line
+            "    SUM(bd.units_sold) AS stocks_sold " +
             "  FROM billing_payments bp " +
             "  JOIN billing_details bd ON bp.billing_id = bd.id " +
-            "  WHERE bp.user_id = :userId " +
+            "  WHERE bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
             "    AND bp.created_date >= DATE(DATE_FORMAT(DATE_SUB(:currentDateMax, INTERVAL 11 MONTH), '%Y-%m-01')) " +
             "    AND bp.created_date <= :currentDateMax " +
             "  GROUP BY month_period " +
@@ -289,9 +299,9 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "  DATE_FORMAT(m.month_start, '%b %Y') AS period, " +
             "  COALESCE(ms.total, 0) AS count, " +
             "  COALESCE(ms.profit, 0) AS totalProfit, " +
-            "  COALESCE(ms.stocks_sold, 0) AS totalStocksSold " + // Updated to use 'ms' alias
+            "  COALESCE(ms.stocks_sold, 0) AS totalStocksSold " +
             "FROM months m " +
-            "LEFT JOIN monthly_sales ms ON m.month_start = ms.month_period " + // Removed the second join
+            "LEFT JOIN monthly_sales ms ON m.month_start = ms.month_period " +
             "ORDER BY m.month_start ASC",
             nativeQuery = true)
     List<Object[]> getSalesAndStocksYearly(@Param("currentDateMax") LocalDateTime currentDateMax,
@@ -300,7 +310,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     @Query(
             value = "SELECT * " +
                     "FROM billing_details " +
-                    "WHERE user_id = ?1 " +
+                    "WHERE user_id = ?1 AND invoice_status = 'ACTIVE' " +
                     "AND DATE(created_date) = CURRENT_DATE " +
                     "ORDER BY total_amount DESC " +
                     "LIMIT ?2",
@@ -311,7 +321,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     @Query(
             value = "SELECT * " +
                     "FROM billing_details " +
-                    "WHERE user_id = ?1 " +
+                    "WHERE user_id = ?1 AND invoice_status = 'ACTIVE' " +
                     "AND created_date >= CURDATE() - INTERVAL 7 DAY " +
                     "AND created_date < CURDATE() + INTERVAL 1 DAY " +
                     "ORDER BY total_amount DESC " +
@@ -323,7 +333,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     @Query(
             value = "SELECT * " +
                     "FROM billing_details " +
-                    "WHERE user_id = ?1 " +
+                    "WHERE user_id = ?1 AND invoice_status = 'ACTIVE' " +
                     "AND created_date >= CURDATE() - INTERVAL 1 MONTH " +
                     "AND created_date < CURDATE() + INTERVAL 1 DAY " +
                     "ORDER BY total_amount DESC " +
@@ -335,7 +345,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     @Query(
             value = "SELECT * " +
                     "FROM billing_details " +
-                    "WHERE user_id = ?1 " +
+                    "WHERE user_id = ?1 AND invoice_status = 'ACTIVE' " +
                     "AND created_date >= CURDATE() - INTERVAL 1 YEAR " +
                     "AND created_date < CURDATE() + INTERVAL 1 DAY " +
                     "ORDER BY total_amount DESC " +
@@ -347,7 +357,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     @Query(
             value = "SELECT * " +
                     "FROM billing_details " +
-                    "WHERE user_id = :userId " +
+                    "WHERE user_id = :userId AND invoice_status = 'ACTIVE' " +
                     "AND created_date >= :fromDate " +
                     "AND created_date < :toDate " +
                     "ORDER BY total_amount DESC ",
@@ -359,13 +369,11 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             @Param("toDate") LocalDateTime toDate
     );
 
-
-
     @Query(
             value = """
             SELECT *
             FROM billing_details
-            WHERE user_id = :userId
+            WHERE user_id = :userId AND invoice_status = 'ACTIVE'
               AND created_date BETWEEN :startDate AND :endDate
             ORDER BY total_amount DESC
             LIMIT :count
@@ -379,23 +387,21 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             @Param("count") int count
     );
 
+    // Kept without ACTIVE check so you can fetch details of cancelled orders
     BillingEntity findByInvoiceNumber(String orderNo);
 
     @Transactional
     @Modifying
-    @Query(value="update billing_details set due_reminder_count= due_reminder_count+1, updated_by=?2, updated_date=?3 where invoice_number=?1 and user_id=?2", nativeQuery = true)
+    @Query(value="update billing_details set due_reminder_count= due_reminder_count+1, updated_by=?2, updated_date=?3 where invoice_number=?1 and user_id=?2 and invoice_status = 'ACTIVE'", nativeQuery = true)
     void updateReminderCount(String orderNo, String username, LocalDateTime updatedDate);
 
     @Transactional
     @Modifying
-    @Query(value="update billing_details set paying_amount=paying_amount+?4, remaining_amount= remaining_amount-?4, updated_by=?2, updated_date=?3 where invoice_number=?1 and user_id=?2", nativeQuery = true)
+    @Query(value="update billing_details set paying_amount=paying_amount+?4, remaining_amount= remaining_amount-?4, updated_by=?2, updated_date=?3 where invoice_number=?1 and user_id=?2 and invoice_status = 'ACTIVE'", nativeQuery = true)
     void updateDuePayment(String orderNo, String username, LocalDateTime updatedDate, Double amount);
 
-    @Query(value="select count(*) from billing_details where user_id=?1 and created_date BETWEEN ?2 AND ?3", nativeQuery = true)
+    @Query(value="select count(*) from billing_details where user_id=?1 and created_date BETWEEN ?2 AND ?3 and invoice_status = 'ACTIVE'", nativeQuery = true)
     Integer countOrdersForToday(String username, LocalDateTime localDateTime, LocalDateTime localDateTime1);
-
-
-
 
     @Query(value = "SELECT " +
             "DATE_FORMAT(bp.created_date, '%b') AS month, " +
@@ -406,14 +412,13 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "FROM billing_payments bp " +
             "JOIN billing_details bd ON bp.billing_id = bd.id " +
             "WHERE bp.created_date BETWEEN :fromDate AND :toDate " +
-            "AND bp.user_id = :userId " +
+            "AND bp.user_id = :userId AND bd.invoice_status = 'ACTIVE' " +
             "GROUP BY MONTH(bp.created_date), DATE_FORMAT(bp.created_date, '%b') " +
             "ORDER BY MONTH(bp.created_date)",
             nativeQuery = true)
     List<Object[]> getMonthlyBillingSummary(@Param("fromDate") LocalDateTime fromDate,
                                             @Param("toDate") LocalDateTime toDate,
                                             @Param("userId") String userId);
-
 
     @Query(value = "SELECT " +
             "    c.name as name, " +
@@ -428,7 +433,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "    billing_details b ON c.id = b.customer_id AND c.user_id = b.user_id " +
             "WHERE " +
             "    b.created_date BETWEEN ?1 AND ?2 " +
-            "    AND c.user_id = ?3 " +
+            "    AND c.user_id = ?3 AND b.invoice_status = 'ACTIVE' " +
             "GROUP BY " +
             "    c.id, c.name, c.email, c.phone " +
             "ORDER BY " +
@@ -450,7 +455,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "    product_sales ps ON b.id = ps.billing_id AND b.user_id = ps.user_id " +
             "WHERE " +
             "    b.created_date BETWEEN ?1 AND ?2 " +
-            "    AND b.user_id = ?3 " +
+            "    AND b.user_id = ?3 AND b.invoice_status = 'ACTIVE' " +
             "GROUP BY " +
             "    c.state " +
             "ORDER BY " +
@@ -474,19 +479,20 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             "    product_sales ps ON b.id = ps.billing_id AND b.user_id = ps.user_id " +
             "WHERE " +
             "    b.created_date BETWEEN ?1 AND ?2 " +
-            "    AND b.user_id = ?3 " +
+            "    AND b.user_id = ?3 AND b.invoice_status = 'ACTIVE' " +
             "GROUP BY " +
-            "    c.id, c.name, c.phone, c.gst_number " + // Group by customer
+            "    c.id, c.name, c.phone, c.gst_number " +
             "ORDER BY " +
             "    totalGst DESC", nativeQuery = true)
     List<GstByCustomerDto> findGstByCustomer(LocalDateTime fromDate, LocalDateTime toDate, String userId);
 
+    // Kept without ACTIVE check so you can fetch details of cancelled orders
     @Query(value = "select * from billing_details where invoice_number=?1", nativeQuery = true)
     BillingEntity findOrderByJustReference(String orderReferenceNumber);
 
     @Query(value = "SELECT HOUR(created_date) AS hour_of_day, COUNT(id) AS order_count " +
             "FROM billing_details " +
-            "WHERE user_id = :userId " +
+            "WHERE user_id = :userId AND invoice_status = 'ACTIVE' " +
             "AND created_date >= :startDate AND created_date <= :endDate " +
             "GROUP BY HOUR(created_date) " +
             "ORDER BY hour_of_day ASC",
@@ -495,12 +501,23 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
                                         @Param("endDate") LocalDateTime endDate,
                                         @Param("userId") String userId);
 
+    // Note: Kept without ACTIVE check as it reads directly from the pre-calculated `total_orders` column on shop_customer
     @Query(value = "SELECT " +
             "CASE WHEN total_orders > 1 THEN 'Returning' ELSE 'New' END AS customer_type, " +
             "COUNT(id) AS count " +
             "FROM shop_customer " +
-            "WHERE user_id = :userId AND total_orders > 0 " + // Only count customers who have actually purchased
+            "WHERE user_id = :userId AND total_orders > 0 " +
             "GROUP BY CASE WHEN total_orders > 1 THEN 'Returning' ELSE 'New' END",
             nativeQuery = true)
     List<Object[]> getCustomerRetentionSummary(@Param("userId") String userId);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE BillingEntity i SET i.invoiceStatus = :status, i.updatedDate = :now, i.updatedBy = :username WHERE i.invoiceNumber = :orderNumber AND i.userId = :username AND i.invoiceStatus = 'ACTIVE'")
+    void updateOrderStatus(
+            @Param("orderNumber") String orderNumber,
+            @Param("status") String status,
+            @Param("now") LocalDateTime now,
+            @Param("username") String username
+    );
 }

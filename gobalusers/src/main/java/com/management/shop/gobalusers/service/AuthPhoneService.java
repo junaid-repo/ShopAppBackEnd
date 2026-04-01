@@ -90,7 +90,7 @@ public class AuthPhoneService {
                     return RegisterResponse.builder().message("User created successfully. Please verify the OTP sent to your phone to activate your account.").success(true).username(validateContactResponse.getUsername()).build();
                 } else {
 
-                    return RegisterResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+                    return RegisterResponse.builder().message("Failed to send OTP sms. Please try again later.").success(false).build();
                 }
 
 
@@ -138,7 +138,7 @@ public class AuthPhoneService {
                     return RegisterResponse.builder().message("User created successfully. Please verify the OTP sent to your phone to activate your account.").success(true).username(userInfo.getUsername()).build();
                 } else {
 
-                    return RegisterResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+                    return RegisterResponse.builder().message("Failed to send OTP sms. Please try again later.").success(false).build();
                 }
             }
 
@@ -212,7 +212,7 @@ public class AuthPhoneService {
             return OtpVerifyResponse.builder().message("User created successfully. Please verify the OTP sent to your phone to activate your account.").success(true).username(otpVerifyReq.getUsername()).build();
         } else {
 
-            return OtpVerifyResponse.builder().message("Failed to send OTP email. Please try again later.").success(false).build();
+            return OtpVerifyResponse.builder().message("Failed to send OTP sms. Please try again later.").success(false).build();
         }
     }
 

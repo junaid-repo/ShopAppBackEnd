@@ -38,6 +38,7 @@ public class BillingEntity {
     private String remarks;
     private String gstin;
     private Double totalProfitOnCP;
+    private String invoiceStatus;
     private Integer dueReminderCount;
 	private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
@@ -45,21 +46,6 @@ public class BillingEntity {
     private String updatedBy;
     private String userId;
 
-	
-	/* @PostPersist
-	    public void generateOrderNumberOnPersist() {
-	        // Ensure the ID is available and orde  rNumber hasn't been set yet
-	        if (this.id != null && this.invoiceNumber == null) {
-	            // Format the current date into YYYYMMDD (e.g., 20230818)
-	            String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-	      
-	            String sequentialPart = String.format("%04d", this.id);
-
-
-	            this.invoiceNumber = "FMS-" + datePart + "-" + sequentialPart;
-
-	        }
-	    }*/
 
 }

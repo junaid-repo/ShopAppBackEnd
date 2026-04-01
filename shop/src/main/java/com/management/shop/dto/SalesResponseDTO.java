@@ -20,6 +20,7 @@ public class SalesResponseDTO {
     private Double paid;
     private String gstin;
     private String method;
+    private String customerEmail;
     private Integer count;
     private Integer reminderCount;
 	

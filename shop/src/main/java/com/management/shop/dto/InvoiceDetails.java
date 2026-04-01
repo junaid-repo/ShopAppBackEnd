@@ -30,4 +30,5 @@ public class InvoiceDetails {
         private String orderedDate;
         private Integer customerId;
         private Integer reminderCount;
+        private String status;
 }

@@ -184,6 +184,9 @@ public class ShopService {
     @Autowired
     SettingsService setServ;
 
+    @Autowired
+    InvoiceSequenceRepository invoiceSeqRepo;
+
     private final Random random = new Random();
 
 
@@ -696,191 +699,7 @@ public class ShopService {
         return response;
     }
 
-    @Transactional
-    public BillingResponse doPayment(BillingRequest request) throws Exception {
 
-
-        checkAnonymousCustomer(request);
-
-        Integer unitsSold = 0;
-        for (var obj : request.getCart()) {
-            unitsSold += obj.getQuantity();
-        }
-
-        UserSettingsEntity userSettingsEntity = userSettingsRepo.findByUsername(extractUsername());
-        Boolean sendInvoice = true;
-
-        var billingEntity = BillingEntity.builder().customerId(request.getSelectedCustomer().getId())
-                .unitsSold(unitsSold).taxAmount(request.getTax()).userId(extractUsername()).totalAmount(request.getTotal())
-                .payingAmount(request.getPayingAmount())
-                .gstin(request.getGstin())
-                .dueReminderCount(0)
-                .remainingAmount(request.getRemainingAmount())
-                .discountPercent(request.getDiscountPercentage()).remarks(request.getRemarks()).subTotalAmount(request.getTotal() - request.getTax()).createdDate(LocalDateTime.now()).build();
-
-
-        BillingEntity billResponse = billRepo.save(billingEntity);
-
-        if (userSettingsEntity != null) {
-            sendInvoice = userSettingsEntity.getAutoSendInvoice();
-            String orderPrefix = userSettingsEntity.getSerialNumberPattern();
-
-            String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
-
-            String sequentialPart = String.format("%04d", billResponse.getId());
-            String invoiceNumber = "FMS-" + datePart + "-" + sequentialPart;
-            if (orderPrefix != null) {
-                invoiceNumber = orderPrefix + "-" + datePart + "-" + sequentialPart;
-
-                billResponse.setInvoiceNumber(invoiceNumber);
-                billRepo.save(billResponse);
-            } else {
-                billResponse.setInvoiceNumber(invoiceNumber);
-                billRepo.save(billResponse);
-            }
-        }
-
-        final Double[] totalProfitOnCP = {0d};
-        if (billResponse.getId() != null) {
-            request.getCart().stream().forEach(obj -> {
-
-                ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getId(), extractUsername());
-                log.info("Product details " + prodRes);
-                Double tax = (prodRes.getTaxPercent() * obj.getQuantity() * obj.getPrice()) / 100;
-                Double discountedTotal = 0d;
-
-                if (obj.getDiscountPercentage() != 0) {
-                    discountedTotal = obj.getPrice() - (obj.getDiscountPercentage() * obj.getPrice()) / 100;
-                    obj.setPrice(discountedTotal);
-                } else
-                    discountedTotal = (double) obj.getPrice();
-
-                Double total = (double) (obj.getQuantity() * Math.round(discountedTotal));
-                //Integer subTotal = total- tax;
-                Double profitOnCp = (discountedTotal - prodRes.getCostPrice()) * obj.getQuantity();
-                totalProfitOnCP[0] = totalProfitOnCP[0] + Math.round(profitOnCp);
-
-                ProductSalesEntity gstCalc = getGSTBreakDown(request.getSelectedCustomer(), obj, prodRes, extractUsername());
-
-                var productSalesEntity = ProductSalesEntity.builder().billingId(billResponse.getId())
-                        .profitOnCP(profitOnCp)
-                        .sgstPercentage(gstCalc.getSgstPercentage())
-                        .sgst(gstCalc.getSgst())
-                        .cgstPercentage(gstCalc.getCgstPercentage())
-                        .cgst(gstCalc.getCgst())
-                        .igstPercentage(gstCalc.getIgstPercentage())
-                        .igst(gstCalc.getIgst())
-                        .productId(obj.getId())
-                        .productDetails(obj.getDetails())
-                        .userId(extractUsername())
-                        .discountPercentage(obj.getDiscountPercentage())
-                        .quantity(obj.getQuantity())
-                        .tax(gstCalc.getTax())
-                        .subTotal(gstCalc.getSubTotal())
-                        .total(total)
-                        .updatedAt(LocalDateTime.now())
-                        .build();
-
-                ProductSalesEntity prodSalesResponse = prodSalesRepo.save(productSalesEntity);
-
-
-                try {
-                    String saveGSTListing = billingProcess.saveGstListing(billResponse.getInvoiceNumber(), extractUsername());
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                if (!userSettingsEntity.getAllowNoStockBilling()) {
-                    if (prodSalesResponse.getId() != null) {
-                        prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), extractUsername(), LocalDateTime.now());
-
-                    }
-                }
-
-            });
-
-
-            billResponse.setTotalProfitOnCP(totalProfitOnCP[0]);
-            Runnable rn = () ->
-            {
-                billRepo.save(billResponse);
-
-            };
-            rn.run();
-
-
-            String paymentMethod = "CASH";
-            if (request.getPaymentMethod() != null) {
-                paymentMethod = request.getPaymentMethod();
-            }
-            String payingStatus = "Paid";
-
-            if (request.getTotal() > request.getPayingAmount()) {
-                payingStatus = "SemiPaid";
-            }
-            if (request.getPayingAmount() == 0) {
-                payingStatus = "UnPaid";
-            }
-
-
-            var paymentEntity = PaymentEntity.builder().billingId(billResponse.getId()).createdDate(LocalDateTime.now())
-                    .paymentMethod(paymentMethod).status(payingStatus).tax(request.getTax()).userId(extractUsername())
-                    .orderNumber(billResponse.getInvoiceNumber())
-                    .paid(request.getPayingAmount())
-                    .toBePaid(request.getRemainingAmount())
-                    .reminderCount(0)
-                    .updatedBy(extractUsername())
-                    .updatedDate(LocalDateTime.now())
-                    .subtotal(request.getTotal() - request.getTax()).total(request.getTotal()).build();
-
-
-            salesPaymentRepo.save(paymentEntity);
-
-            try {
-                String savePaymentHistory = utils.asyncSavePaymentHistory(billResponse.getId(), paymentEntity.getId(), request.getPayingAmount(), billResponse.getInvoiceNumber());
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            try {
-                //shopRepo.updateCustomerSpentAmount(request.getSelectedCustomer().getId(), request.getTotal(), extractUsername());
-                shopRepo.updateCustomerSpentAmountAndOrdersCount(request.getSelectedCustomer().getId(), request.getTotal(), extractUsername());
-            } catch (Exception e) {
-                // TODO Auto-generated catch block,
-                e.printStackTrace();
-            }
-
-
-            if (sendInvoice && !(request.getSelectedCustomer().getName().equals("Anonymous"))) {
-
-                try {
-                    sendInvoiceOverEmail(billResponse);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-
-            }
-            try {
-                salesCacheService.evictUserSales(extractUsername());
-                salesCacheService.evictUserProducts(extractUsername());
-                salesCacheService.evictUserPayments(extractUsername());
-                salesCacheService.evictUserCustomers(extractUsername());
-                salesCacheService.evictUserDasbhoard(extractUsername());
-                salesCacheService.evictsUserGoals(extractUsername());
-                salesCacheService.evictsUserAnalytics(extractUsername());
-                salesCacheService.evictsTopSelling(extractUsername());
-                salesCacheService.evictsTopOrders(extractUsername());
-                salesCacheService.evictsReportsCache(extractUsername());
-            } catch (Exception e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
-            return BillingResponse.builder().paymentReferenceNumber(paymentEntity.getPaymentReferenceNumber())
-                    .invoiceNumber(billResponse.getInvoiceNumber()).status("SUCCESS").build();
-        }
-
-        return BillingResponse.builder().status("FAILURE").build();
-    }
 
     @Transactional
     public BillingResponse doPayment2(BillingRequest request) throws Exception {
@@ -897,7 +716,7 @@ public class ShopService {
 
             // 2. Generate Invoice Number
             if (userSettings != null) {
-                assignInvoiceNumber(billResponse, userSettings);
+                assignInvoiceNumber2(billResponse, userSettings);
             }
 
             if (billResponse.getId() == null) {
@@ -909,6 +728,7 @@ public class ShopService {
 
             // 4. Update Bill with final profit
             billResponse.setTotalProfitOnCP(totalProfitOnCP);
+            billResponse.setInvoiceStatus("ACTIVE");
             billRepo.save(billResponse);
 
             // 5. Process Payment
@@ -986,6 +806,7 @@ public class ShopService {
                 .remarks(request.getRemarks())
                 .subTotalAmount(request.getTotal() - request.getTax())
                 .createdDate(LocalDateTime.now())
+                .invoiceStatus("PROCESSING")
                 .build();
 
         return billRepo.save(billingEntity);
@@ -996,9 +817,52 @@ public class ShopService {
         String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
         String sequentialPart = String.format("%04d", billResponse.getId());
 
-        String invoiceNumber = (orderPrefix != null ? orderPrefix : "FMS") + "-" + datePart + "-" + sequentialPart;
+
+
+        String invoiceNumber = (orderPrefix != null ? orderPrefix : "CB") + "-" + datePart + "-" + sequentialPart;
 
         billResponse.setInvoiceNumber(invoiceNumber);
+        billRepo.save(billResponse);
+    }
+
+    private void assignInvoiceNumber2(BillingEntity billResponse, UserSettingsEntity userSettings) {
+        String shopId = extractUsername();
+
+         LocalDate now = LocalDate.now();
+        int currentYear = now.getYear() % 100;
+        String financialYear;
+
+         if (now.getMonthValue() >= 4) {
+            financialYear = currentYear + "-" + (currentYear + 1);
+        } else {
+            financialYear = (currentYear - 1) + "-" + currentYear;
+        }
+
+        // 2. Fetch and lock the sequence row for THIS specific shop and FY
+        InvoiceSequence seq = invoiceSeqRepo.findAndLockByShopIdAndFinancialYear(shopId, financialYear)
+                .orElseGet(() -> {
+                    // If no sequence exists for this FY, initialize it
+                    InvoiceSequence newSeq = new InvoiceSequence();
+                    newSeq.setShopId(shopId);
+                    newSeq.setFinancialYear(financialYear);
+
+                    String prefix = userSettings.getSerialNumberPattern();
+                    newSeq.setPrefix((prefix != null && !prefix.trim().isEmpty()) ? prefix : "CB");
+                    newSeq.setCurrentValue(0);
+
+                    return newSeq;
+                });
+
+         int nextNumber = seq.getCurrentValue() + 1;
+        seq.setCurrentValue(nextNumber);
+        String prefix = userSettings.getSerialNumberPattern();
+         invoiceSeqRepo.save(seq);
+
+         String sequentialPart = String.format("%05d", nextNumber);
+
+         String invoiceNumber = (prefix != null && !prefix.trim().isEmpty()) ? prefix+ "-" + seq.getFinancialYear() + "-" + sequentialPart : "CB"+ "-" + seq.getFinancialYear() + "-" + sequentialPart;
+
+         billResponse.setInvoiceNumber(invoiceNumber);
         billRepo.save(billResponse);
     }
 
@@ -1310,10 +1174,21 @@ public class ShopService {
         List<SalesResponseDTO> dtoList = billingPage.getContent().stream()
                 .map(obj -> {
                     String customerName = null;
+                    String customerEmail=null;
                     String paymentStatus = null;
                     try {
-                        customerName = shopRepo.findByIdAndUserId(obj.getCustomerId(), username).getName();
-                        paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
+                   CustomerEntity custEntity=     shopRepo.findByIdAndUserId(obj.getCustomerId(), username);
+                        customerName = custEntity.getName();
+                        try {
+                            customerEmail=custEntity.getEmail();
+                        } catch (Exception e) {
+                            customerEmail="na";
+                        }
+
+                        if(obj.getInvoiceStatus().equals("CANCELLED"))
+                             paymentStatus ="CANCELLED";
+                         else
+                            paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -1328,6 +1203,7 @@ public class ShopService {
                             .status(paymentStatus)
                             .count(obj.getUnitsSold())
                             .gstin(obj.getGstin())
+                            .customerEmail(customerEmail)
                             .reminderCount(obj.getDueReminderCount())
                             .build();
                 })
@@ -1629,8 +1505,35 @@ public class ShopService {
                 .totalAmount(billDetails.getTotalAmount()).customerName(customerEntity.getName())
                 .paidAmount(paidAmount)
                 .dueAmount(dueAmount)
+                .status(billDetails.getInvoiceStatus())
                 .paid(paid).build();
         return response;
+    }
+
+    public String cancelOrder(String orderNumber, String reason){
+
+        String username=extractUsername();
+        BillingEntity billDetails = billRepo.findOrderByReference(orderNumber, username);
+        InvoiceDetails invoiceDetails=    getOrderDetails( orderNumber);
+
+        List<ProductSalesEntity> prodSales = prodSalesRepo.findByOrderId(billDetails.getId(), username);
+
+        prodSales.stream().forEach(j->{
+            prodRepo.restoreProductStocks(j.getProductId(), j.getQuantity(), username, LocalDateTime.now());
+        });
+
+        try {
+            shopRepo.updateCustomerSpentAmountAndOrdersCountForCancelled(billDetails.getCustomerId(), billDetails.getTotalAmount(), username);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        billRepo.updateOrderStatus(orderNumber, "CANCELLED", LocalDateTime.now(), username);
+
+
+        clearSalesCachesSafe(username);
+
+
+        return "Update Successful";
     }
 
     public InvoiceDetails getOrderDetailsNew(String orderReferenceNumber) {

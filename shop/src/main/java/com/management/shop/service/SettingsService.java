@@ -1,14 +1,8 @@
 package com.management.shop.service;
 
 import com.management.shop.dto.*;
-import com.management.shop.entity.GeminiTextExtract;
-import com.management.shop.entity.NotificationSetting;
-import com.management.shop.entity.ReportsRecordEntity;
-import com.management.shop.entity.UserSettingsEntity;
-import com.management.shop.repository.ApiSaveRepository;
-import com.management.shop.repository.NotificationSettingsRepository;
-import com.management.shop.repository.ReportRecodsRepository;
-import com.management.shop.repository.UserSettingsRepository;
+import com.management.shop.entity.*;
+import com.management.shop.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -33,6 +27,10 @@ public class SettingsService {
 
     @Autowired
     ReportRecodsRepository reportRecordsRepo;
+
+
+    @Autowired
+    SelectedInvoiceRepository invoiceRepo;
 
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -194,6 +192,10 @@ public class SettingsService {
     }
 
     private void saveUserSettings(String username) {
+
+      var invoiceLayout=  SelectedInvoiceEntity.builder().printerType("THERMAL_2").templateName("gstinvoiceThermal1").username(username).updatedBy(username).updatedDate(LocalDateTime.now()).build();
+
+        invoiceRepo.save(invoiceLayout);
 
         var userSettings = UserSettingsEntity.builder()
                 .allowNoStockBilling(Boolean.FALSE)

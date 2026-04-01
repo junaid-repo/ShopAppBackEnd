@@ -373,7 +373,7 @@ public class ShopController {
 
         log.info("the search param is -->" + search);
         Page<SalesResponseDTO> response = serv.getAllSales(page, size, sort, dir, search);
-
+        log.info("the getSalesList response is -->" + response);
         return ResponseEntity.status(HttpStatus.OK).body(response);
 
     }
@@ -603,9 +603,20 @@ public class ShopController {
     public ResponseEntity<InvoiceDetails> getOrderDetails(
             @PathVariable String saleId) {
 
-        log.info("Entered analytic getOrderDetails with payload-->" + saleId);
+        log.info("Entered   getOrderDetails with payload-->" + saleId);
 
         InvoiceDetails response = serv.getOrderDetails(saleId);
+
+        log.info("exiting   getOrderDetails with response-->" + response);
+        return ResponseEntity.ok(response);
+    }
+    @PutMapping("api/shop/invoice/cancel/{saleId}")
+    public ResponseEntity<String> cancelOrder(
+            @PathVariable String saleId) {
+
+        log.info("Entered analytic getOrderDetails with payload-->" + saleId);
+
+        String response = serv.cancelOrder(saleId, "orderd by mistake");
 
 
         return ResponseEntity.ok(response);

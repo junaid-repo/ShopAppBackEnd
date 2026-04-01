@@ -30,6 +30,11 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
     @Query(value = "UPDATE shop_customer  SET total_spent = total_spent + ?2, total_orders=total_orders+1, updated_date = NOW() WHERE id = ?1 and user_id = ?3", nativeQuery = true)
     void updateCustomerSpentAmountAndOrdersCount(Integer id, Double spent_value, String userId);
 
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE shop_customer  SET total_spent = total_spent - ?2, total_orders=total_orders+1, updated_date = NOW() WHERE id = ?1 and user_id = ?3", nativeQuery = true)
+    void updateCustomerSpentAmountAndOrdersCountForCancelled(Integer id, Double spent_value, String userId);
+
 	@Query(value = "SELECT   * FROM    shop_customer WHERE    created_date BETWEEN ?1 AND ?2  and user_id = ?3 ", nativeQuery = true)
 	List<CustomerEntity> findCustomerByDateRange(LocalDateTime fromDate, LocalDateTime toDate, String userId);
 
@@ -129,6 +134,7 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
             @Param("endDate") LocalDateTime endDate,
             @Param("userId") String userId
     );
+
 
     //List<Object[]> getMonthlyNewCustomerCount(LocalDateTime startDate, LocalDateTime endDate, String userId);
 }
