@@ -1445,7 +1445,7 @@ public class ShopService {
             try {
                 billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
             } catch (Exception e) {
-                billRepo.findOrderByReference(orderReferenceNumber, extractUsername());
+                billDetails=   billRepo.findOrderByReference(orderReferenceNumber, extractUsername());
             }
             username = billDetails.getUserId();
         }
@@ -1483,8 +1483,13 @@ public class ShopService {
         List<OrderItem> items = prodSales.stream().map(obj -> {
             String username2 = "";
             if (orderReferenceNumber != null) {
-                BillingEntity billDetails2 = billRepo.findOrderByJustReference(orderReferenceNumber);
-                username2 = billDetails.getUserId();
+                BillingEntity billDetails2 = null;
+                try {
+                    billDetails2 = billRepo.findOrderByJustReference(orderReferenceNumber);
+                } catch (Exception e) {
+                    billDetails2=   billRepo.findOrderByReference(orderReferenceNumber, extractUsername());
+                }
+                username2 = billDetails2.getUserId();
             }
 
             log.info("The productId is " + obj.getProductId());
@@ -1823,7 +1828,13 @@ public class ShopService {
 
         String username = "";
         if (orderId != null) {
-            BillingEntity billDetails = billRepo.findOrderByJustReference(orderId);
+            BillingEntity billDetails = null;
+            try {
+                billDetails = billRepo.findOrderByJustReference(orderId);
+            } catch (Exception e) {
+                billDetails=   billRepo.findOrderByReference(orderId, extractUsername());
+            }
+
             username = billDetails.getUserId();
         }
 
@@ -3056,7 +3067,12 @@ public class ShopService {
         try {
             String username = "";
             if (invoiceNumber != null) {
-                BillingEntity billDetails = billRepo.findOrderByJustReference(invoiceNumber);
+                BillingEntity billDetails = null;
+                try {
+                    billDetails = billRepo.findOrderByJustReference(invoiceNumber);
+                } catch (Exception e) {
+                    billDetails=   billRepo.findOrderByReference(invoiceNumber, extractUsername());
+                }
                 username = billDetails.getUserId();
 
                 sendInvoiceOverEmail(BillingEntity.builder().invoiceNumber(invoiceNumber).build());

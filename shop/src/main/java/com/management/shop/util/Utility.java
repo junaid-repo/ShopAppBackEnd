@@ -417,7 +417,12 @@ public class Utility {
         String usernameArr[]={""};
 
         if(orderReferenceNumber!=null){
-            BillingEntity billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+            BillingEntity billDetails = null;
+            try {
+                billDetails = billRepo.findOrderByJustReference(orderReferenceNumber);
+            } catch (Exception e) {
+                billDetails=   billRepo.findOrderByReference(orderReferenceNumber, extractUsername());
+            }
             username= billDetails.getUserId();
             usernameArr[0]=username;
         }
