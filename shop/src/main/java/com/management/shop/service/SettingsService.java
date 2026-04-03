@@ -32,6 +32,12 @@ public class SettingsService {
     @Autowired
     SelectedInvoiceRepository invoiceRepo;
 
+    @Autowired
+    private UserInfoRepository userinfoRepo;
+
+    @Autowired
+    private UserInfoStatusRepository userStatusRepo;
+
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         SecurityContextHolder.getContext().getAuthentication().getAuthorities().forEach(auth -> {
@@ -367,5 +373,27 @@ public class SettingsService {
        }
 
         return response;
+    }
+
+    public String removeAccount(Map<String, String> request) {
+
+        userinfoRepo.updateUserStatusToInactive(extractUsername());
+        String reason="";
+        if(request.get("reason")!=null){
+            reason=request.get("reason");
+        }else{
+            reason="User did not specify a reason";
+        }
+        UserInfoStatus userInfoStatus=userStatusRepo.findByUsername(extractUsername());
+
+        if(userInfoStatus!=null){
+            userStatusRepo.updateUserStatus(extractUsername(), LocalDateTime.now(), "DELETEDBYUSER", reason);
+        }
+        else{
+            var userStatus= UserInfoStatus.builder().username(extractUsername()).status("DELETEDBYUSER").reason(reason).updatedBy(extractUsername()).updatedAt(LocalDateTime.now()).build();
+            userStatusRepo.save(userStatus);
+        }
+
+        return "success";
     }
 }

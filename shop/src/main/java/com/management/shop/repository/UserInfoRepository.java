@@ -17,8 +17,13 @@ public interface UserInfoRepository extends JpaRepository<UserInfo, Integer> {
 
 	@Modifying
 	@Transactional
-	@Query(value = "UPDATE user_info SET is_active = true  WHERE username = ?1", nativeQuery = true)
+	@Query(value = "UPDATE user_info SET is_active = true, updated_at= NOW()  WHERE username = ?1", nativeQuery = true)
 	void updateUserStatus(String username);
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE user_info SET is_active = false, updated_at= NOW()  WHERE username = ?1", nativeQuery = true)
+    void updateUserStatusToInactive(String username);
 
 	
 	@Query(value = "SELECT   * FROM    user_info WHERE  is_active=?3 and (    email=?1 or phone_number=?2)", nativeQuery = true)

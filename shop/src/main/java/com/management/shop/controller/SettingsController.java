@@ -7,13 +7,17 @@ import com.management.shop.dto.ShopSettings;
 import com.management.shop.dto.UiSettings;
 import com.management.shop.repository.SelectedInvoiceRepository;
 import com.management.shop.service.SettingsService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +27,8 @@ public class SettingsController {
 
     @Autowired
     SettingsService serv;
-
+    @Autowired
+    private Environment environment;
 
     @PutMapping("api/shop/settings/user/save/ui")
     ResponseEntity<Map<String, String>> saveUserUISettings(@RequestBody UiSettings request) {
@@ -122,6 +127,42 @@ public class SettingsController {
     ResponseEntity<Map<String, Object>> getCheckImportLimit() {
 
         Map<String, Object> response = serv.checkImportLimit();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("api/shop/user/remove-account")
+    ResponseEntity<String> removeAccount(@RequestBody Map<String, String> request,
+                                         HttpServletRequest httpRequest,
+                                         HttpServletResponse httpResponse) {
+
+        String response = serv.removeAccount(request);
+
+        if(response.equals("success")) {
+            log.info("Inside the logout method");
+
+            Map<String, Object> responseMap = new HashMap<>();
+
+            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {// 1. Determine the correct domain dynamically based on the request Origin or Host
+                String origin = httpRequest.getHeader("Origin");
+                String host = httpRequest.getHeader("Host");
+                String targetDomain = ".clearbills.info"; // Default fallback
+
+                if ((origin != null && origin.contains("clearbill.store")) ||
+                        (host != null && host.contains("clearbill.store"))) {
+                    targetDomain = ".clearbill.store";
+                }
+
+
+                httpResponse.addHeader("Set-Cookie",
+                        "jwt=; Path=/; Domain=" + targetDomain + "; HttpOnly; Secure; SameSite=None; Max-Age=0");} else {
+
+
+                String cookieHeader = "jwt=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
+                httpResponse.addHeader("Set-Cookie", cookieHeader);
+            }
+
+        }
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

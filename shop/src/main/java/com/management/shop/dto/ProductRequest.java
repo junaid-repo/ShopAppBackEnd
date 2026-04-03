@@ -19,4 +19,5 @@ public class ProductRequest {
 	private Integer stock;
 	private Integer tax;
     private String hsn;
+    private String location;
 }

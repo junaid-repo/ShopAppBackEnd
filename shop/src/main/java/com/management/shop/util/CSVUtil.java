@@ -17,7 +17,7 @@ public class CSVUtil {
 
         final String[] HEADERS = {
                 "selectedProductId", "name", "hsn", "category",
-                "costPrice", "price", "stock", "tax"
+                "costPrice", "price", "stock", "tax", "location"
         };
 
 
@@ -35,7 +35,8 @@ public class CSVUtil {
                             obj.getCostPrice(),
                             obj.getPrice(),
                             obj.getStock(),
-                            obj.getTaxPercent());
+                            obj.getTaxPercent(),
+                            obj.getLocation());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

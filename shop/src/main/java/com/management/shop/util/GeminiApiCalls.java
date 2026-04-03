@@ -47,13 +47,14 @@ public class GeminiApiCalls {
 
         String promptText = "Analyze this image and extract all products. " +
                 "Return ONLY a valid CSV format with the following exact headers on the first line: " +
-                "selectedProductId,name,hsn,category,costPrice,price,stock,tax. " +
+                "selectedProductId,name,hsn,category,costPrice,price,stock,tax,location. " +
                 "Rules: " +
                 "1. selectedProductId should always be 0. " +
                 "2. category should be 'Product' if not specified. " +
                 "2. costPrice should be same as price if not specified. " +
                 "3. tax should be 0 if not specified. " +
                 "4. stock should be 1 if not specified. " +
+                "5. location should be blank if not specified. " +
                 "Do not include markdown formatting like ```csv or any other text.";
 
         // 4. Build the JSON payload request body
