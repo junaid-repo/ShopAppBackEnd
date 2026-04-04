@@ -6,10 +6,7 @@ import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.management.shop.gobalusers.constants.EventConstants;
 import com.management.shop.gobalusers.dto.*;
-import com.management.shop.gobalusers.entity.InvoiceSequence;
-import com.management.shop.gobalusers.entity.RegisterUserOTPEntity;
-import com.management.shop.gobalusers.entity.UserInfo;
-import com.management.shop.gobalusers.entity.UserPaymentModes;
+import com.management.shop.gobalusers.entity.*;
 import com.management.shop.gobalusers.repository.*;
 import com.management.shop.gobalusers.util.AccountEmailTemplate;
 import com.management.shop.gobalusers.util.OTPSender;
@@ -71,6 +68,9 @@ public class AuthService {
 
     @Autowired
     private UserSettingsRepository userSetRepo;
+
+    @Autowired
+    private UserInfoStatusRepository userStatusRepo;
 
     private final Random random = new Random();
 
@@ -360,6 +360,17 @@ public class AuthService {
 
             String jwtToken = null;
             List<UserInfo> res = userinfoRepo.validateUser(email, "na", true);
+
+            try {
+                if (res.size() > 0){
+                UserInfoStatus userInfoStatus=userStatusRepo.validateUserStatus(res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getUsername());
+
+                if(userInfoStatus.getStatus().equals("DELETEDBYUSER")){
+                    res=null;
+                }}
+            } catch (Exception e) {
+
+            }
             String secureToken= null;
 
             try {

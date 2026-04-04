@@ -2187,7 +2187,7 @@ public class ShopService {
         UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
                 new RuntimeException("User not found: " + username));
 
-        UserProfileDto response = UserProfileDto.builder().username(username).phoneNumber(res.getPhoneNumber()).name(res.getName()).roles(extractRoles()).build();
+        UserProfileDto response = UserProfileDto.builder().username(username).phoneNumber(res.getPhoneNumber()).name(res.getName()).roles(extractRoles()).source(res.getSource()).build();
 
         log.info("getUserProfileWithRoles: " + response);
         return response;

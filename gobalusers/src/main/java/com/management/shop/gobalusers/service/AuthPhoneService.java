@@ -3,17 +3,19 @@ package com.management.shop.gobalusers.service;
 import com.mailjet.client.MailjetResponse;
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
-import com.management.shop.gobalusers.constants.EventConstants;
+ import com.management.shop.gobalusers.constants.EventConstants;
 import com.management.shop.gobalusers.dto.*;
 import com.management.shop.gobalusers.entity.RegisterUserOTPEntity;
 import com.management.shop.gobalusers.entity.UserInfo;
+import com.management.shop.gobalusers.entity.UserInfoStatus;
 import com.management.shop.gobalusers.entity.UserPaymentModes;
 import com.management.shop.gobalusers.repository.UserInfoRepository;
+import com.management.shop.gobalusers.repository.UserInfoStatusRepository;
 import com.management.shop.gobalusers.repository.UserOtpRepo;
 import com.management.shop.gobalusers.repository.UserPaymentModesRepo;
 import com.management.shop.gobalusers.util.AccountEmailTemplate;
 import com.management.shop.gobalusers.util.OTPSender;
-import jakarta.transaction.Transactional;
+ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -52,6 +54,11 @@ public class AuthPhoneService {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private UserInfoStatusRepository userStatusRepo;
+
+
 
     @Transactional
     public RegisterResponse registerNewUserWithPhone(RegisterRequest regRequest) {
@@ -161,18 +168,26 @@ public class AuthPhoneService {
     public ValidateContactResponse validatePhone(ValidateContactRequest userInfo) {
 
         List<UserInfo> res = userinfoRepo.validatePhone( userInfo.getPhone());
+       // List<UserInfo> res = userinfoRepo.validatePhoneAndStatus( userInfo.getPhone(), "active");
+
 
 
         if (res.size() > 0) {
 
             for(UserInfo user:res){
                 if(user.getIsActive()){
+
                     return ValidateContactResponse.builder().username(user.getUsername()).status(false).message("Phone number already registered with an active account").build();
                 }
             }
 
             for(UserInfo user:res){
                 if(!user.getIsActive()){
+                    UserInfoStatus userInfoStatus=userStatusRepo.validateUserStatus(user.getUsername());
+
+                    if(userInfoStatus.getStatus().equals("DELETEDBYUSER")){
+                        return null;
+                    }
                     return ValidateContactResponse.builder().username(user.getUsername()).status(true).message("Phone number already registered with an inactive account").build();
                 }
             }
