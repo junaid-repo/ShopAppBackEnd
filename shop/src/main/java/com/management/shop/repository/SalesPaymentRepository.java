@@ -92,7 +92,8 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
     void updatePaymentStatus(String orderNo, String username, String status);
 
     // Kept untouched
-    PaymentEntity findByOrderNumber(String orderNo);
+    @Query("select p from PaymentEntity p where p.orderNumber = ?1 and p.userId = ?2")
+    PaymentEntity findByOrderNumber(String orderNo, String username);
 
     @Query(value="select bp.* from billing_payments bp JOIN billing_details bd ON bp.billing_id = bd.id where bp.to_be_paid>0 and bp.user_id=?1 AND bp.created_date < (NOW() - INTERVAL '24' HOUR) AND bd.invoice_status = 'ACTIVE'", nativeQuery = true)
     List<PaymentEntity> findByUserId(String username);

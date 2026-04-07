@@ -429,88 +429,63 @@ public class ShopService {
 
     @Transactional
     public ProductSuccessDTO saveProductFromImage(ProductRequest request) {
+        String username = extractUsername();
+        String productName = request.getName().toLowerCase().replaceAll("\\s", ""); // Fixed regex: \\s instead of //s
 
-        String status = "In Stock";
-        if (request.getStock() < 0)
-            status = "Out of Stock";
+        // 1. Try to find existing product by Name or ID
+        ProductEntity productEntity = prodRepo.findByNameAndUserId(productName, username);
 
-        log.info("The new request" + request.getTax());
-
-        ProductEntity productEntity = null;
-
-        String productName = request.getName().toLowerCase().replaceAll("//s", "");
-
-        ProductEntity prodEntity = prodRepo.findByNameAndUserId(productName, extractUsername());
-        Integer updatedStock = request.getStock();
-        Integer updatedPrice = request.getPrice();
-        if (prodEntity != null) {
-            request.setSelectedProductId(prodEntity.getId());
-            updatedStock = updatedStock + prodEntity.getStock();
-
-            if (updatedPrice == 0) {
-                request.setPrice(prodEntity.getPrice());
-            }
+        // If not found by name, try by ID if provided
+        if (productEntity == null && request.getSelectedProductId() != null && request.getSelectedProductId() != 0) {
+            productEntity = prodRepo.findById(request.getSelectedProductId()).orElse(null);
         }
 
+        if (productEntity != null) {
+            // UPDATE CASE: Update the existing managed entity
+            Integer newStock = productEntity.getStock() + request.getStock();
+            productEntity.setStock(newStock);
 
-        if (request.getSelectedProductId() != null && request.getSelectedProductId() != 0) {
-// prodRepo.addProductStock(request.getSelectedProductId(), request.getStock());
+            // Only update price if request price is not 0
+            if (request.getPrice() != 0) {
+                productEntity.setPrice(request.getPrice());
+            }
 
-            productEntity = ProductEntity.builder()
-                    .id(request.getSelectedProductId())
-                    .name(request.getName() == null ? "" : request.getName())
-                    .category(request.getCategory() == null ? "" : request.getCategory())
-                    .location(request.getLocation() == null ? "" : request.getLocation())
-                    .status(status)
-                    .userId(extractUsername())
-                    .stock(updatedStock)
-                    .active(true)
-                    .taxPercent(request.getTax())
-                    .price(request.getPrice())
-                    .costPrice(request.getCostPrice())
-                    .hsn(request.getHsn() == null ? "" : request.getHsn())
-                    .updatedDate(LocalDateTime.now())
-                    .updatedBy(extractUsername())
-                    .build();
-
+            productEntity.setName(request.getName());
+            productEntity.setCategory(request.getCategory());
+            productEntity.setLocation(request.getLocation());
+            productEntity.setTaxPercent(request.getTax());
+            productEntity.setCostPrice(request.getCostPrice());
+            productEntity.setHsn(request.getHsn());
+            productEntity.setStatus(newStock < 0 ? "Out of Stock" : "In Stock");
+            productEntity.setUpdatedDate(LocalDateTime.now());
+            productEntity.setUpdatedBy(username);
+            // Note: No need to call builder. All changes to 'productEntity' are tracked.
         } else {
+            // INSERT CASE: Create new entity
             productEntity = ProductEntity.builder()
-                    .name(request.getName() == null ? "" : request.getName())
-                    .userId(extractUsername())
-                    .category(request.getCategory() == null ? "" : request.getCategory())
-                    .location(request.getLocation() == null ? "" : request.getLocation())
+                    .name(request.getName())
+                    .userId(username)
+                    .category(request.getCategory())
+                    .location(request.getLocation())
                     .active(true)
-                    .status(status)
+                    .status(request.getStock() < 0 ? "Out of Stock" : "In Stock")
                     .stock(request.getStock())
                     .taxPercent(request.getTax())
                     .costPrice(request.getCostPrice())
                     .price(request.getPrice())
-                    .hsn(request.getHsn() == null ? "" : request.getHsn())
+                    .hsn(request.getHsn())
                     .createdDate(LocalDateTime.now())
                     .updatedDate(LocalDateTime.now())
-                    .updatedBy(extractUsername())
+                    .updatedBy(username)
                     .build();
         }
 
+        ProductEntity saved = prodRepo.save(productEntity);
 
-        ProductEntity ent = prodRepo.save(productEntity);
-        if (ent.getId() != null) {
+        // Evict cache only after successful save
+        salesCacheService.evictUserProducts(username);
 
-            try {
-                salesCacheService.evictUserProducts(extractUsername());
-
-            } catch (Exception e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
-            return ProductSuccessDTO.builder().success(true).product(request).build();
-
-
-        }
-
-        return ProductSuccessDTO.builder().success(false).product(request).build();
-
+        return ProductSuccessDTO.builder().success(true).product(request).build();
     }
 
     //@CacheEvict(value = "products", allEntries = true)
@@ -1407,6 +1382,7 @@ public class ShopService {
         return null;
     }
 
+    @Transactional
     public List<ProductRequest> uploadBulkProductFromImage(MultipartFile file) {
 
         Map<String, Object> importCheck = setServ.checkImportLimit();
@@ -2995,7 +2971,7 @@ public class ShopService {
             throw new RuntimeException(e);
         }
 
-        PaymentEntity paymentDetails = salesPaymentRepo.findByOrderNumber(orderNo);
+        PaymentEntity paymentDetails = salesPaymentRepo.findByOrderNumber(orderNo, extractUsername());
 
         try {
             String status = "SemiPaid";

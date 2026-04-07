@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import com.management.shop.entity.ProductCategory;
 import com.management.shop.repository.ProductCategoryRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -102,6 +103,7 @@ public class CSVUpload {
         return products;
     }
 
+    @Transactional
     public List<ProductRequest> validateDataFromImage(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("No file uploaded.");

@@ -67,6 +67,7 @@ public class NotificationsSaver {
 
         List<UserInfo> usersList = userinfoRepo.findAllByStatus(Boolean.TRUE);
 
+
         System.out.println("Running outOfStockNotification scheduler for users: " + usersList.size());
 
 
