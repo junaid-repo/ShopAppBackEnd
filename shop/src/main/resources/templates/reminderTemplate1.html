@@ -6,7 +6,6 @@
     <title>Payment Reminder</title>
     <style>
         :root {
-            /* Matching your app's color palette */
             --rose-50: #fff1f2;
             --rose-200: #fecdd3;
             --rose-500: #f43f5e;
@@ -37,17 +36,17 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* The Main Card */
+        /* The Main Card - Narrower and compact */
         .card {
             background-color: #ffffff;
-            width: 600px;
+            width: 420px; /* REDUCED FROM 600px */
             border-radius: 28px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05);
             overflow: hidden;
             position: relative;
         }
 
-        /* Header Section - Tightened padding and reduced font size */
+        /* Header Section */
         .header {
             padding: 24px 24px 16px 24px;
             border-bottom: 1px dashed var(--gray-200);
@@ -57,7 +56,7 @@
         }
 
         .shop-name {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 900;
             margin: 0 0 4px 0;
             color: var(--primary);
@@ -76,14 +75,14 @@
             color: var(--rose-600);
             border: 1px solid var(--rose-200);
             padding: 4px 10px;
-            border-radius: 10px;
-            font-size: 10px;
+            border-radius: 8px;
+            font-size: 9px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
-        /* Products Table - Reduced padding and text size */
+        /* Products Table */
         .table-container {
             padding: 16px 24px;
         }
@@ -94,7 +93,7 @@
         }
 
         th {
-            font-size: 10px;
+            font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--gray-400);
@@ -104,26 +103,24 @@
 
         td {
             padding: 10px 0;
-            font-size: 13px;
+            font-size: 12px;
             border-bottom: 1px solid var(--gray-50);
         }
 
-        tr:last-child td {
-            border-bottom: none;
-        }
+        tr:last-child td { border-bottom: none; }
 
         .item-name { font-weight: 800; color: var(--gray-800); }
         .item-qty { font-weight: 600; color: var(--gray-500); text-align: center; }
         .item-total { font-weight: 800; text-align: right; }
 
-        /* The 3-Metric Line - Scaled down slightly */
+        /* The 3-Metric Line */
         .summary-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background-color: var(--gray-50);
-            margin: 0 16px;
-            padding: 16px 20px;
+            margin: 0 20px;
+            padding: 16px;
             border-radius: 16px;
             border: 1px solid var(--gray-100);
         }
@@ -135,10 +132,10 @@
         }
 
         .metric-right { text-align: right; }
-        .metric-center { text-align: center; border-left: 1px dashed var(--gray-200); border-right: 1px dashed var(--gray-200); padding: 0 20px; }
+        .metric-center { text-align: center; border-left: 1px dashed var(--gray-200); border-right: 1px dashed var(--gray-200); padding: 0 12px; }
 
         .metric-label {
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -146,30 +143,36 @@
         }
 
         .metric-value {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 900;
         }
 
         .val-total { color: var(--gray-800); }
         .val-paid { color: var(--emerald-500); }
-        .val-due { color: var(--rose-600); font-size: 20px; }
+        .val-due { color: var(--rose-600); font-size: 18px; }
 
-        /* QR Code Footer - MASSIVELY INCREASED QR CODE */
+        /* QR Code Footer - Stacked vertically to maximize QR width */
         .footer {
-            padding: 24px;
+            margin-top: 16px;
+            padding: 24px 24px 32px 24px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 20px;
+            gap: 16px;
+            background-color: #fafbfc; /* Slight background shift to anchor the footer */
+            border-top: 1px dashed var(--gray-200);
         }
 
+        /* 🟢 MASSIVE 240px QR CODE WITH GREEN GLOW */
         .qr-container {
-            width: 160px;
-            height: 160px;
+            width: 240px;
+            height: 240px;
             background: white;
-            padding: 10px;
-            border-radius: 16px;
-            border: 2px dashed var(--gray-200);
+            padding: 12px;
+            border-radius: 20px;
+            border: 2px dashed var(--emerald-500);
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.2); /* Soft emerald shadow */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -179,7 +182,13 @@
         .qr-container img {
             width: 100%;
             height: 100%;
-            border-radius: 8px;
+            border-radius: 10px;
+            /* Ensures high contrast for scanners */
+            mix-blend-mode: multiply;
+        }
+
+        .scan-text {
+            text-align: center;
         }
 
         .scan-text h4 {
