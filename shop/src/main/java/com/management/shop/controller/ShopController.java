@@ -996,6 +996,24 @@ public class ShopController {
 
         return ResponseEntity.ok(response);
     }
+    @GetMapping(value = "api/shop/get/reminder-image/{orderId}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getReminderImage(@PathVariable String orderId) {
+        try {
+
+            byte[] imageBytes=serv.getPaymentReminderImage(orderId);
+
+
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.IMAGE_PNG);
+            headers.setContentLength(imageBytes.length);
+
+            return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     @GetMapping("api/shop/payment/get-reminderList")
     @PreAuthorize("hasRole('PREMIUM')")

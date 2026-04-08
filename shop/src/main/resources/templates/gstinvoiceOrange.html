@@ -464,7 +464,14 @@
 
     <header class="invoice-header">
         <div class="header-left">
-            <h1 class="title">Sales Invoice</h1>
+            <div class="header-logo">
+                <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
+                <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGOTEXT</span>
+            </div>
+            <div class="header-contact" style="margin-top: 20px;" th:if="${showSupportInfo}">
+                <p th:text="'Tel : ' + ${shopPhone}">Tel : 079-25820309</p>
+                <p th:text="'Email : ' + ${shopEmail}">Email : info@gfttools.com</p>
+            </div>
 
             <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}"
                  style="margin-top: 5px; display: flex; flex-direction: column; align-items: center; width: fit-content;">

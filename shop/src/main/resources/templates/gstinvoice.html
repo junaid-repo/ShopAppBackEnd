@@ -275,6 +275,14 @@
                         <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGO</span>
                     </div>
 
+                    <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}"
+                         style="margin-top: 18px; display: flex; flex-direction: column; align-items: flex-start;">
+                        <img th:src="'data:image/png;base64,' + ${invoiceBarcodeBase64}"
+                             alt="Invoice Barcode"
+                             style="width: 180px; height: 35px; display: block;" />
+                        <div style="font-size: 10px; color: #555; letter-spacing: 2px; margin-top: 2px; text-align: center; width: 150px;" th:text="${invoiceId}"></div>
+                    </div>
+
                 </td>
 
                 <td class="company-details" style="width:50%;">
@@ -297,24 +305,15 @@
         <tr>
             <td>
                 <strong>Invoice No.</strong>
-
-                <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}"
-                     style="margin-top: 5px; display: flex; flex-direction: column; align-items: center;">
-                    <img th:src="'data:image/png;base64,' + ${invoiceBarcodeBase64}"
-                         alt="Invoice Barcode"
-                         style="width: 150px; height: 35px; display: block;" />
-                    <div style="font-size: 10px; color: #555; letter-spacing: 2px; margin-top: 2px;" th:text="${invoiceId}"></div>
-                </div>
-
-                <span th:unless="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}" th:text="${invoiceId}"></span>
+                <span style="display: block; margin-top: 5px;" th:text="${invoiceId}"></span>
             </td>
             <td>
                 <strong>Invoice Date</strong>
-                <span th:text="${orderedDate}"></span>
+                <span style="display: block; margin-top: 5px;" th:text="${orderedDate}"></span>
             </td>
             <td th:if="${showDueDate}">
                 <strong>Due Date</strong>
-                <span th:text="${dueDate}"></span>
+                <span style="display: block; margin-top: 5px;" th:text="${dueDate}"></span>
             </td>
         </tr>
     </table>

@@ -8,6 +8,9 @@ import com.management.shop.dto.InvoiceData;
 import com.management.shop.dto.OrderItemInvoice;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.ScreenshotType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value; // <-- ADDED IMPORT
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -20,6 +23,13 @@ import java.util.*;
 public class PDFGSTInvoiceUtil {
 
     private final TemplateEngine templateEngine;
+
+    // --- ADDED: Inject the active Spring profile (defaults to 'prod' if not found) ---
+    @Value("${spring.profiles.active:prod}")
+    private String activeProfile;
+
+    @Autowired
+    private Environment environment;
 
     public PDFGSTInvoiceUtil(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
@@ -63,8 +73,8 @@ public class PDFGSTInvoiceUtil {
         String invoiceBarcodeBase64 = "";
 
         if (Boolean.TRUE.equals(data.getShowInvoiceBarcode()) && !invoiceId.isEmpty()) {
-            int barcodeWidth = 600; // Default for A4
-            int barcodeHeight = 60; // Increased default A4 height
+            int barcodeWidth = 800; // Default for A4
+            int barcodeHeight = 80; // Increased default A4 height
 
             if (printerType != null && printerType.contains("THERMAL")) {
                 // Scale width dynamically
@@ -195,7 +205,19 @@ public class PDFGSTInvoiceUtil {
         // --- Generate PDF ---
         String htmlContent = templateEngine.process(invoiceTemplate, context);
 
-        try (Playwright playwright = Playwright.create()) {
+        // --- ADDED: Configure Playwright options based on environment ---
+        Playwright.CreateOptions createOptions = new Playwright.CreateOptions();
+       if (!(Arrays.asList(environment.getActiveProfiles()).contains("prod"))) {
+
+                 Map<String, String> env = new HashMap<>(System.getenv());
+                 String userHome = System.getProperty("user.home");
+                env.put("PLAYWRIGHT_BROWSERS_PATH", userHome + "/.cache/ms-playwright");
+           env.put("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1");
+                createOptions.setEnv(env);
+
+        }
+        // Pass the options into Playwright.create()
+        try (Playwright playwright = Playwright.create(createOptions)) {
 
             BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
                     .setHeadless(true)
@@ -236,6 +258,100 @@ public class PDFGSTInvoiceUtil {
             }
         } catch (Exception e) {
             throw new RuntimeException("Error generating Invoice Image", e);
+        }
+    }
+
+    public byte[] getReminderImage(InvoiceData data) {
+
+        // --- 1. Core Calculations ---
+        List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
+
+        long taxableAmount = Math.round(rawProducts.stream()
+                .mapToDouble(p -> safeGetDouble(p, "getRate", "getPrice") * safeGetDouble(p, "getQuantity", "getQty"))
+                .sum());
+
+        long gstAmount = Math.round(rawProducts.stream()
+                .mapToDouble(p -> safeGetDouble(p, "getTaxAmount", "getTax"))
+                .sum());
+
+        long grandTotal = taxableAmount + gstAmount;
+        long dueAmount = roundDouble(data.getDueAmount());
+        long paidAmount = roundDouble(data.getPaidAmount());
+
+        // --- 2. QR Code (Generated specifically for the DUE AMOUNT) ---
+        String upiUrl = "upi://pay?pa=" + data.getUpiId() +
+                "&pn=" + data.getShopName() +
+                "&tn=" + data.getInvoiceId() +
+                "&am=" + dueAmount + "&cu=INR";
+
+        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 400, 400);
+
+        // --- 3. Process Products for Template ---
+        List<Map<String, Object>> productsForTemplate = new ArrayList<>();
+        for (OrderItemInvoice p : rawProducts) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("productName", nullSafeString(safeGetString(p, "getProductName", "getName")));
+            m.put("quantity", safeGetDouble(p, "getQuantity", "getQty"));
+            m.put("totalAmount", getRoundedAmount(p, "getTotalAmount", "getAmount", "getTotal"));
+            productsForTemplate.add(m);
+        }
+
+        // --- 4. Prepare Thymeleaf Context ---
+        Context context = new Context();
+        context.setVariable("shopName", nullSafeString(data.getShopName()));
+        context.setVariable("invoiceId", nullSafeString(data.getInvoiceId()));
+        context.setVariable("products", productsForTemplate);
+
+        context.setVariable("totalAmount", grandTotal);
+        context.setVariable("paidAmount", paidAmount);
+        context.setVariable("dueAmount", dueAmount);
+
+        // Ensure proper Data URI format for the img src tag
+        context.setVariable("qrCodeBase64", "data:image/png;base64," + qrCodeBase64);
+
+        // --- 5. Generate HTML ---
+        String htmlContent = templateEngine.process("reminderTemplate1", context);
+
+        // --- 6. Playwright Image Generation ---
+        Playwright.CreateOptions createOptions = new Playwright.CreateOptions();
+        if (!(Arrays.asList(environment.getActiveProfiles()).contains("prod"))) {
+            Map<String, String> env = new HashMap<>(System.getenv());
+            String userHome = System.getProperty("user.home");
+            env.put("PLAYWRIGHT_BROWSERS_PATH", userHome + "/.cache/ms-playwright");
+            env.put("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1");
+            createOptions.setEnv(env);
+        }
+
+        try (Playwright playwright = Playwright.create(createOptions)) {
+
+            BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
+                    .setHeadless(true)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox"));
+
+            try (Browser browser = playwright.chromium().launch(launchOptions)) {
+
+                Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
+                        .setViewportSize(800, 1200) // Large enough to fit the card
+                        .setDeviceScaleFactor(2.0); // Retina quality for ultra-crisp WhatsApp sharing
+
+                try (BrowserContext browserContext = browser.newContext(contextOptions);
+                     Page page = browserContext.newPage()) {
+
+                    page.setContent(htmlContent);
+
+                    // Give the browser a tiny fraction of a second to paint the DOM
+                    page.waitForTimeout(150);
+
+                    // We use Locator screenshot to capture ONLY the card, omitting the background gradient
+                    Locator.ScreenshotOptions screenshotOptions = new Locator.ScreenshotOptions()
+                            .setType(ScreenshotType.PNG)
+                            .setOmitBackground(true);
+
+                    return page.locator(".card").screenshot(screenshotOptions);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating Reminder Image", e);
         }
     }
 

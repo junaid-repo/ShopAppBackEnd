@@ -107,7 +107,20 @@
             line-height: 1.5;
             margin-top: 5px;
         }
-
+        .header-logo {
+            text-align: right;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .header-logo img {
+            max-width: 120px;
+            max-height: 60px;
+        }
+        .header-logo p {
+            margin: 0;
+            font-size: 12px;
+            font-weight: normal;
+        }
         /* --- 2. New 3-Column Meta Section --- */
         .invoice-meta {
             display: flex;
@@ -375,7 +388,14 @@
     <header class="invoice-header">
         <div class="invoice-title">
             <h1>Invoice</h1>
-            <span class="status-badge">TAX INVOICE</span>
+            <div class="header-logo">
+                <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
+                <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGOTEXT</span>
+            </div>
+            <div class="header-contact" style="margin-top: 20px;" th:if="${showSupportInfo}">
+                <p th:text="'Tel : ' + ${shopPhone}">Tel : 079-25820309</p>
+                <p th:text="'Email : ' + ${shopEmail}">Email : info@gfttools.com</p>
+            </div>
 
             <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}"
                  style="margin-top: 10px; display: flex; flex-direction: column; align-items: center;">

@@ -3510,4 +3510,50 @@ public class ShopService {
 
         return response;
     }
+
+    public byte[] getPaymentReminderImage(String orderId) {
+        log.info("Generating payment reminder image for orderNumber-->" + orderId);
+
+        InvoiceData invoiceData = utils.getFullInvoiceDetails(extractUsername(), orderId);
+
+        byte[] response = pdfgstutil.getReminderImage(invoiceData);
+        return response;
+    }
+
+    public byte[] generateGSTInvoicePdf2(String orderId) throws Exception {
+        log.info("Generating invoice for orderNumber-->" + orderId);
+
+        String username = "";
+        if (orderId != null) {
+            BillingEntity billDetails = null;
+            try {
+                billDetails = billRepo.findOrderByJustReference(orderId);
+            } catch (Exception e) {
+                billDetails=   billRepo.findOrderByReference(orderId, extractUsername());
+            }
+
+            username = billDetails.getUserId();
+        }
+
+        InvoiceData invoiceData = utils.getFullInvoiceDetails(username, orderId);
+
+        String invoiceTemplateName = "gstinvoice";
+        String invoicePrinter = "THERMAL_2";
+
+        try {
+            SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
+            if (repoEntity != null) {
+                invoiceTemplateName = repoEntity.getTemplateName();
+                invoicePrinter = repoEntity.getPrinterType();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName, invoicePrinter);
+        log.info("The full invoice Data is " + invoiceData);
+
+
+        return response;
+    }
 }

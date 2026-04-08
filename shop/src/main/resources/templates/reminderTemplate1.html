@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Reminder</title>
+    <style>
+        :root {
+            /* Matching your app's color palette */
+            --rose-50: #fff1f2;
+            --rose-200: #fecdd3;
+            --rose-500: #f43f5e;
+            --rose-600: #e11d48;
+            --emerald-50: #ecfdf5;
+            --emerald-200: #a7f3d0;
+            --emerald-500: #10b981;
+            --emerald-600: #059669;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --primary: #1a362d;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--gray-900);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* The Main Card */
+        .card {
+            background-color: #ffffff;
+            width: 600px;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Header Section - Tightened padding and reduced font size */
+        .header {
+            padding: 24px 24px 16px 24px;
+            border-bottom: 1px dashed var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .shop-name {
+            font-size: 20px;
+            font-weight: 900;
+            margin: 0 0 4px 0;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .invoice-no {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--gray-500);
+            margin: 0;
+        }
+
+        .badge-reminder {
+            background-color: var(--rose-50);
+            color: var(--rose-600);
+            border: 1px solid var(--rose-200);
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Products Table - Reduced padding and text size */
+        .table-container {
+            padding: 16px 24px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray-400);
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        td {
+            padding: 10px 0;
+            font-size: 13px;
+            border-bottom: 1px solid var(--gray-50);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .item-name { font-weight: 800; color: var(--gray-800); }
+        .item-qty { font-weight: 600; color: var(--gray-500); text-align: center; }
+        .item-total { font-weight: 800; text-align: right; }
+
+        /* The 3-Metric Line - Scaled down slightly */
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--gray-50);
+            margin: 0 16px;
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--gray-100);
+        }
+
+        .metric {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-right { text-align: right; }
+        .metric-center { text-align: center; border-left: 1px dashed var(--gray-200); border-right: 1px dashed var(--gray-200); padding: 0 20px; }
+
+        .metric-label {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray-500);
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .val-total { color: var(--gray-800); }
+        .val-paid { color: var(--emerald-500); }
+        .val-due { color: var(--rose-600); font-size: 20px; }
+
+        /* QR Code Footer - MASSIVELY INCREASED QR CODE */
+        .footer {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .qr-container {
+            width: 160px;
+            height: 160px;
+            background: white;
+            padding: 10px;
+            border-radius: 16px;
+            border: 2px dashed var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .qr-container img {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+
+        .scan-text h4 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--gray-900);
+        }
+
+        .scan-text p {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <div>
+            <h1 class="shop-name" th:text="${shopName}">Shop Name</h1>
+            <p class="invoice-no">Invoice #<span th:text="${invoiceId}">100</span></p>
+        </div>
+        <div class="badge-reminder">Payment Due</div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+            <tr>
+                <th style="text-align: left;">Item Description</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Amount</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="product : ${products}">
+                <td class="item-name" th:text="${product.productName}">Product Name</td>
+                <td class="item-qty" th:text="${#numbers.formatDecimal(product.quantity, 0, 'COMMA', 0, 'POINT')}">1</td>
+                <td class="item-total">₹<span th:text="${#numbers.formatDecimal(product.totalAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="summary-row">
+        <div class="metric">
+            <span class="metric-label">Total Bill</span>
+            <span class="metric-value val-total">₹<span th:text="${#numbers.formatDecimal(totalAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></span>
+        </div>
+        <div class="metric metric-center">
+            <span class="metric-label">Paid</span>
+            <span class="metric-value val-paid">₹<span th:text="${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></span>
+        </div>
+        <div class="metric metric-right">
+            <span class="metric-label" style="color: var(--rose-500);">Balance Due</span>
+            <span class="metric-value val-due">₹<span th:text="${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></span>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="qr-container">
+            <img th:src="${qrCodeBase64}" alt="UPI QR Code" />
+        </div>
+        <div class="scan-text">
+            <h4>Scan to Pay</h4>
+            <p>Use any UPI app (GPay, PhonePe, Paytm)<br>to clear your pending balance securely.</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
