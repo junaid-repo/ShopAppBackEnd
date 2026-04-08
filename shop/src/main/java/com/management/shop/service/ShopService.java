@@ -2901,28 +2901,7 @@ public class ShopService {
     public Map<String, String> sendPaymentReminder(Map<String, Object> request) {
 
         String orderNo = (String) request.get("orderId");
-
-        BillingEntity billDetails = billRepo.findByInvoiceNumber(orderNo);
-
-        CustomerEntity customer = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), extractUsername(orderNo));
-
-        Double totalAmount = billDetails.getTotalAmount();
-        Double paidAmount = billDetails.getPayingAmount();
-        Double dueAmout = billDetails.getRemainingAmount();
-
-        String customerName = customer.getName();
-        String customerEmail = customer.getEmail();
-        String message = (String) request.get("message");
-
-        String htmlTemplate = emailTemplate.getPaymentReminderEmailContent(orderNo, totalAmount, paidAmount, dueAmout, customerName, message);
-
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "success");
-
-        ShopBasicEntity shopBasic = shopBasicRepo.findByUserId(extractUsername(orderNo));
-
         try {
-            CompletableFuture<String> futureResult = email.sendEmailForPaymentReminder(customerEmail, orderNo, customerName, htmlTemplate, shopBasic.getShopName());
 
             billRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
             salesPaymentRepo.updateReminderCount(orderNo, extractUsername(orderNo), LocalDateTime.now());
@@ -2939,10 +2918,8 @@ public class ShopService {
             salesCacheService.evictUserSales(extractUsername(orderNo));
             salesCacheService.evictUserPayments(extractUsername(orderNo));
 
-        } catch (MailjetException e) {
-            throw new RuntimeException(e);
-        } catch (MailjetSocketTimeoutException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return null;
