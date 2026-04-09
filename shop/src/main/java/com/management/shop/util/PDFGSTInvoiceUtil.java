@@ -140,7 +140,13 @@ public class PDFGSTInvoiceUtil {
             String shopLogoBase64 = Base64.getEncoder().encodeToString(data.getShopLogoBytes());
             context.setVariable("shopLogoBase64", shopLogoBase64);
         }
-
+        if(data.getShowShopSignature()) {
+            if (data.getShopSignatureBytes() != null && data.getShopSignatureBytes().length > 0) {
+                String shopSignBase64 = Base64.getEncoder().encodeToString(data.getShopSignatureBytes());
+                context.setVariable("shopSignBase64", shopSignBase64);
+                context.setVariable("shopSignLabel", "Authorized Signatory");
+            }
+        }
         context.setVariable("shopName", nullSafeString(data.getShopName()));
         context.setVariable("shopSlogan", nullSafeString(data.getShopSlogan()));
         context.setVariable("shopLogoText", nullSafeString(data.getShopLogoText()));

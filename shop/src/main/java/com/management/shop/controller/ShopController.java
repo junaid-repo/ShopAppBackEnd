@@ -873,6 +873,11 @@ public class ShopController {
         String response = serv.updateShopLogoOracle(shopLogo);
         return ResponseEntity.ok("Shop logo updated successfully");
     }
+    @PutMapping("api/shop/user/edit/details/shopSignature")
+    public ResponseEntity<String> updateShopSignature(@RequestParam("signature") MultipartFile shopLogo) throws IOException {
+        String response = serv.updateShopSignature(shopLogo);
+        return ResponseEntity.ok("Shop signature updated successfully");
+    }
 
     // 2️⃣ Update Basic Details
     @PutMapping("api/shop/user/edit/details/basic")
@@ -901,6 +906,22 @@ public class ShopController {
     public ResponseEntity<byte[]> getShopLogo(@PathVariable String username) throws IOException {
 
         byte[] imageBytes = serv.getShopLogoOracle(username);
+
+        if (imageBytes == null || imageBytes.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // You can detect MIME type if you stored it in DB, or assume JPEG/PNG
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_JPEG);
+
+        return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("api/shop/user/{username}/shop-sign")
+    public ResponseEntity<byte[]> getShopSign(@PathVariable String username) throws IOException {
+
+        byte[] imageBytes = serv.getShopSign(username);
 
         if (imageBytes == null || imageBytes.length == 0) {
             return ResponseEntity.notFound().build();

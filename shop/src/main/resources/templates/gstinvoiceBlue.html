@@ -2,543 +2,624 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
-    <title th:text="'Invoice - ' + ${invoiceId}">Tax Invoice</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="'Invoice - ' + ${shopName}">Tax Invoice</title>
+
     <style>
-        :root {
-            --primary-blue: #3498db;
-            --light-blue-bg: #eaf3fb;
-            --text-dark: #333;
-            --text-light: #666;
-            --border-color: #eee;
-            --table-border-light: #e0e0e0;
-            --header-bg-light: #f5f5f5;
+        @font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            src: url('fonts/Poppins-Regular.ttf');
+        }
+        @font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 500;
+            src: url('fonts/Poppins-Medium.ttf');
+        }
+        @font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 600;
+            src: url('fonts/Poppins-SemiBold.ttf');
+        }
+        @font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 700;
+            src: url('fonts/Poppins-Bold.ttf');
         }
 
+        /* Base A4 page setup */
         @page {
             size: A4;
             margin: 0;
         }
 
         body {
-            font-family: 'Inter', Arial, sans-serif;
-            font-size: 13px;
-            color: var(--text-dark);
+            font-family: 'Poppins', Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+            /* Dark background helps see the white A4 page bounds clearly when previewing in browser */
+            background-color: #e5e7eb;
             margin: 0;
-            padding: 0;
+            padding: 20px 0; /* Add top/bottom padding for browser preview */
+            display: flex;
+            justify-content: center;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
+        /* 🟢 STRICT A4 DIMENSIONS & FLEX LAYOUT */
         .invoice-container {
-            width: 210mm;
-            min-height: 297mm;
+            width: 794px; /* Exact A4 Width */
+            min-height: 1123px; /* Exact A4 Height */
+            background: #ffffff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+            padding: 40px;
+            display: flex;
+            flex-direction: column; /* Allows footer to be pushed to bottom */
             margin: 0 auto;
-            background: #fff;
-            padding: 25px 30px;
-            box-sizing: border-box;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
         }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th, td {
-            vertical-align: top;
-            word-wrap: break-word;
-            text-align: left;
-            padding: 5px;
-        }
-
-        /* --- 1. Top Bar / Logo and Invoice Title --- */
-        .top-bar-section {
+        /* --- Header --- */
+        .invoice-header {
+            background-color: #3b82f6;
+            color: #ffffff;
+            padding: 40px;
+            margin: -40px -40px 0 -40px; /* Stretch to edges */
+            border-radius: 12px 12px 0 0;
             display: flex;
             justify-content: space-between;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .company-details {
+            width: 60%;
+        }
+        .company-logo {
+            display: flex;
             align-items: center;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 15px;
         }
-        .shop-logo {
-            text-align: left;
+        .company-logo-img {
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 8px;
+            margin-right: 12px;
+            height: 48px;
+            width: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .shop-logo img {
-            max-width: 40px;
-            height: auto;
+        .company-logo-img img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
             display: block;
-            margin-bottom: 5px;
         }
-        .shop-logo span {
+        .company-logo .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+        .company-details h2 {
+            margin: 0 0 5px 0;
             font-size: 20px;
-            font-weight: 700;
-            color: var(--primary-blue);
-            display: block;
-        }
-        .invoice-main-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: #000;
-        }
-
-        /* --- 2. Billed To/By & Invoice Details Section --- */
-        .address-details-section {
-            display: flex;
-            margin-top: 25px;
-        }
-        .billed-box {
-            width: 30%;
-            padding-right: 20px;
-            box-sizing: border-box;
-        }
-        .invoice-meta-box {
-            width: 40%;
-            padding-left: 20px;
-            box-sizing: border-box;
-            border-left: 1px dashed var(--border-color);
-            display: flex;
-            flex-direction: column;
-        }
-        .billed-box h4, .invoice-meta-box h4 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
             font-weight: 600;
-            color: var(--primary-blue);
+            color: #ffffff;
         }
-        .billed-box p {
-            margin: 0 0 4px 0;
-            line-height: 1.5;
+        .company-details p {
+            margin: 0;
             font-size: 13px;
-            color: var(--text-dark);
+            line-height: 1.6;
+            opacity: 0.9;
         }
-        .meta-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-            font-size: 13px;
-            align-items: flex-start;
-        }
-        .meta-item .label {
-            color: var(--text-light);
+        .company-details .label {
+            display: inline-block;
+            width: 50px;
             font-weight: 500;
         }
-        .meta-item .value {
-            font-weight: 600;
-            color: var(--text-dark);
+
+        .billing-details {
+            width: 35%;
             text-align: right;
         }
-
-        /* --- 3. Items Table --- */
-        .items-table {
-            margin-top: 30px;
-            border: 1px solid var(--table-border-light);
-        }
-        .items-table thead {
-            background-color: var(--header-bg-light);
-            color: var(--text-dark);
-        }
-        .items-table th, .items-table td {
-            padding: 10px 8px;
-            border: 1px solid var(--table-border-light);
-            font-size: 12px;
-        }
-        .items-table th {
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .items-table td {
-            line-height: 1.4;
-        }
-        .items-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* --- UPDATED Column widths --- */
-        .col-item-name { width: 25%; }
-        .col-hsn { width: 10%; }
-        .col-qty { width: 8%; }
-        .col-rate { width: 12%; }
-        .col-amount { width: 10%; }
-        .col-disc { width: 10%; }
-        .col-tax { width: 15%; }
-        .col-total { width: 10%; }
-
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
-
-        small.item-description {
-            display: block;
-            color: var(--text-light);
-            margin-top: 4px;
-            font-size: 11px;
-        }
-
-        /* --- 4. Bottom Sections (Terms, Notes, Totals, Signature, Bank) --- */
-        .bottom-sections {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-        }
-        .left-column {
-            width: 58%;
-            padding-right: 20px;
-            box-sizing: border-box;
-        }
-        .right-column {
-            width: 42%;
-            padding-left: 20px;
-            box-sizing: border-box;
-            border-left: 1px dashed var(--border-color);
-        }
-
-        .section-header {
+        .billing-details h3 {
             margin: 0 0 10px 0;
             font-size: 14px;
             font-weight: 600;
-            color: var(--primary-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
         }
-
-        /* Terms and Conditions */
-        .terms-conditions ul {
-            list-style: decimal;
-            padding-left: 18px;
-            margin: 0;
-        }
-        .terms-conditions li {
-            margin-bottom: 5px;
-            font-size: 12px;
-            line-height: 1.5;
-            color: var(--text-light);
-        }
-
-        /* Bank & Payment Details */
-        .bank-payment-details p {
-            margin: 0 0 4px 0;
-            font-size: 12px;
-            line-height: 1.5;
-            color: var(--text-light);
-        }
-        .bank-payment-details strong {
-            color: var(--text-dark);
-        }
-        .bank-details-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px 30px;
-            margin-top: 15px;
-        }
-        .bank-details-grid .qr-code {
-            text-align: center;
-        }
-        .bank-details-grid .qr-code img {
-            width: 90px;
-            height: 90px;
-            border: 1px solid var(--border-color);
-            padding: 5px;
-            background: #fff;
-        }
-        .bank-details-grid .qr-code p {
-            margin-top: 5px;
-            font-size: 11px;
-            color: var(--text-light);
-        }
-
-
-        /* Totals Summary */
-        .totals-summary {
-            background-color: var(--header-bg-light);
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-        }
-        .totals-summary .summary-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px 0;
-            border-bottom: 1px dashed var(--border-color);
-        }
-        .totals-summary .summary-row:last-of-type {
-            border-bottom: none;
-        }
-        .totals-summary .label {
+        .billing-details p {
+            margin: 0 0 5px 0;
             font-size: 13px;
-            color: var(--text-light);
-        }
-        .totals-summary .value {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-        .totals-summary .total-due-row {
-            background-color: var(--primary-blue);
-            color: #fff;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-top: 15px;
-            font-size: 16px;
-            font-weight: 700;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .totals-summary .total-due-row .label,
-        .totals-summary .total-due-row .value {
-            color: #fff;
-        }
-        .invoice-in-words {
-            font-size: 12px;
-            color: var(--text-light);
-            padding: 10px 0;
             line-height: 1.6;
         }
-        .invoice-in-words strong {
-            display: block;
-            color: var(--text-dark);
-            font-weight: 600;
-            margin-bottom: 5px;
+        .billing-details .label {
+            font-weight: 500;
         }
 
-        /* Authorized Signature */
-        .signature-section {
-            text-align: right;
-            margin-top: 40px;
+        /* --- Meta Section --- */
+        .invoice-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            background-color: #f9fafb;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e5e7eb;
+            margin: 0 -40px 30px -40px;
+            flex-shrink: 0;
         }
-        .signature-section p {
-            margin: 0;
+        .meta-box {
+            font-size: 13px;
+            flex: 1 1 auto;
+            min-width: 130px;
+        }
+        .meta-box h4 {
+            margin: 0 0 5px 0;
             font-size: 12px;
-            color: var(--text-light);
+            font-weight: 500;
+            color: #777;
+            text-transform: uppercase;
         }
-        .signature-section strong {
-            display: block;
-            margin-top: 5px;
+        .meta-box p {
+            margin: 0;
             font-size: 14px;
             font-weight: 600;
-            color: var(--text-dark);
+            word-wrap: break-word;
         }
-        .signature-line img {
-            max-width: 150px;
-            height: auto;
-            margin-top: -15px;
-            margin-bottom: -10px;
+        .meta-box.due-total p {
+            font-size: 20px;
+            color: #3b82f6;
         }
 
-        /* --- 5. Final Contact Footer --- */
-        .final-contact-footer {
-            margin-top: 40px;
-            padding: 15px;
-            text-align: center;
-            font-size: 12px;
-            color: var(--text-light);
-            border-top: 1px solid var(--border-color);
-        }
-        .final-contact-footer strong {
-            color: var(--primary-blue);
-            font-weight: 600;
+        /* 🟢 FLEX GROW: This pushes the footer to the bottom of the page! */
+        .invoice-body {
+            flex-grow: 1;
+            padding-bottom: 20px;
         }
 
-        /* Page break controls for PDF */
-        .terms-conditions, .bank-payment-details,
-        .totals-summary, .signature-section, .final-contact-footer {
-            page-break-inside: avoid;
-        }
+        /* --- Items Table --- */
         .items-table {
-            page-break-inside: auto;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .items-table thead {
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .items-table th {
+            padding: 12px 6px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: #777;
+            text-transform: uppercase;
         }
         .items-table tbody tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
+            border-bottom: 1px solid #e5e7eb;
         }
+        .items-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        .items-table td {
+            padding: 12px 6px;
+            vertical-align: top;
+            font-size: 13px;
+        }
+        .items-table .item-serial {
+            font-weight: 600;
+            color: #333;
+        }
+        .items-table .item-description {
+            font-size: 12px;
+            color: #777;
+            margin-top: 3px;
+        }
+
+        .text-right { text-align: right; }
+
+        /* Column Widths */
+        .col-sr { width: 5%; }
+        .col-item { width: auto; }
+        .col-hsn { width: 8%; }
+        .col-qty { width: 7%; }
+        .col-rate { width: 9%; }
+        .col-taxable { width: 11%; }
+        .col-disc { width: 7%; }
+        .col-tax { width: 18%; }
+        .col-total { width: 12%; }
+
+        /* --- Footer --- */
+        .invoice-footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 30px 40px 40px 40px;
+            margin: 0 -40px -40px -40px; /* Stretch to bottom edges */
+            border-top: 2px solid #e5e7eb;
+            background-color: #f9fafb;
+            flex-shrink: 0; /* Prevent footer from shrinking */
+        }
+        .footer-left { width: 55%; }
+        .footer-right { width: 42%; }
+
+        .footer-section { margin-bottom: 25px; }
+        .footer-section:last-child { margin-bottom: 0; }
+        .footer-section h4 {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+        .footer-section p {
+            margin: 0 0 5px 0;
+            line-height: 1.7;
+            color: #777;
+            font-size: 13px;
+        }
+
+        .bank-details-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 15px;
+        }
+        .bank-info { width: 60%; }
+        .bank-info .meta-item {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .bank-info .meta-item .label {
+            width: 110px;
+            color: #777;
+            font-weight: 500;
+        }
+        .bank-info .meta-item .value {
+            font-weight: 600;
+            color: #333;
+            word-break: break-all;
+        }
+        .qr-code {
+            text-align: center;
+            width: 35%;
+        }
+        .qr-code img {
+            width: 110px;
+            height: 110px;
+        }
+        .qr-code p {
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 5px;
+            line-height: 1.4;
+            word-break: break-all;
+        }
+        .terms ul {
+            padding-left: 20px;
+            margin: 0;
+            font-size: 13px;
+            color: #777;
+        }
+        .terms li { margin-bottom: 5px; }
+
+        .totals-table { width: 100%; }
+        .totals-table tr td {
+            padding: 8px 0;
+            font-size: 14px;
+        }
+        .totals-table tr td:first-child {
+            color: #777;
+            font-weight: 500;
+        }
+        .totals-table tr td:last-child {
+            text-align: right;
+            font-weight: 600;
+            color: #333;
+        }
+        .totals-table tr.total-due {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .totals-table tr.total-due.grand-total td {
+            font-size: 20px;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #3b82f6;
+            color: #ffffff;
+            margin-top: 10px;
+            display: table-cell;
+        }
+
+        .total-in-words { margin-top: 20px; }
+        .total-in-words h4 {
+            margin: 0 0 5px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+        .total-in-words p {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: #777;
+        }
+
+        /* Signature Styles */
+        .signature-area {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px dashed #d1d5db;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+        }
+        .signature-area p.shop-for {
+            font-size: 12px;
+            color: #777;
+            margin: 0;
+            line-height: 1.4;
+        }
+        .signature-area p.shop-for strong {
+            font-weight: 600;
+            color: #333;
+        }
+        .signature-line {
+            min-height: 60px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        .signature-line img {
+            max-width: 180px;
+            max-height: 75px;
+            width: auto;
+            height: auto;
+            mix-blend-mode: multiply;
+        }
+        .signature-area .signatory-name {
+            display: block;
+            margin-top: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+        .signature-area .signatory-label {
+            font-size: 11px;
+            color: #777;
+            margin: 0;
+        }
+
+        .bank-details, .terms, .totals-table, .total-in-words, .signature-area { page-break-inside: avoid; }
+        .items-table { page-break-inside: auto; }
+        .items-table tbody tr { page-break-inside: avoid; page-break-after: auto; }
     </style>
 </head>
-
 <body>
+
 <div class="invoice-container">
-
-
-    <div class="top-bar-section">
-        <div class="shop-logo">
-            <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
-            <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGO</span>
-            <span style="font-size: 16px; color: #555; margin-top: 4px;" th:text="${shopName}">Shop Name</span>
-        </div>
-        <h1 class="invoice-main-title">Tax Invoice</h1>
-    </div>
-
-
-    <div class="address-details-section">
-        <div class="billed-box">
-            <h4>Billed By</h4>
-            <p th:text="${shopName}">Foobar Labs</p>
-            <p th:text="${shopAddress}">46, Raghavendra Dham Society</p>
-            <p th:if="${showShopPanOnInvoice and !#strings.isEmpty(panNumber)}"><strong>PAN:</strong> <span th:text="${panNumber}"></span></p>
-        </div>
-        <table class="customer-addresses" th:if="${customerName != 'Anonymous'}">
-        <div class="billed-box">
-            <h4>Billed To</h4>
-            <p th:text="${customerName}">Studio Den</p>
-            <p th:text="${customerBillingAddress}">Karnataka, India - 560055</p>
-            <p th:if="${showCustomerGst and !#strings.isEmpty(customerGstNumber)}">GST No: <span th:text="${customerGstNumber}">29VCIC1234K226</span></p>
+    <header class="invoice-header">
+        <div class="company-details">
+            <div class="company-logo">
+                <div class="company-logo-img">
+                    <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Logo" />
+                    <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}" style="font-size: 1.5rem; font-weight: 700; color: #333;">LOGO</span>
+                </div>
+                <span class="logo-text" th:text="${shopName}">Shop Name</span>
+            </div>
+            <h2 th:text="${shopSlogan}">Your Slogan Here</h2>
+            <p th:text="${shopAddress}">Shop Address</p>
+            <th:block th:if="${showSupportInfo}">
+                <p><span class="label">Phone:</span> <span th:text="${shopPhone}"></span></p>
+                <p><span class="label">Email:</span> <span th:text="${shopEmail}"></span></p>
+            </th:block>
+            <p th:if="${!#strings.isEmpty(gstNumber)}">
+                <span class="label">GSTIN:</span> <span th:text="${gstNumber}"></span>
+            </p>
+            <p th:if="${showShopPanOnInvoice and !#strings.isEmpty(panNumber)}">
+                <span class="label">PAN:</span> <span th:text="${panNumber}"></span>
+            </p>
         </div>
 
-        <div class="invoice-meta-box">
-            <div class="meta-item">
-                <span class="label">Invoice No:</span>
-                <span class="value" th:text="${invoiceId}">003</span>
-            </div>
-            <div class="meta-item">
-                <span class="label">Invoice Date:</span>
-                <span class="value" th:text="${orderedDate}">FEB 19, 2020</span>
-            </div>
-            <div class="meta-item" th:if="${showDueDate and !#strings.isEmpty(dueDate)}">
-                <span class="label">Due Date:</span>
-                <span class="value" th:text="${dueDate}"></span>
-            </div>
+        <div class="billing-details" th:if="${customerName != 'Anonymous'}">
+            <h3 th:text="${combineAddress} ? 'Billed To / Shipped To' : 'Billed To'">Billed To</h3>
+            <p><strong th:text="${customerName}">Customer Name</strong></p>
+            <p th:text="${customerBillingAddress}">Customer Address</p>
+            <p><strong>Mobile:</strong> <span th:text="${customerPhone}"></span></p>
+            <p th:if="${showCustomerGst and !#strings.isEmpty(customerGstNumber)}">
+                <span class="label">GSTIN:</span> <span th:text="${customerGstNumber}"></span>
+            </p>
+        </div>
+    </header>
 
-            <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}"
-                 style="margin-top: 15px; align-self: flex-end; text-align: center;">
+    <section class="invoice-meta">
+        <div class="meta-box">
+            <h4>Invoice #</h4>
 
+            <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}">
                 <img th:src="'data:image/png;base64,' + ${invoiceBarcodeBase64}"
                      alt="Invoice Barcode"
-                     style="width: 150px; height: 30px; display: block;" />
+                     style="width: 150px; height: 35px; display: block; margin-bottom: 2px;" />
+                <p style="font-size: 14px; font-weight: 600; letter-spacing: 1px;" th:text="${invoiceId}"></p>
+            </div>
 
-                <div style="font-size: 10px; color: #555; letter-spacing: 2px; margin-top: 2px;" th:text="${invoiceId}"></div>
+            <p th:unless="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}" th:text="${invoiceId}"></p>
+        </div>
+
+        <div class="meta-box">
+            <h4>Invoice Date</h4>
+            <p th:text="${orderedDate}">Jan 1, 2025</p>
+        </div>
+        <div class="meta-box" th:if="${showDueDate and !#strings.isEmpty(dueDate)}">
+            <h4>Due Date</h4>
+            <p th:text="${dueDate}">Jan 15, 2025</p>
+        </div>
+
+        <div class="meta-box" th:unless="${combineAddress}">
+            <div th:if="${customerName != 'Anonymous'}">
+                <h4>Shipped To</h4>
+                <p style="font-size: 14px; font-weight: 600; margin-bottom: 3px;" th:text="${customerName}"></p>
+                <p style="font-size: 13px; font-weight: 400; line-height: 1.5; color: #555;" th:text="${customerShippingAddress}"></p>
+                <p style="font-size: 13px; font-weight: 400; line-height: 1.5; color: #555; margin-top: 5px;">
+                    <span th:if="${customerEmail != null and !#strings.isEmpty(customerEmail)}" th:text="${customerEmail}"></span>
+                    <span th:if="${customerEmail != null and !#strings.isEmpty(customerEmail) and customerPhone != null and !#strings.isEmpty(customerPhone)}"> | </span>
+                    <span th:if="${customerPhone != null and !#strings.isEmpty(customerPhone)}" th:text="${customerPhone}"></span>
+                </p>
             </div>
         </div>
-    </div>
+        <div class="meta-box due-total" th:if="${showDueAmount and dueAmount != null and dueAmount > 0}">
+            <h4>Due Amount</h4>
+            <p th:text="'₹' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 0, 'POINT')}">₹0.00</p>
+        </div>
+    </section>
 
+    <section class="invoice-body">
+        <table class="items-table" th:classappend="${!showIndividualDiscountPercentage} ? 'no-discount'">
+            <thead>
+            <tr>
+                <th class="col-sr">#</th>
+                <th class="col-item">ITEM/DESCRIPTION</th>
+                <th class="col-hsn text-right" th:if="${showHsnColumn}">HSN</th>
+                <th class="col-qty text-right">QTY.</th>
+                <th class="col-rate text-right" th:if="${showRateColumn}">RATE</th>
+                <th class="col-taxable text-right">TAXABLE AMT</th>
+                <th class="col-disc text-right" th:if="${showIndividualDiscountPercentage}">DISC %</th>
+                <th class="col-tax text-right">TAX</th>
+                <th class="col-total text-right">TOTAL</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="product, iterStat : ${products}">
+                <td class="col-sr"><span class="item-serial" th:text="${iterStat.count}"></span></td>
+                <td class="col-item">
+                    <strong th:text="${product['productName']}"></strong>
+                    <p class="item-description" th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}" th:text="${product['description']}"></p>
+                </td>
+                <td class="col-hsn text-right" th:if="${showHsnColumn}" th:text="${product['hsnCode']}"></td>
+                <td class="col-qty text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ''"></td>
+                <td class="col-rate text-right" th:if="${showRateColumn}" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
+                <td class="col-taxable text-right" th:text="${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
+                <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}" th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
+                <td class="col-tax text-right" style="line-height: 1.6;">
+                    <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+                    <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                    <br th:if="${product['sgstAmount'] > 0}" />
+                    <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+                </td>
+                <td class="col-total text-right" th:text="' ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
 
-    <table class="items-table">
-        <thead>
-        <tr>
-            <th class="col-item-name">Item #/Item description</th>
-            <th class="col-hsn text-right" th:if="${showHsnColumn}">HSN</th>
-            <th class="col-qty text-right">Quantity</th>
-            <th class="col-rate text-right" th:if="${showRateColumn}">Rate</th>
-            <th class="col-amount text-right">Amount</th>
-            <th class="col-disc text-right" th:if="${showIndividualDiscountPercentage}">Disc %</th>
-            <th class="col-tax text-right">Tax</th>
-            <th class="col-total text-right">Total</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="product : ${products}">
-            <td class="col-item-name">
-                <span th:text="${product['productName']}"></span>
-                <small class="item-description" th:if="${product['description'] != null and !#strings.isEmpty(product['description'])}" th:text="${product['description']}"></small>
-            </td>
-            <td class="col-hsn text-right" th:if="${showHsnColumn}" th:text="${product['hsnCode']}"></td>
-            <td class="col-qty text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}">10</td>
-            <td class="col-rate text-right" th:if="${showRateColumn}" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}">₹ 10,000</td>
-            <td class="col-amount text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}">₹ 10,000</td>
-            <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}" th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
-            <td class="col-tax text-right">
-                <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
-                <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
-                <br th:if="${product['sgstAmount'] > 0}" />
-                <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
-            </td>
-            <td class="col-total text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}">₹ 11,800</td>
-        </tr>
+    <footer class="invoice-footer">
+        <div class="footer-left">
+            <div class="footer-section bank-details">
+                <h4>BANK AND UPI DETAILS</h4>
+                <div class="bank-details-container">
+                    <div class="bank-info">
+                        <div class="meta-item">
+                            <span class="label">Bank Name</span>
+                            <span class="value" th:text="${bankName}"></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">Account Holder</span>
+                            <span class="value" th:text="${bankAccountName}"></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">Account Number</span>
+                            <span class="value" th:text="${bankAccountNumber}"></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">IFSC</span>
+                            <span class="value" th:text="${bankIfscCode}"></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">UPI</span>
+                            <span class="value" th:text="${upiId}"></span>
+                        </div>
+                    </div>
+                    <div class="qr-code" th:if="${qrCodeBase64}">
+                        <p><strong>Scan to pay via UPI</strong></p>
+                        <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code" />
+                    </div>
+                </div>
+            </div>
 
-        </tbody>
-    </table>
-
-
-    <div class="bottom-sections">
-        <div class="left-column">
-            <div class="terms-conditions" th:unless="${removeTerms}">
-                <h4 class="section-header">Terms And Conditions</h4>
+            <div class="footer-section terms" th:unless="${removeTerms}">
+                <h4>Terms And Conditions</h4>
                 <ul>
                     <li th:each="term : ${termsAndConditions}" th:text="${term}"></li>
                 </ul>
             </div>
 
-            <div class="bank-payment-details" style="margin-top: 30px;">
-                <h4 class="section-header">Bank & Payment Details</h4>
-                <div class="bank-details-grid">
-                    <div>
-                        <p><strong>Account Holder:</strong> <span th:text="${bankAccountName}">Harveys Sandeep Ramachandra</span></p>
-                        <p><strong>Account number:</strong> <span th:text="${bankAccountNumber}">542745218203</span></p>
-                        <p><strong>IFSC:</strong> <span th:text="${bankIfscCode}">SBIN0019789</span></p>
-                        <p><strong>Account Type:</strong> Savings</p>
-                        <p><strong>Bank Name:</strong> <span th:text="${bankName}">State Bank of India</span></p>
-                    </div>
-                    <div class="qr-code" th:if="${qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
-                        <p style="font-weight: 600; color: var(--text-dark); margin-bottom: 5px;">UPI - Scan To Pay</p>
-                        <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
-                        <p th:text="${upiId}">harveesandeep@okicbc</p>
-                    </div>
-                </div>
+            <div class="footer-section" th:if="${showSupportInfo}">
+                <h4>Support Info</h4>
+                <p>
+                    For support contact <strong style="color: #555;" th:text="${shopEmail}"></strong> or <strong style="color: #555;" th:text="${shopPhone}"></strong>.
+                </p>
             </div>
-
         </div>
 
-        <div class="right-column">
-            <div class="totals-summary">
-                <div class="summary-row">
-                    <span class="label">Taxable Amount</span>
-                    <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 0, 'POINT')}">₹ 56,000</span>
-                </div>
-                <div class="summary-row" th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
-                    <span class="label" style="font-weight: bold;">Discount</span>
-                    <span class="value" style="font-weight: bold;" th:text="'- ₹ ' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></span>
-                </div>
-                <div class="summary-row" th:each="gst : ${gstSummary}">
-                    <span class="label" th:text="${gst['type']} + ' @' + ${gst['percentage']} + '%'"></span>
-                    <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></span>
-                </div>
+        <div class="footer-right">
+            <table class="totals-table">
+                <tbody>
+                <tr>
+                    <td>Taxable Amount</td>
+                    <td th:text="'₹' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                </tr>
+                <tr th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
+                    <td>Discount</td>
+                    <td th:text="'- ₹' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                </tr>
+                <tr th:each="gst : ${gstSummary}">
+                    <td th:text="${gst['type']} + ' @' + ${gst['percentage']} + '%'"></td>
+                    <td th:text="'₹' + ${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></td>
+                </tr>
 
-                <div class="total-due-row">
-                    <span class="label">Grand Total</span>
-                    <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">₹ 142,488</span>
-                </div>
+                <th:block th:if="${showDueAmount}">
+                    <tr th:if="${paidAmount != null and paidAmount > 0}" style="border-top: 1px solid #e5e7eb;">
+                        <td>Paid Amount</td>
+                        <td th:text="'₹' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                    <tr th:if="${dueAmount != null and dueAmount > 0}">
+                        <td>Due Amount</td>
+                        <td th:text="'₹' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    </tr>
+                </th:block>
+
+                <tr class="total-due grand-total">
+                    <td>Total Due Amount</td>
+                    <td th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
+                </tr>
+                </tbody>
+            </table>
+
+            <div class="total-in-words">
+                <h4>INVOICE TOTAL IN WORDS</h4>
+                <p th:text="${grandTotalInWords}"></p>
             </div>
 
-            <div class="invoice-in-words">
-                <strong>Invoice in Words:</strong>
-                <span th:text="${grandTotalInWords}">Forty Two Thousand Four Hundred and Eighty Eight</span>
-            </div>
-
-            <div class="totals-summary"
-                 th:if="${showDueAmount and ((paidAmount != null && paidAmount > 0) || (dueAmount != null && dueAmount > 0))}"
-                 style="margin-top: 15px;">
-
-                <div class="summary-row"
-                     th:if="${paidAmount != null && paidAmount > 0}"
-                     style="background-color: #f6fff6; color: #006000; border-bottom: 0.5px solid #e0e0e0;">
-                    <span style="font-weight: bold;">PAID AMOUNT</span>
-                    <span style="font-weight: bold;"
-                          th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></span>
-                </div>
-
-                <div class="summary-row"
-                     th:if="${dueAmount != null && dueAmount > 0}"
-                     style="background-color: #fff6f6; color: #c00; border-bottom: 0.5px solid #e0e0e0;">
-                    <span style="font-weight: bold;">DUE AMOUNT</span>
-                    <span style="font-weight: bold;"
-                          th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
-                </div>
-
-            </div>
-
-
-
-            <div class="signature-section">
-                <p>Authorized Signature</p>
+            <div class="signature-area">
+                <p class="shop-for">For <strong th:text="${shopName}"></strong></p>
                 <div class="signature-line">
-                    <img th:if="${shopSignatureBase64}" th:src="'data:image/png;base64,' + ${shopSignatureBase64}" alt="Signature"/>
+                    <img th:if="${shopSignBase64 != null and !#strings.isEmpty(shopSignBase64)}" th:src="'data:image/png;base64,' + ${shopSignBase64}" alt="Authorized Signature" />
                 </div>
-                <strong th:text="${shopAccountName}">Sandeep Maurya</strong>
+                <strong class="signatory-name" th:if="${shopAccountName != null and !#strings.isEmpty(shopAccountName)}" th:text="${shopAccountName}"></strong>
+                <p class="signatory-label" th:text="${shopSignLabel != null ? shopSignLabel : '(Authorised Signatory)'}"></p>
             </div>
         </div>
-    </div>
-
-
-    <div class="final-contact-footer" th:if="${showSupportInfo}">
-        For any enquiries, email us on <strong><span th:text="${shopEmail}">info@foobarlabs.com</span></strong> or call us on <strong><span th:text="${shopPhone}">+91 98765-43210</span></strong>
-    </div>
-
+    </footer>
 </div>
+
 </body>
 </html>

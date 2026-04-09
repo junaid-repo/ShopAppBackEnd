@@ -346,8 +346,11 @@
         /* Signature */
         .signature-area {
             margin-top: 30px;
-            padding-top: 30px;
+            padding-top: 20px;
             border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
             text-align: right;
         }
         .signature-area p {
@@ -356,24 +359,27 @@
             margin: 0;
         }
         .signature-line {
-            width: 220px;
-            margin-top: 10px; /* Space for signature */
-            font-size: 13px;
-            font-weight: 500;
+            min-height: 60px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            margin-top: 10px;
+            margin-bottom: 5px;
         }
         .signature-line img {
-            max-width: 150px;
+            max-width: 180px;
+            max-height: 75px;
+            width: auto;
             height: auto;
-            margin-bottom: -10px;
+            mix-blend-mode: multiply; /* Blends nicely with the white background */
         }
-        .signature-line strong {
+        .signature-area strong {
             display: block;
             margin-top: 5px;
             font-size: 14px;
             font-weight: 600;
             color: var(--text-dark);
         }
-
 
         /* Your page-break fix */
         .bank-details, .payment-qr, .terms, .totals-table, .signature-area, .total-in-words {
@@ -388,10 +394,10 @@
     <header class="invoice-header">
         <div class="invoice-title">
             <h1>Invoice</h1>
-            <div class="header-logo">
+            <!--<div class="header-logo">
                 <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
                 <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGOTEXT</span>
-            </div>
+            </div>-->
             <div class="header-contact" style="margin-top: 20px;" th:if="${showSupportInfo}">
                 <p th:text="'Tel : ' + ${shopPhone}">Tel : 079-25820309</p>
                 <p th:text="'Email : ' + ${shopEmail}">Email : info@gfttools.com</p>
@@ -583,13 +589,14 @@
             </table>
 
             <div class="signature-area">
-                <p>For <span th:text="${shopName}"></span></p>
-                <div class="signature-line" style="height: 60px;">
-                    <img th:if="${shopSignatureBase64}" th:src="'data:image/png;base64,' + ${shopSignatureBase64}" alt="Signature"/>
+                <p>For <strong th:text="${shopName}" style="color: var(--text-dark);"></strong></p>
+                <div class="signature-line">
+                    <img th:if="${shopSignBase64 != null and !#strings.isEmpty(shopSignBase64)}" th:src="'data:image/png;base64,' + ${shopSignBase64}" alt="Authorized Signature" />
                 </div>
-                <strong th:text="${shopAccountName}" style="display: block; margin-top: 5px; font-size: 14px; font-weight: 600;">Sandeep Maurya</strong>
-                <p>(Authorised Signatory)</p>
+                <strong th:if="${shopAccountName != null and !#strings.isEmpty(shopAccountName)}" th:text="${shopAccountName}"></strong>
+                <p th:text="${shopSignLabel != null ? shopSignLabel : '(Authorised Signatory)'}"></p>
             </div>
+
         </div>
     </footer>
 </div>

@@ -248,10 +248,40 @@
         }
         .terms li { margin-bottom: 4px; }
 
+        /* Signature Box styles */
+        .signature-box {
+            margin-top: 40px;
+            float: right;
+            text-align: center;
+            min-width: 180px;
+            page-break-inside: avoid !important;
+        }
+        .signature-box img {
+            max-width: 200px;
+            max-height: 80px;
+            display: block;
+            margin: 0 auto 5px auto;
+            mix-blend-mode: multiply;
+        }
+        .signature-box .sign-line {
+            border-top: 1px solid #333;
+            padding-top: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
         /* Print Rules */
         .items-table { page-break-inside: auto !important; page-break-after: auto !important; }
         .invoice-footer { page-break-before: auto !important; page-break-after: auto !important; }
         .bank-details, .payment-qr, .terms, .totals-summary, .amount-in-words { page-break-inside: avoid !important; }
+
+        /* Clearfix for footer-right */
+        .footer-right::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
 
     </style>
 </head>
@@ -447,6 +477,12 @@
                     <span style="font-weight: bold;" th:text="' ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
                 </div>
             </div>
+
+            <div class="signature-box" th:if="${shopSignBase64 != null and !#strings.isEmpty(shopSignBase64)}">
+                <img th:src="'data:image/png;base64,' + ${shopSignBase64}" alt="Authorized Signature" />
+                <div class="sign-line" th:text="${shopSignLabel != null ? shopSignLabel : 'Authorized Signatory'}"></div>
+            </div>
+
         </div>
     </div>
 </div>

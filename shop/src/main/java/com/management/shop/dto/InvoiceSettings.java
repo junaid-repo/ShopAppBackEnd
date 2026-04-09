@@ -24,4 +24,5 @@ public class InvoiceSettings {
     Boolean showHsnColumn ;
     Boolean showInvoiceBarcode ;
     Boolean showGSTBreakdown;
+    Boolean showShopSignature;
 }

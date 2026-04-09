@@ -21,6 +21,7 @@ public class InvoiceData {
     private  String shopName;
     private  String shopSlogan;
     private  byte[] shopLogoBytes;
+    private byte[] shopSignatureBytes;
     private  String shopLogoText;
     private  String shopAddress;
     private  String shopEmail;
@@ -84,4 +85,5 @@ public class InvoiceData {
     Boolean removeTerms;
     Boolean showInvoiceBarcode;
     Boolean showGstBreakdown;
+    Boolean showShopSignature;
 }

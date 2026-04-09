@@ -87,7 +87,11 @@ public class Utility {
     /**
      * Helper method to convert a null string to an empty string.
      */
-    private final String LOGO_UPLOAD_DIR = "/home/ubuntu/clearbills/uploads/logos/";
+    @Value("${upload.logo.dir}")
+    private  String LOGO_UPLOAD_DIR;
+
+    @Value("${upload.logo.dir}")
+    private  String SIGN_UPLOAD_DIR;
     private String toEmpty(String value) {
         return value == null ? "" : value;
     }
@@ -134,6 +138,14 @@ public class Utility {
         } catch (Exception e) {
             log.info(e.getMessage());
             shopLogoBytes = null;
+        }
+
+        byte[] shopSignBytes = null;
+        try {
+            shopSignBytes = getShopSignature(username);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            shopSignBytes = null;
         }
 
         List<String> terms = new ArrayList<>();
@@ -215,6 +227,8 @@ public class Utility {
 
         Boolean showGstBreakdown=false;
 
+        Boolean showShopSignature=false;
+
         try {
             UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(orderId));
             printDueAmount=   userSettingsEntity.getShowPaymentStatus();
@@ -230,6 +244,7 @@ public class Utility {
             removeTerms=userSettingsEntity.getRemoveTerms();
             showInvoiceBarcode=userSettingsEntity.getShowInvoiceBarcode();
             showGstBreakdown=userSettingsEntity.getShowGstBreakdown();
+            showShopSignature=userSettingsEntity.getShowShopSignature();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -251,6 +266,7 @@ public class Utility {
                 .gstNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getGstin())).orElse(""))
                 .panNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getPan())).orElse(""))
                 .shopLogoBytes(shopLogoBytes)
+                .shopSignatureBytes(shopSignBytes)
                 .shopLogoText(userProfile.getShopName() == null ? "" :
                         Arrays.stream(userProfile.getShopName().trim().split("\\s+"))
                                 .filter(s -> !s.isEmpty())
@@ -298,7 +314,7 @@ public class Utility {
                 .removeTerms(removeTerms)
                 .showInvoiceBarcode(showInvoiceBarcode)
                 .showGstBreakdown(showGstBreakdown)
-
+                .showShopSignature(showShopSignature)
 
                 .build();
     }
@@ -556,6 +572,40 @@ public class Utility {
             e.printStackTrace();
         }
 
+        return content;
+    }
+
+
+    public byte[] getShopSignature(String username) throws IOException {
+
+        log.info("Entered getShopSign with request username " + username);
+
+        UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
+                new RuntimeException("User not found: " + username));
+
+        byte[] content = null;
+
+        try {
+            UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+
+            if (picRes != null && picRes.getSignature() != null) {
+
+                Path logoPath = Paths.get(SIGN_UPLOAD_DIR, picRes.getSignature());
+
+                if (Files.exists(logoPath)) {
+                    content = Files.readAllBytes(logoPath);
+                } else {
+                    log.info("Shop logo file not found on server: " + logoPath.toString());
+                }
+            } else {
+                log.info("No shop logo assigned for user: " + username);
+            }
+
+        } catch (IOException e) {
+            System.err.println("Error reading local shop logo: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("The content of the signature is " + content);
         return content;
     }
 

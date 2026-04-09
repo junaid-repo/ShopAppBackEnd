@@ -80,11 +80,20 @@
             justify-content: flex-end;
             margin-bottom: 8px;
         }
+
+        /* 🟢 FIXED LOGO SIZING */
         .company-logo img {
-            max-width: 100px;
+            max-width: 140px;
             height: auto;
-            max-height: 50px;
+            max-height: 60px;
+            object-fit: contain;
         }
+        .company-logo span {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
         .company-address {
             font-size: 12px;
             color: var(--text-light);
@@ -298,21 +307,6 @@
             font-weight: 500;
             color: var(--text-dark);
         }
-        .checkbox-group {
-            margin-bottom: 10px;
-        }
-        .checkbox-group label {
-            font-size: 11px;
-            color: var(--text-light);
-            margin-left: 4px;
-            cursor: pointer;
-        }
-        .checkbox-group input[type="checkbox"] {
-            margin-right: 0;
-            vertical-align: middle;
-            height: 10px;
-            width: 10px;
-        }
         .qr-code {
             text-align: center;
             width: 35%;
@@ -344,41 +338,6 @@
             line-height: 1.5;
         }
 
-        /* Additional Notes */
-        .notes p {
-            font-style: normal;
-        }
-
-        /* Payments Table */
-        .payments-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-            margin-top: 5px;
-        }
-        .payments-table th, .payments-table td {
-            padding: 6px 0;
-            border-bottom: 1px solid var(--border-color-light);
-            text-align: left;
-        }
-        .payments-table th {
-            color: var(--text-light);
-            font-weight: 500;
-        }
-        .payments-table td {
-            font-weight: 500;
-            color: var(--text-dark);
-        }
-        .payments-table tr:last-child td {
-            border-bottom: none;
-        }
-        .payments-table .total-row td {
-            font-weight: 700;
-            font-size: 12px;
-            padding-top: 8px;
-            color: #000;
-        }
-
         /* Footer Right (Totals) */
         .totals-table {
             width: 100%;
@@ -408,46 +367,53 @@
             font-weight: 700;
         }
 
-        /* Signature */
+        /* 🟢 Signature */
         .signature-area {
             margin-top: 40px;
-            padding-top: 30px;
+            padding-top: 20px;
             border-top: 1px solid var(--border-color-light);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
             text-align: right;
         }
-        .signature-area p {
-            font-size: 11px;
+        .signature-area p.shop-for {
+            font-size: 12px;
             color: var(--text-light);
             margin: 0;
             line-height: 1.4;
         }
-        .signature-area .shop-name-for-signature {
-            font-weight: 500;
-            color: var(--text-dark);
-        }
-        .signature-line {
-            display: inline-block;
-            width: 150px;
-            text-align: center;
-            padding-top: 6px;
-            margin-top: 10px; /* Adjusted */
-            font-size: 11px;
-            font-weight: 500;
-            color: var(--text-light);
-        }
-        .signature-line img {
-            max-width: 150px;
-            height: auto;
-            margin-bottom: -10px;
-        }
-        .signature-line strong {
-            display: block;
-            margin-top: 5px;
-            font-size: 14px;
+        .signature-area p.shop-for strong {
             font-weight: 600;
             color: var(--text-dark);
         }
-
+        .signature-line {
+            min-height: 60px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        .signature-line img {
+            max-width: 180px;
+            max-height: 75px;
+            width: auto;
+            height: auto;
+            mix-blend-mode: multiply; /* Blends cleanly with the white background */
+        }
+        .signature-area .signatory-name {
+            display: block;
+            margin-top: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .signature-area .signatory-label {
+            font-size: 11px;
+            color: var(--text-light);
+            margin: 0;
+        }
 
         /* Page break controls */
         .footer-section, .totals-table, .signature-area {
@@ -464,31 +430,27 @@
 
     <header class="invoice-header">
         <div class="header-left">
-            <div class="header-logo">
-                <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
-                <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGOTEXT</span>
-            </div>
+            <h1 class="title">INVOICE</h1>
+
             <div class="header-contact" style="margin-top: 20px;" th:if="${showSupportInfo}">
                 <p th:text="'Tel : ' + ${shopPhone}">Tel : 079-25820309</p>
                 <p th:text="'Email : ' + ${shopEmail}">Email : info@gfttools.com</p>
             </div>
 
             <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}"
-                 style="margin-top: 5px; display: flex; flex-direction: column; align-items: center; width: fit-content;">
-
+                 style="margin-top: 5px; display: flex; flex-direction: column; align-items: flex-start; width: fit-content;">
                 <img th:src="'data:image/png;base64,' + ${invoiceBarcodeBase64}"
                      alt="Invoice Barcode"
                      style="width: 150px; height: 35px; display: block;" />
-
                 <div style="font-size: 10px; color: #555; letter-spacing: 2px; margin-top: 2px;"
                      th:text="${invoiceId}"></div>
             </div>
-
         </div>
 
         <div class="header-right">
             <div class="company-logo">
                 <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Shop Logo"/>
+                <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGOTEXT</span>
             </div>
             <div class="company-address">
                 <strong class="shop-name" th:text="${shopName}">Meta Mora Pharmacy</strong>
@@ -663,9 +625,6 @@
                     For support contact <strong style="color: var(--text-medium);" th:text="${shopEmail}"></strong> or <strong style="color: var(--text-medium);" th:text="${shopPhone}"></strong>.
                 </p>
             </div>
-
-
-
         </div>
 
         <div class="footer-right">
@@ -710,14 +669,14 @@
             </th:block>
 
             <div class="signature-area">
-                <p>For <span class="shop-name-for-signature" th:text="${shopName}">Vinayaga Industrial Products and Services</span></p>
-                <div class="signature-line" style="height: 60px; border-top: none; margin-top: 10px;">
-                    <img th:if="${shopSignatureBase64}" th:src="'data:image/png;base64,' + ${shopSignatureBase64}" alt="Signature" style="max-width: 150px; height: auto;"/>
+                <p class="shop-for">For <strong th:text="${shopName}"></strong></p>
+                <div class="signature-line">
+                    <img th:if="${shopSignBase64 != null and !#strings.isEmpty(shopSignBase64)}" th:src="'data:image/png;base64,' + ${shopSignBase64}" alt="Authorized Signature" />
                 </div>
-                <div class="signature-line" style="margin-top: 0;">
-                    Authorised Signatory
-                </div>
+                <strong class="signatory-name" th:if="${shopAccountName != null and !#strings.isEmpty(shopAccountName)}" th:text="${shopAccountName}"></strong>
+                <p class="signatory-label" th:text="${shopSignLabel != null ? shopSignLabel : '(Authorised Signatory)'}"></p>
             </div>
+
         </div>
     </footer>
 </div>

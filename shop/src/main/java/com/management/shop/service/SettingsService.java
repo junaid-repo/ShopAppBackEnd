@@ -183,7 +183,7 @@ public class SettingsService {
                         .showHsnColumn(userSettings != null && userSettings.getShowHsnColumn() != null ? userSettings.getShowHsnColumn() : false)
                         .showInvoiceBarcode(userSettings != null && userSettings.getShowInvoiceBarcode() != null ? userSettings.getShowInvoiceBarcode() : false)
                         .showGSTBreakdown(userSettings != null && userSettings.getShowGstBreakdown() != null ? userSettings.getShowGstBreakdown() : false)
-
+                        .showShopSignature(userSettings != null && userSettings.getShowShopSignature() != null ? userSettings.getShowShopSignature() : false)
 
                         .build())
                 .reports(ReportSchedulerSettings.builder().enabled(userSettings != null && userSettings.getIsDailyReportsEnabled() != null ? userSettings.getIsDailyReportsEnabled() : false)
@@ -274,10 +274,11 @@ public class SettingsService {
         Boolean showHsnColumn = (Boolean) request.get("showHsnColumn");
         Boolean showInvoiceBarcode = (Boolean) request.get("showInvoiceBarcode");
         Boolean showGstinBreakdown = (Boolean) request.get("showGSTBreakdown");
+        Boolean showShopSignature = (Boolean) request.get("showShopSignature");
 
 
         settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms, showCustomerGstin, extractUsername(), LocalDateTime.now(),
-                showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown);
+                showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown, showShopSignature);
 
 
         return "saved";

@@ -27,6 +27,7 @@ public class UserProfilePicEntity {
 	private String username;
 	private String profilePic;
     private String shopLogo;
+    private String signature;
 	private LocalDateTime updated_date;
     private String userId;
 }

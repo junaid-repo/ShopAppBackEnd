@@ -247,9 +247,12 @@
         }
         .signature-line img {
             max-width: 150px;
+            max-height: 50px;
+            width: auto;
             height: auto;
-            margin-top: -15px;
-            margin-bottom: -10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            mix-blend-mode: multiply;
         }
 
     </style>
@@ -502,11 +505,10 @@
                         <td colspan="2" class="signature-area">
                             <strong style="font-size: 14px;" th:text="'For ' + ${shopName}">For Gujarat Freight Tools</strong>
                             <br/>
-                            <div class="signature-line" style="height: 60px;">
-                                <img th:if="${shopSignatureBase64}" th:src="'data:image/png;base64,' + ${shopSignatureBase64}" alt="Signature" style="max-width: 150px; height: auto;"/>
+                            <div class="signature-line" style="min-height: 60px;">
+                                <img th:if="${shopSignBase64 != null and !#strings.isEmpty(shopSignBase64)}" th:src="'data:image/png;base64,' + ${shopSignBase64}" alt="Signature" />
                             </div>
-                            <strong th:text="${shopAccountName}" style="display: block; margin-top: 5px; font-size: 14px; font-weight: 600;">Sandeep Maurya</strong>
-                            <p>(Authorised Signatory)</p>
+                            <p th:text="${shopSignLabel != null ? shopSignLabel : '(Authorised Signatory)'}">(Authorised Signatory)</p>
                         </td>
                     </tr>
                     </tbody>

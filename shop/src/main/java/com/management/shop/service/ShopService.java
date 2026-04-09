@@ -193,8 +193,14 @@ public class ShopService {
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
-    private final String UPLOAD_DIR = "/home/ubuntu/clearbills/uploads/profiles/";
-    private final String LOGO_UPLOAD_DIR = "/home/ubuntu/clearbills/uploads/logos/";
+    @Value("${upload.profile.dir}")
+    private  String UPLOAD_DIR;
+
+    @Value("${upload.logo.dir}")
+    private  String LOGO_UPLOAD_DIR;
+
+    @Value("${upload.logo.dir}")
+    private  String SIGN_UPLOAD_DIR;
 
     public String extractUsername(String orderReferenceNumber) {
         String username = "";
@@ -1736,7 +1742,7 @@ public class ShopService {
         String originalFilename = profilePic.getOriginalFilename();
         String safeFilename = username + "_" + System.currentTimeMillis() + "_" + originalFilename;
 
-        // 2. Ensure the directory exists on the server
+
         Path uploadPath = Paths.get(UPLOAD_DIR);
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
@@ -2693,6 +2699,46 @@ public class ShopService {
         return "ok";
     }
 
+    public String updateShopSignature(MultipartFile shopSign) throws IOException {
+
+        String username = extractUsername();
+        log.info("entered updateShopLogo with username " + username);
+
+        // 1. Create a unique filename (e.g., "junaid_logo_16789..._logo.png")
+        String originalFilename = shopSign.getOriginalFilename();
+        String safeFilename = username + "_logo_" + System.currentTimeMillis() + "_" + originalFilename;
+
+        // 2. Ensure the directory exists on the server
+        Path uploadPath = Paths.get(SIGN_UPLOAD_DIR);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        // 3. Save the file to the Ubuntu hard drive
+        Path filePath = uploadPath.resolve(safeFilename);
+        Files.copy(shopSign.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+        // 4. Update the Database
+        UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+        if (picRes != null) {
+            picRes.setSignature(safeFilename);
+            picRes.setUpdated_date(LocalDateTime.now());
+            userProfilePicRepo.save(picRes);
+        } else {
+            UserProfilePicEntity picResNew = new UserProfilePicEntity();
+            picResNew.setUsername(username);
+
+            // BUG FIX: Your original code accidentally saved this to setProfilePic!
+            // Changed it to setShopLogo to ensure it goes into the correct column.
+            picResNew.setSignature(safeFilename);
+
+            picResNew.setUpdated_date(LocalDateTime.now());
+            userProfilePicRepo.save(picResNew);
+        }
+
+        return "ok";
+    }
+
     private String safe(String value) {
         return value != null ? value.trim() : "";
     }
@@ -2858,6 +2904,39 @@ public class ShopService {
             e.printStackTrace();
         }
 
+        return content;
+    }
+
+    public byte[] getShopSign(String username) throws IOException {
+
+         log.info("Entered getShopSign with request username " + username);
+
+         UserInfo res = userinfoRepo.findByUsername(username).orElseThrow(() ->
+                new RuntimeException("User not found: " + username));
+
+        byte[] content = null;
+
+        try {
+            UserProfilePicEntity picRes = userProfilePicRepo.findByUsername(username);
+
+             if (picRes != null && picRes.getSignature() != null) {
+
+                 Path logoPath = Paths.get(SIGN_UPLOAD_DIR, picRes.getSignature());
+
+                 if (Files.exists(logoPath)) {
+                    content = Files.readAllBytes(logoPath);
+                } else {
+                    log.info("Shop logo file not found on server: " + logoPath.toString());
+                }
+            } else {
+                log.info("No shop logo assigned for user: " + username);
+            }
+
+        } catch (IOException e) {
+            System.err.println("Error reading local shop logo: " + e.getMessage());
+            e.printStackTrace();
+        }
+    System.out.println("The content of the signature is " + content);
         return content;
     }
 
@@ -3497,40 +3576,5 @@ public class ShopService {
         return response;
     }
 
-    public byte[] generateGSTInvoicePdf2(String orderId) throws Exception {
-        log.info("Generating invoice for orderNumber-->" + orderId);
 
-        String username = "";
-        if (orderId != null) {
-            BillingEntity billDetails = null;
-            try {
-                billDetails = billRepo.findOrderByJustReference(orderId);
-            } catch (Exception e) {
-                billDetails=   billRepo.findOrderByReference(orderId, extractUsername());
-            }
-
-            username = billDetails.getUserId();
-        }
-
-        InvoiceData invoiceData = utils.getFullInvoiceDetails(username, orderId);
-
-        String invoiceTemplateName = "gstinvoice";
-        String invoicePrinter = "THERMAL_2";
-
-        try {
-            SelectedInvoiceEntity repoEntity = invoiceRepo.findByUsername(username);
-            if (repoEntity != null) {
-                invoiceTemplateName = repoEntity.getTemplateName();
-                invoicePrinter = repoEntity.getPrinterType();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        byte[] response = pdfgstutil.generateGSTInvoice(invoiceData, invoiceTemplateName, invoicePrinter);
-        log.info("The full invoice Data is " + invoiceData);
-
-
-        return response;
-    }
 }

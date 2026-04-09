@@ -53,6 +53,7 @@ public class UserSettingsEntity {
     private Boolean showSupportInfo;
     private Boolean showInvoiceBarcode;
     private Boolean showGstBreakdown;
+    private Boolean showShopSignature;
 
     private Boolean isDailyReportsEnabled;
     private String  dailyReportEmailId;
