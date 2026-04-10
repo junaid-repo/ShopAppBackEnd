@@ -118,6 +118,7 @@ public class Utility {
 
 
     public InvoiceData getFullInvoiceDetails(String username, String orderId) {
+        log.info("Entered getFullInvoiceDetails with username: " + username + " and orderId: " + orderId);
         UpdateUserDTO userProfile = getUserProfile(username);
         InvoiceDetails order = getOrderDetails(orderId);
 
