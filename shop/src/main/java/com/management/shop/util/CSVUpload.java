@@ -26,6 +26,9 @@ public class CSVUpload {
     @Autowired
     private ProductCategoryRepository productCategoryRepo;
 
+    @Autowired
+    private CSVUtil csvUtil;
+
     public String extractUsername() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
@@ -134,7 +137,7 @@ public class CSVUpload {
                 String name = unquote(tokens[1]);
                 String hsn = validateHsn(unquote(tokens[2]), lineNumber);
 
-                addCategories(unquote(tokens[3]), lineNumber);
+                csvUtil.addCategories(unquote(tokens[3]), lineNumber);
                 String category = unquote(tokens[3]);
 
                 Integer costPrice = parseInt(unquote(tokens[4]), "costPrice", lineNumber);
@@ -227,7 +230,7 @@ public class CSVUpload {
         return tax;
     }
 
-    private void addCategories(String unquote, int lineNumber) {
+ /*   private void addCategories(String unquote, int lineNumber) {
         String categoryName = unquote.toLowerCase().replaceAll("\\s", "");
         List<ProductCategory> prodCatList = productCategoryRepo.getCategoryName(categoryName, extractUsername());
 
@@ -244,5 +247,5 @@ public class CSVUpload {
             } catch (Exception e) {
              }
         }
-    }
+    }*/
 }

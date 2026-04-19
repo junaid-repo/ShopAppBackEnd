@@ -461,6 +461,7 @@ public class ShopService {
             productEntity.setLocation(request.getLocation());
             productEntity.setTaxPercent(request.getTax());
             productEntity.setCostPrice(request.getCostPrice());
+            productEntity.setActive(true);
             productEntity.setHsn(request.getHsn());
             productEntity.setStatus(newStock < 0 ? "Out of Stock" : "In Stock");
             productEntity.setUpdatedDate(LocalDateTime.now());

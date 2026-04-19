@@ -1,17 +1,30 @@
 package com.management.shop.util;
 
+import com.management.shop.entity.ProductCategory;
 import com.management.shop.entity.ProductEntity;
+import com.management.shop.repository.ProductCategoryRepository;
+import jakarta.transaction.Transactional;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
 public class CSVUtil {
+
+    @Autowired
+    private ProductCategoryRepository productCategoryRepo;
+
+    public String extractUsername() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
 
     public byte[] exportAllProductAsCSV(List<ProductEntity> productList) {
 
@@ -19,7 +32,6 @@ public class CSVUtil {
                 "selectedProductId", "name", "hsn", "category",
                 "costPrice", "price", "stock", "tax", "location"
         };
-
 
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -51,5 +63,25 @@ public class CSVUtil {
         }
 
 
+    }
+
+    @Transactional
+    public void addCategories(String unquote, int lineNumber) {
+        String categoryName = unquote.toLowerCase().replaceAll("\\s", "");
+        List<ProductCategory> prodCatList = productCategoryRepo.getCategoryName(categoryName, extractUsername());
+
+        if (prodCatList.isEmpty()) {
+            try {
+                var prodRepo = ProductCategory.builder()
+                        .categoryName(unquote)
+                        .type("product")
+                        .updatedBy(extractUsername())
+                        .username(extractUsername())
+                        .updateDate(LocalDateTime.now())
+                        .build();
+                productCategoryRepo.save(prodRepo);
+            } catch (Exception e) {
+            }
+        }
     }
 }
