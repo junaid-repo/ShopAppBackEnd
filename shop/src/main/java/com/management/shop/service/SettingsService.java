@@ -184,6 +184,9 @@ public class SettingsService {
                         .showInvoiceBarcode(userSettings != null && userSettings.getShowInvoiceBarcode() != null ? userSettings.getShowInvoiceBarcode() : false)
                         .showGSTBreakdown(userSettings != null && userSettings.getShowGstBreakdown() != null ? userSettings.getShowGstBreakdown() : false)
                         .showShopSignature(userSettings != null && userSettings.getShowShopSignature() != null ? userSettings.getShowShopSignature() : false)
+                        .showBankDetails(userSettings != null && userSettings.getShowBankDetails() != null ? userSettings.getShowBankDetails() : false)
+                        .showUpiId(userSettings != null && userSettings.getShowUpiId() != null ? userSettings.getShowUpiId() : false)
+                        .showQrCode(userSettings != null && userSettings.getShowQRCode() != null ? userSettings.getShowQRCode() : false)
 
                         .build())
                 .reports(ReportSchedulerSettings.builder().enabled(userSettings != null && userSettings.getIsDailyReportsEnabled() != null ? userSettings.getIsDailyReportsEnabled() : false)
@@ -276,9 +279,13 @@ public class SettingsService {
         Boolean showGstinBreakdown = (Boolean) request.get("showGSTBreakdown");
         Boolean showShopSignature = (Boolean) request.get("showShopSignature");
 
+        Boolean showBankDetails= (Boolean) request.get("showBankDetails");
+        Boolean showUpiId= (Boolean) request.get("showUpiId");
+        Boolean showQRCode= (Boolean) request.get("showQrCode");
 
         settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms, showCustomerGstin, extractUsername(), LocalDateTime.now(),
-                showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown, showShopSignature);
+                showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown, showShopSignature
+        , showBankDetails, showUpiId, showQRCode);
 
 
         return "saved";

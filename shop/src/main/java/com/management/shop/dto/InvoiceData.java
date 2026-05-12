@@ -86,4 +86,8 @@ public class InvoiceData {
     Boolean showInvoiceBarcode;
     Boolean showGstBreakdown;
     Boolean showShopSignature;
+
+    Boolean showBankDetails;
+    Boolean showUpiId;
+    Boolean showQrcode;
 }

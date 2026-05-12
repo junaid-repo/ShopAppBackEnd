@@ -230,6 +230,10 @@ public class Utility {
 
         Boolean showShopSignature=false;
 
+        Boolean showBankDetails=false;
+        Boolean showUpiId=false;
+        Boolean showQRCode=false;
+
         try {
             UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(orderId));
             printDueAmount=   userSettingsEntity.getShowPaymentStatus();
@@ -246,6 +250,9 @@ public class Utility {
             showInvoiceBarcode=userSettingsEntity.getShowInvoiceBarcode();
             showGstBreakdown=userSettingsEntity.getShowGstBreakdown();
             showShopSignature=userSettingsEntity.getShowShopSignature();
+            showBankDetails=userSettingsEntity.getShowBankDetails();
+            showUpiId=userSettingsEntity.getShowUpiId();
+            showQRCode=userSettingsEntity.getShowQRCode();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -316,6 +323,11 @@ public class Utility {
                 .showInvoiceBarcode(showInvoiceBarcode)
                 .showGstBreakdown(showGstBreakdown)
                 .showShopSignature(showShopSignature)
+
+                .showBankDetails(showBankDetails)
+                .showUpiId(showUpiId)
+                .showQrcode(showQRCode)
+
 
                 .build();
     }
@@ -626,9 +638,9 @@ public class Utility {
             if (userDetails.getShopName() == null || userDetails.getShopName().trim().isEmpty()) {
                 missingDetails.add("Shop Name");
             }
-            if (userDetails.getShopAddress() == null || userDetails.getShopAddress().trim().isEmpty()) {
+          /*  if (userDetails.getShopAddress() == null || userDetails.getShopAddress().trim().isEmpty()) {
                 missingDetails.add("Shop Address");
-            }
+            }*/
             if (userDetails.getShopState() == null || userDetails.getShopState().trim().isEmpty()) {
                 missingDetails.add("Shop State");
             }
