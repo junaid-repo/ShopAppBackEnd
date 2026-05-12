@@ -18,6 +18,7 @@ import com.management.shop.gobalusers.util.OTPSender;
  import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -57,6 +59,9 @@ public class AuthPhoneService {
 
     @Autowired
     private UserInfoStatusRepository userStatusRepo;
+
+    @Autowired
+    private Environment environment;
 
 
 
@@ -291,17 +296,17 @@ public class AuthPhoneService {
                 res2.stream().forEach(i->{otpRepo.updateOldOTPWithPhone(forgotPassRequest.getPhone(), "stale", EventConstants.PASSWORD_RESET_REQUESTED.getEventName(), "sms");});
 
             }
+            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                String smsResponse = "";
 
-            String smsResponse="";
-
-            try {
-                smsResponse  =  otpSender.sendOtpWithPhoneForPasswordReset(forgotPassRequest.getPhone(), String.valueOf(otp), "30");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                try {
+                    smsResponse = otpSender.sendOtpWithPhoneForPasswordReset(forgotPassRequest.getPhone(), String.valueOf(otp), "30");
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
-
 
             var regsiterUserTemp = RegisterUserOTPEntity.builder().username(res.get(0).getUsername())
                     .createdDate(LocalDateTime.now()).otp(String.valueOf(otp)).status("fresh").event(EventConstants.PASSWORD_RESET_REQUESTED.getEventName()).phoneNumber(forgotPassRequest.getPhone()).source("SMS").retries(0).build();

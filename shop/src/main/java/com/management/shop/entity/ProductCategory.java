@@ -13,23 +13,30 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Data
 @Entity
-@Table(name="shop_product_category")
+@Table(
+        name = "shop_product_category",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_category_username",
+                        columnNames = {"category_name", "username"}
+                )
+        }
+)
 public class ProductCategory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
 
-
-    @Column(name="category_name", unique=true, updatable = false)
+    // Remove unique=true from here
+    @Column(name = "category_name", updatable = false)
     private String categoryName;
 
     private String type;
 
-
     private String username;
+
     private String updatedBy;
+
     private LocalDateTime updateDate;
-
-
 }
