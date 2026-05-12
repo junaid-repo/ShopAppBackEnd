@@ -575,7 +575,7 @@
                 <p th:text="${grandTotalInWords}">NINETY FOUR THOUSAND TWO HUNDRED AND FOURTY RUPEES ONLY</p>
             </div>
 
-            <div class="footer-section bank-details">
+            <div class="footer-section bank-details" th:if="${showBankDetails}">
                 <h4>Bank and UPI details</h4>
 
                 <div class="bank-details-container">
@@ -596,18 +596,14 @@
                             <span class="label">IFSC</span>
                             <span class="value" th:text="${bankIfscCode}">HDFC0018159</span>
                         </div>
-                        <div class="meta-item">
-                            <span class="label">Account Type</span>
-                            <span class="value">Savings</span>
-                        </div>
-                        <div class="meta-item">
+                        <div class="meta-item" th:if="${showUpiId}">
                             <span class="label">UPI</span>
                             <span class="value" th:text="${upiId}">foobarlabs@okhdfc</span>
                         </div>
                     </div>
-                    <div class="qr-code">
-                        <img th:if="${qrCodeBase64}" th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
-                        <p th:if="${qrCodeBase64}" th:text="${upiId}">username@vpa</p>
+                    <div class="qr-code" th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
+                        <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
+                        <p th:if="${showUpiId}" th:text="${upiId}">username@vpa</p>
                     </div>
                 </div>
             </div>

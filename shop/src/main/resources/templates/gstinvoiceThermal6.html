@@ -303,15 +303,15 @@
 
     <div class="footer-area">
 
-        <div th:if="${(bankAccountName != null and !#strings.isEmpty(bankAccountName)) or (qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64))}">
+        <div th:if="${showBankDetails or showQrCode}">
 
-            <div th:if="${qrCodeBase64}">
+            <div th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
                 <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-display"/>
             </div>
 
-            <div class="pay-info" th:if="${upiId != null and !#strings.isEmpty(upiId)}" th:text="'UPI: ' + ${upiId}"></div>
+            <div class="pay-info" th:if="${showUpiId and upiId != null and !#strings.isEmpty(upiId)}" th:text="'UPI: ' + ${upiId}"></div>
 
-            <div style="font-size: 0.9em;" th:if="${bankAccountName != null and !#strings.isEmpty(bankAccountName)}">
+            <div style="font-size: 0.9em;" th:if="${showBankDetails}">
                 <span th:text="${bankName}"></span> | <span th:text="${bankAccountNumber}"></span>
             </div>
         </div>

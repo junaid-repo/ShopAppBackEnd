@@ -438,11 +438,15 @@
                         <td class="section-header">Bank Details</td>
                     </tr>
                     <tr>
-                        <td class="bank-details">
+                        <td class="bank-details" th:if="${showBankDetails}">
                             <p><span class="label">Bank Name</span> <span th:text="${bankName}"></span></p>
                             <p><span class="label">Branch Name</span> </p>
                             <p><span class="label">Bank Account Number</span> <span th:text="${bankAccountNumber}"></span></p>
                             <p><span class="label">Bank Branch IFSC</span> <span th:text="${bankIfscCode}"></span></p>
+                            <p th:if="${showUpiId}"><span class="label">UPI</span> <span th:text="${upiId}"></span></p>
+                            <div th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}" style="margin-top:8px; text-align:center;">
+                                <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code" style="width:100px; height:100px;" />
+                            </div>
                         </td>
                     </tr>
                     <th:block th:unless="${removeTerms}">

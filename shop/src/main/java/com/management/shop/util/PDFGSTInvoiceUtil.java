@@ -205,6 +205,11 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("showSupportInfo", data.getShowSupportInfo() != null ? data.getShowSupportInfo() : false);
         context.setVariable("removeTerms", data.getRemoveTerms() != null ? data.getRemoveTerms() : false);
         context.setVariable("gstBreakdown", data.getShowGstBreakdown() != null ? data.getShowGstBreakdown() : false);
+        context.setVariable("showBankDetails", data.getShowBankDetails() != null ? data.getShowBankDetails() : false);
+        context.setVariable("showUpiId", data.getShowUpiId() != null ? data.getShowUpiId() : false);
+        context.setVariable("showQrCode", data.getShowQrcode() != null ? data.getShowQrcode() : false);
+
+
 
         context.setVariable("printerType", nullSafeString(printerType));
 

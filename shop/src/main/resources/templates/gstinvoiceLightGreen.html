@@ -526,7 +526,7 @@
                 <p th:text="${grandTotalInWords}"></p>
             </div>
 
-            <div class="footer-section bank-details">
+            <div class="footer-section bank-details" th:if="${showBankDetails}">
                 <h4>Bank and UPI details</h4>
                 <div class="bank-details-container">
                     <div class="bank-info">
@@ -534,11 +534,11 @@
                         <p><strong>Account Holder:</strong> <span th:text="${bankAccountName}"></span></p>
                         <p><strong>Account No:</strong> <span th:text="${bankAccountNumber}"></span></p>
                         <p><strong>IFSC Code:</strong> <span th:text="${bankIfscCode}"></span></p>
-                        <p><strong>UPI ID:</strong> <span th:text="${upiId}"></span></p>
+                        <p><strong>UPI ID:</strong> <span th:text="${upiId}" th:if="${showUpiId}"></span></p>
                     </div>
                     <div class="qr-code">
-                        <img th:if="${qrCodeBase64}" th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
-                        <p th:if="${qrCodeBase64}">Scan to pay via UPI</p>
+                        <img th:if="${showQrCode and qrCodeBase64}" th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
+                        <p th:if="${showQrCode and qrCodeBase64}">Scan to pay via UPI</p>
                     </div>
                 </div>
             </div>

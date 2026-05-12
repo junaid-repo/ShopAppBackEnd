@@ -523,7 +523,7 @@
 
     <footer class="invoice-footer">
         <div class="footer-left">
-            <div class="footer-section bank-details">
+            <div class="footer-section bank-details" th:if="${showBankDetails}">
                 <h4>BANK AND UPI DETAILS</h4>
                 <div class="bank-details-container">
                     <div class="bank-info">
@@ -543,12 +543,12 @@
                             <span class="label">IFSC</span>
                             <span class="value" th:text="${bankIfscCode}"></span>
                         </div>
-                        <div class="meta-item">
+                        <div class="meta-item" th:if="${showUpiId}">
                             <span class="label">UPI</span>
                             <span class="value" th:text="${upiId}"></span>
                         </div>
                     </div>
-                    <div class="qr-code" th:if="${qrCodeBase64}">
+                    <div class="qr-code" th:if="${showQrCode and qrCodeBase64}">
                         <p><strong>Scan to pay via UPI</strong></p>
                         <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code" />
                     </div>

@@ -333,11 +333,20 @@
 
     <div class="footer-area">
 
-        <div th:if="${(bankAccountName != null and !#strings.isEmpty(bankAccountName)) or (qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64))}">
-            <div th:if="${qrCodeBase64}">
+        <div th:if="${showBankDetails or showQrCode}">
+            <div th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
                 <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-display"/>
             </div>
+
             <div class="pay-info" th:if="${invoiceId != null and !#strings.isEmpty(invoiceId)}" th:text="'INV #: ' + ${invoiceId}"></div>
+
+            <div style="font-size: 0.9em;" th:if="${showBankDetails}">
+                <!-- Bank info shown only when showBankDetails is true -->
+                <div th:if="${bankName}" th:text="${bankName}"></div>
+                <div th:if="${bankAccountNumber}" th:text="'Ac: ' + ${bankAccountNumber}"></div>
+                <div th:if="${bankIfscCode}" th:text="'IFSC: ' + ${bankIfscCode}"></div>
+                <div th:if="${showUpiId and upiId != null and !#strings.isEmpty(upiId)}" class="bold" style="margin-top: 4px;" th:text="'UPI: ' + ${upiId}"></div>
+            </div>
         </div>
 
         <div class="terms-list" th:unless="${removeTerms}">

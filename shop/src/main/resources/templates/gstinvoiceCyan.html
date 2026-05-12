@@ -337,7 +337,7 @@
                 </ul>
             </div>
 
-            <div class="bank-details" style="margin-top: 35px;">
+            <div class="bank-details" th:if="${showBankDetails}" style="margin-top: 35px;">
                 <div class="section-header">Bank & Payment Details</div>
                 <div class="bank-details-grid">
                     <div>
@@ -346,10 +346,10 @@
                         <p><strong>IFSC:</strong> <span th:text="${bankIfscCode}"></span></p>
                         <p><strong>Bank:</strong> <span th:text="${bankName}"></span></p>
                     </div>
-                    <div class="qr-code" th:if="${qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}" style="text-align: center;">
+                    <div class="qr-code" th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
                         <p style="margin: 0 0 8px 0; font-weight: 600;">Scan to Pay</p>
-                        <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="UPI QR"/>
-                        <p th:text="${upiId}" style="margin-top: 6px; font-size: 12px;"></p>
+                        <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code" />
+                        <p th:if="${showUpiId}" th:text="${upiId}" style="margin-top: 6px; font-size: 12px;"></p>
                     </div>
                 </div>
             </div>

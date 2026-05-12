@@ -348,7 +348,7 @@
                 </ul>
             </div>
 
-            <div class="bank-payment-details" style="margin-top: 30px;">
+            <div class="bank-payment-details" style="margin-top: 30px;" th:if="${showBankDetails}">
                 <h4 class="section-header">Bank & Payment Details</h4>
                 <div class="bank-details-grid">
                     <div>
@@ -358,10 +358,10 @@
                         <p><strong>Account Type:</strong> Savings</p>
                         <p><strong>Bank Name:</strong> <span th:text="${bankName}"></span></p>
                     </div>
-                    <div class="qr-code" th:if="${qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
+                    <div class="qr-code" th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
                         <p style="font-weight: 600; color: var(--text-dark);">UPI - Scan To Pay</p>
                         <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
-                        <p th:text="${upiId}"></p>
+                        <p th:if="${showUpiId}" th:text="${upiId}"></p>
                     </div>
                 </div>
             </div>

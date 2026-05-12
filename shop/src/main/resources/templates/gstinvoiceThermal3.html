@@ -428,13 +428,13 @@
         <p>In Words: <span th:text="${grandTotalInWords}"></span></p>
     </div>
 
-    <div class="footer-section" th:if="${!#strings.isEmpty(bankAccountName)}">
+    <div class="footer-section" th:if="${showBankDetails}">
         <div class="bank-details">
             <h4>Payment Details</h4>
             <p>Bank: <span th:text="${bankName}"></span></p>
             <p>A/C: <span th:text="${bankAccountNumber}"></span></p>
             <p>IFSC: <span th:text="${bankIfscCode}"></span></p>
-            <p th:if="${!#strings.isEmpty(upiId)}">UPI ID: <span th:text="${upiId}"></span></p>
+            <p th:if="${showUpiId and !#strings.isEmpty(upiId)}">UPI ID: <span th:text="${upiId}"></span></p>
         </div>
     </div>
 
@@ -450,7 +450,7 @@
         <p>Phone: <span th:text="${shopPhone}"></span></p>
     </div>
 
-    <div class="qr-container" th:if="${!#strings.isEmpty(qrCodeBase64)}">
+    <div class="qr-container" th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
         <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="Invoice QR" class="qr-code qr-display"/>
         <p class="qr-hint">INVOICE QR</p>
     </div>

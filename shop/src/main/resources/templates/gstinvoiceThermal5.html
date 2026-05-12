@@ -270,16 +270,16 @@
     </div>
 
     <div class="footer-info">
-        <div class="payment-pill" th:if="${(bankAccountName != null and !#strings.isEmpty(bankAccountName)) or (qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64))}">
+        <div class="payment-pill" th:if="${showBankDetails or showQrCode}">
 
-            <div th:if="${upiId != null and !#strings.isEmpty(upiId)}" th:text="'UPI: ' + ${upiId}" class="bold"></div>
+            <div th:if="${showUpiId and upiId != null and !#strings.isEmpty(upiId)}" th:text="'UPI: ' + ${upiId}" class="bold"></div>
 
-            <div th:if="${(upiId == null or #strings.isEmpty(upiId)) and bankName != null}" th:text="'Pay via: ' + ${bankName}"></div>
+            <div th:if="${(showUpiId == false) and bankName != null}" th:text="'Pay via: ' + ${bankName}"></div>
 
-            <div th:if="${qrCodeBase64}" style="margin-top: 5px;">[ QR Code Available ]</div>
+            <div th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}" style="margin-top: 5px;">[ QR Code Available ]</div>
         </div>
 
-        <div th:if="${qrCodeBase64}">
+        <div th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
             <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-img"/>
         </div>
 

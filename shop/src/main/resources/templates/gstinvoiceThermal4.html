@@ -260,7 +260,7 @@
         <span class="bold" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'NONE', 0, 'POINT')}"></span>
     </div>
 
-    <div class="payment-section" th:if="${!#strings.isEmpty(bankAccountName)}">
+    <div class="payment-section" th:if="${showBankDetails}">
         <div class="payment-details" style="font-size: 0.9em;">
             <div class="bold" style="text-decoration: underline; margin-bottom: 4px;">PAYMENT INFO</div>
             <div>
@@ -268,7 +268,7 @@
                 <div th:if="${bankAccountNumber}" th:text="'Ac: ' + ${bankAccountNumber}"></div>
                 <div th:if="${bankIfscCode}" th:text="'IFSC: ' + ${bankIfscCode}"></div>
             </div>
-            <div th:if="${!#strings.isEmpty(upiId)}" class="bold" style="margin-top: 4px;" th:text="'UPI: ' + ${upiId}"></div>
+            <div th:if="${showUpiId and upiId != null and !#strings.isEmpty(upiId)}" class="bold" style="margin-top: 4px;" th:text="'UPI: ' + ${upiId}"></div>
         </div>
     </div>
 
@@ -280,7 +280,7 @@
         </ul>
     </div>
 
-    <div class="qr-wrapper" th:if="${!#strings.isEmpty(qrCodeBase64)}">
+    <div class="qr-wrapper" th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
         <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-img" alt="Invoice QR"/>
         <div class="bold" style="font-size: 0.8em; margin-top: 6px; letter-spacing: 1px;">INVOICE QR</div>
     </div>

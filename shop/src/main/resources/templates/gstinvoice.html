@@ -415,7 +415,7 @@
 
     <div class="invoice-footer">
         <div class="footer-left">
-            <div class="bank-details">
+            <div class="bank-details" th:if="${showBankDetails}">
                 <h4>BANK DETAILS</h4>
                 <p><strong>Name:</strong> <span th:text="${bankAccountName}"></span></p>
                 <p><strong>Account No:</strong> <span th:text="${bankAccountNumber}"></span></p>
@@ -423,9 +423,9 @@
                 <p><strong>Bank:</strong> <span th:text="${bankName}"></span></p>
             </div>
 
-            <div class="payment-qr" th:if="${qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
+            <div class="payment-qr" th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
                 <h4>PAYMENT QR CODE</h4>
-                <p><strong>UPI ID:</strong> <span th:text="${upiId}"></span></p>
+                <p th:if="${showUpiId}"><strong>UPI ID:</strong> <span th:text="${upiId}"></span></p>
                 <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code" style="max-width: 120px; height: auto;"/>
             </div>
 
