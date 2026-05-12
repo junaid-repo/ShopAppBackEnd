@@ -28,8 +28,9 @@ public class CSVUtil {
 
     public byte[] exportAllProductAsCSV(List<ProductEntity> productList) {
 
+        // --- UPDATED: Removed selectedProductId ---
         final String[] HEADERS = {
-                "selectedProductId", "name", "hsn", "category",
+                "name", "hsn", "category",
                 "costPrice", "price", "stock", "tax", "location"
         };
 
@@ -38,9 +39,10 @@ public class CSVUtil {
             PrintWriter writer = new PrintWriter(outputStream);
             CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.withHeader(HEADERS));
 
-            productList.stream().forEach(obj->{
+            productList.stream().forEach(obj -> {
                 try {
-                    printer.printRecord(obj.getId(),
+                    // --- UPDATED: Removed obj.getId() ---
+                    printer.printRecord(
                             obj.getName(),
                             obj.getHsn(),
                             obj.getCategory(),
@@ -52,7 +54,6 @@ public class CSVUtil {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-
             });
             printer.flush();
 
@@ -61,8 +62,6 @@ public class CSVUtil {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-
     }
 
     @Transactional

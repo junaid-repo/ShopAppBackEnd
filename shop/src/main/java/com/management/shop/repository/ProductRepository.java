@@ -2,6 +2,7 @@ package com.management.shop.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -133,4 +134,13 @@ AND p.updated_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)
     @Transactional
     @Query("update ProductEntity  pe set pe.stock = pe.stock + :quantity, pe.updatedBy = :username, pe.updatedDate = :updatedDate where pe.id = :productId and pe.userId = :username")
     void restoreProductStocks(@Param("productId") Integer productId,@Param("quantity") Integer quantity, @Param("username")String username, @Param("updatedDate")LocalDateTime now);
+
+    @Query("SELECT p FROM ProductEntity p WHERE LOWER(REPLACE(p.name, ' ', '')) = :normalizedName AND p.userId = :userId AND p.status = :status")
+    Optional<ProductEntity> findByNormalizedNameAndUserIdAndStatus(
+            @Param("normalizedName") String normalizedName,
+            @Param("userId") String userId,
+            @Param("status") Boolean status
+    );
 }
+
+

@@ -364,7 +364,7 @@ public class ShopService {
 
     @Transactional
     public ProductSuccessDTO saveProduct(ProductRequest request) {
-
+        resolveExistingProductId(request);
         String status = "In Stock";
         if (request.getStock() < 0)
             status = "Out of Stock";
@@ -431,6 +431,30 @@ public class ShopService {
 
         return ProductSuccessDTO.builder().success(false).product(request).build();
 
+    }
+    private void resolveExistingProductId(ProductRequest request) {
+        // Only attempt to find an existing product if the ID is null or 0
+        if (request.getSelectedProductId() == null || request.getSelectedProductId() == 0) {
+
+            String username = extractUsername();
+            String rawName = request.getName() == null ? "" : request.getName();
+            String normalizedName = rawName.toLowerCase().replaceAll("\\s+", "");
+
+            String status = "In Stock";
+            if (request.getStock() < 0) {
+                status = "Out of Stock";
+            }
+
+            // Query the database using the custom normalized query
+            Optional<ProductEntity> existingProductOpt = prodRepo.findByNormalizedNameAndUserIdAndStatus(
+                    normalizedName, username, Boolean.TRUE
+            );
+
+            // If a match is found, attach the existing ID to the request object
+            if (existingProductOpt.isPresent()) {
+                request.setSelectedProductId(existingProductOpt.get().getId());
+            }
+        }
     }
 
     @Transactional

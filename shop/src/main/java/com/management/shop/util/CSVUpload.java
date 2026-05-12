@@ -4,13 +4,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.management.shop.entity.ProductCategory;
 import com.management.shop.repository.ProductCategoryRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,9 +31,9 @@ public class CSVUpload {
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
-    // --- UPDATED: Added "location" to headers ---
+    // --- UPDATED: Removed selectedProductId ---
     private static final List<String> EXPECTED_HEADERS = Arrays.asList(
-            "selectedProductId", "name", "hsn", "category", "costPrice", "price", "stock", "tax", "location"
+            "name", "hsn", "category", "costPrice", "price", "stock", "tax", "location"
     );
 
     private static final List<String> VALID_CATEGORIES = Arrays.asList("Product", "Services", "Others");
@@ -66,32 +64,29 @@ public class CSVUpload {
                 if (line.isEmpty()) continue;
 
                 String[] tokens = CSV_SPLIT.split(line, -1);
-                // --- UPDATED: Expecting 9 columns now ---
-                if (tokens.length != 9) {
-                    throw new IllegalArgumentException("Invalid column count at line " + lineNumber + " (expected 9)");
+
+                // --- UPDATED: Expecting 8 columns now ---
+                if (tokens.length != 8) {
+                    throw new IllegalArgumentException("Invalid column count at line " + lineNumber + " (expected 8)");
                 }
 
-                String selectedProductIdStr = unquote(tokens[0]);
-                String name = unquote(tokens[1]);
-                String hsn = validateHsn(unquote(tokens[2]), lineNumber);
-                String category = validateCategory(unquote(tokens[3]), lineNumber);
-                Integer costPrice = parseInt(unquote(tokens[4]), "costPrice", lineNumber);
-                Integer price = parseInt(unquote(tokens[5]), "price", lineNumber);
+                String name = unquote(tokens[0]);
+                String hsn = validateHsn(unquote(tokens[1]), lineNumber);
+                String category = validateCategory(unquote(tokens[2]), lineNumber);
+                Integer costPrice = parseInt(unquote(tokens[3]), "costPrice", lineNumber);
+                Integer price = parseInt(unquote(tokens[4]), "price", lineNumber);
 
                 if (costPrice > price) {
                     throw new IllegalArgumentException("Validation error at line " + lineNumber +
                             ": Cost Price (" + costPrice + ") cannot be more than Selling Price (" + price + ")");
                 }
 
-                Integer stock = parseInt(unquote(tokens[6]), "stock", lineNumber);
-                Integer taxRaw = parseInt(unquote(tokens[7]), "tax", lineNumber);
+                Integer stock = parseInt(unquote(tokens[5]), "stock", lineNumber);
+                Integer taxRaw = parseInt(unquote(tokens[6]), "tax", lineNumber);
                 Integer tax = validateTax(taxRaw, lineNumber);
-
-                // --- NEW: Extract Location ---
-                String location = unquote(tokens[8]);
+                String location = unquote(tokens[7]);
 
                 products.add(ProductRequest.builder()
-                        .selectedProductId(parseInt(selectedProductIdStr, "selectedProductId", lineNumber))
                         .name(name)
                         .hsn(hsn)
                         .costPrice(costPrice)
@@ -99,7 +94,7 @@ public class CSVUpload {
                         .category(category)
                         .stock(stock)
                         .tax(tax)
-                        .location(location) // --- ADDED ---
+                        .location(location)
                         .build());
             }
         }
@@ -128,35 +123,32 @@ public class CSVUpload {
                 if (line.isEmpty()) continue;
 
                 String[] tokens = CSV_SPLIT.split(line, -1);
-                // --- UPDATED: Expecting 9 columns now ---
-                if (tokens.length != 9) {
-                    throw new IllegalArgumentException("Invalid column count at line " + lineNumber + " (expected 9)");
+
+                // --- UPDATED: Expecting 8 columns now ---
+                if (tokens.length != 8) {
+                    throw new IllegalArgumentException("Invalid column count at line " + lineNumber + " (expected 8)");
                 }
 
-                String selectedProductIdStr = unquote(tokens[0]);
-                String name = unquote(tokens[1]);
-                String hsn = validateHsn(unquote(tokens[2]), lineNumber);
+                String name = unquote(tokens[0]);
+                String hsn = validateHsn(unquote(tokens[1]), lineNumber);
 
-                csvUtil.addCategories(unquote(tokens[3]), lineNumber);
-                String category = unquote(tokens[3]);
+                csvUtil.addCategories(unquote(tokens[2]), lineNumber);
+                String category = unquote(tokens[2]);
 
-                Integer costPrice = parseInt(unquote(tokens[4]), "costPrice", lineNumber);
-                Integer price = parseInt(unquote(tokens[5]), "price", lineNumber);
+                Integer costPrice = parseInt(unquote(tokens[3]), "costPrice", lineNumber);
+                Integer price = parseInt(unquote(tokens[4]), "price", lineNumber);
 
                 if (costPrice > price) {
                     throw new IllegalArgumentException("Validation error at line " + lineNumber +
                             ": Cost Price (" + costPrice + ") cannot be more than Selling Price (" + price + ")");
                 }
 
-                Integer stock = parseInt(unquote(tokens[6]), "stock", lineNumber);
-                Integer taxRaw = parseInt(unquote(tokens[7]), "tax", lineNumber);
+                Integer stock = parseInt(unquote(tokens[5]), "stock", lineNumber);
+                Integer taxRaw = parseInt(unquote(tokens[6]), "tax", lineNumber);
                 Integer tax = validateTax(taxRaw, lineNumber);
-
-                // --- NEW: Extract Location ---
-                String location = unquote(tokens[8]);
+                String location = unquote(tokens[7]);
 
                 products.add(ProductRequest.builder()
-                        .selectedProductId(parseInt(selectedProductIdStr, "selectedProductId", lineNumber))
                         .name(name)
                         .hsn(hsn)
                         .costPrice(costPrice)
@@ -164,7 +156,7 @@ public class CSVUpload {
                         .category(category)
                         .stock(stock)
                         .tax(tax)
-                        .location(location) // --- ADDED ---
+                        .location(location)
                         .build());
             }
         }
@@ -223,13 +215,14 @@ public class CSVUpload {
         return category.trim();
     }
 
+
     private static int validateTax(int tax, int line) {
         if (!VALID_TAX_SLABS.contains(tax)) {
             throw new IllegalArgumentException("Invalid Tax Percent at line " + line + ": must be one of " + VALID_TAX_SLABS + ", but found '" + tax + "'");
         }
         return tax;
     }
-
+}
  /*   private void addCategories(String unquote, int lineNumber) {
         String categoryName = unquote.toLowerCase().replaceAll("\\s", "");
         List<ProductCategory> prodCatList = productCategoryRepo.getCategoryName(categoryName, extractUsername());
@@ -248,4 +241,4 @@ public class CSVUpload {
              }
         }
     }*/
-}
+
