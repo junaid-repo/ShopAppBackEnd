@@ -138,9 +138,10 @@ public class ReportsGenerate {
     private ReportData prepareSalesReportData(LocalDateTime fromDate, LocalDateTime toDate, String userId, String duration) {List<BillingEntity> listOfBills = billRepo.findPaymentsByDateRange(fromDate, toDate, userId);
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm");
 
-        List<String> headers = List.of("Invoice ID", "Customer", "GSTIN", "Date", "Total (₹)", "Status");
+        List<String> headers = List.of("Invoice ID", "Customer", "GSTIN", "Date", "Total (₹)", "GST (₹)", "Status");
         List<List<String>> rows = new ArrayList<>();
         double totalSum = 0;
+        double totalGst=0;
         long idCount = 0;
 
         for (BillingEntity obj : listOfBills) {
@@ -161,7 +162,9 @@ public class ReportsGenerate {
             String gstin = (obj.getGstin() != null && !obj.getGstin().trim().isEmpty()) ? obj.getGstin() : "N/A";
 
             Double total = obj.getTotalAmount();
+            Double gst = obj.getTaxAmount();
             String totalStr = (total != null) ? String.format("%.2f", total) : "0.00";
+            String gstStr=(gst != null) ? String.format("%.2f", gst) : "0.00";
 
             rows.add(List.of(
                     obj.getInvoiceNumber() != null ? obj.getInvoiceNumber() : "",
@@ -169,10 +172,12 @@ public class ReportsGenerate {
                     gstin,
                     formattedDate,
                     totalStr,
+                    gstStr,
                     status
             ));
 
             if (total != null) totalSum += total;
+            if(gst!=null) totalGst+=gst;
             if (obj.getInvoiceNumber() != null && !obj.getInvoiceNumber().trim().isEmpty()) idCount++;
         }
 
@@ -181,7 +186,8 @@ public class ReportsGenerate {
                 "Count: " + idCount,
                 "", // Empty cell for GSTIN
                 "", // Empty cell for Date
-                String.format("%.2f", totalSum), // Cell for Total
+                String.format("%.2f", totalSum),
+                String.format("%.2f", totalGst),// Cell for Total
                 ""  // Empty cell for Status
         );
 
