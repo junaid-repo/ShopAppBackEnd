@@ -11,7 +11,8 @@ public interface GlobalSearchIndexRepository extends JpaRepository<GlobalSearchI
     @Query(value = "SELECT * FROM global_search_index " +
             "WHERE user_id = ?1 " +
             "AND source_isactive = ?3 " +
-            "AND search_text LIKE CONCAT(LOWER(?2), '%') limit 7", // <-- Changed: No first '%'
+            "AND LOWER(search_text) LIKE CONCAT('%', LOWER(?2), '%') " + // <-- Changed: Added '%' at the start
+            "LIMIT 7",
             nativeQuery = true)
-    List<GlobalSearchIndex> findActiveEntities(String s, String globalSearchTerms, Boolean aTrue);
+    List<GlobalSearchIndex> findActiveEntities(String userId, String globalSearchTerms, Boolean isActive);
 }

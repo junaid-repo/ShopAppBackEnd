@@ -125,14 +125,14 @@
         .items-table tr:nth-child(even) { background-color: #f8fafc; }
         .items-table tr:last-child td { border-bottom: 2px solid var(--primary-teal); }
 
-        .col-item-name { width: 29%; }
+        .col-item-name { width: 25%; }
         .col-hsn       { width: 9%; }
-        .col-qty       { width: 7%; }
-        .col-rate      { width: 10%; }
-        .col-amount    { width: 11%; }
+        .col-qty       { width: 5%; }
+        .col-rate      { width: 12%; }
+        .col-amount    { width: 13%; }
         .col-disc      { width: 7%; }
-        .col-tax       { width: 24%; }
-        .col-total     { width: 13%; }
+        .col-tax       { width: 27%; }
+        .col-total     { width: 12%; }
 
         .text-right { text-align: right; }
 
@@ -312,14 +312,17 @@
                 th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
             <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}"
                 th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
-            <td class="col-tax text-right"  th:if="${showProductGst}">
-                    <span th:if="${product['igstAmount'] > 0}"
-                          th:text="'₹ ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
-                <span th:if="${product['cgstAmount'] > 0}"
-                      th:text="'CGST ₹ ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+            <td class="col-tax text-right" th:if="${showProductGst}">
+    <span th:if="${product['igstAmount'] > 0}"
+          th:text="'₹ ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+
+                <small style="font-style: italic; color: #555;" th:if="${product['cgstAmount'] > 0}"
+                       th:text="'CGST ₹ ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></small>
+
                 <br th:if="${product['sgstAmount'] > 0}"/>
-                <span th:if="${product['sgstAmount'] > 0}"
-                      th:text="'SGST ₹ ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+
+                <small style="font-style: italic; color: #555;" th:if="${product['sgstAmount'] > 0}"
+                       th:text="'SGST ₹ ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></small>
             </td>
             <td class="col-total text-right"
                 th:text="'₹ ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}"></td>
