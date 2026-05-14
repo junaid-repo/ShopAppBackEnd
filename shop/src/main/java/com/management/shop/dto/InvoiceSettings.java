@@ -29,4 +29,5 @@ public class InvoiceSettings {
     Boolean showBankDetails;
     Boolean showUpiId;
     Boolean showQrCode;
+    Boolean showProductGst;
 }

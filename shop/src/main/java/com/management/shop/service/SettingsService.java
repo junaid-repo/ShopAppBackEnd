@@ -187,7 +187,7 @@ public class SettingsService {
                         .showBankDetails(userSettings != null && userSettings.getShowBankDetails() != null ? userSettings.getShowBankDetails() : false)
                         .showUpiId(userSettings != null && userSettings.getShowUpiId() != null ? userSettings.getShowUpiId() : false)
                         .showQrCode(userSettings != null && userSettings.getShowQRCode() != null ? userSettings.getShowQRCode() : false)
-
+                        .showProductGst(userSettings != null && userSettings.getShowProductGst() != null ? userSettings.getShowProductGst() : false)
                         .build())
                 .reports(ReportSchedulerSettings.builder().enabled(userSettings != null && userSettings.getIsDailyReportsEnabled() != null ? userSettings.getIsDailyReportsEnabled() : false)
                         .email(userSettings != null && userSettings.getDailyReportEmailId()!= null ? userSettings.getDailyReportEmailId() : "")
@@ -282,10 +282,11 @@ public class SettingsService {
         Boolean showBankDetails= (Boolean) request.get("showBankDetails");
         Boolean showUpiId= (Boolean) request.get("showUpiId");
         Boolean showQRCode= (Boolean) request.get("showQrCode");
+        Boolean showProductGst= (Boolean) request.get("showProductGst");
 
         settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms, showCustomerGstin, extractUsername(), LocalDateTime.now(),
                 showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown, showShopSignature
-        , showBankDetails, showUpiId, showQRCode);
+        , showBankDetails, showUpiId, showQRCode, showProductGst);
 
 
         return "saved";

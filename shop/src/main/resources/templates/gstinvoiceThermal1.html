@@ -234,6 +234,11 @@
             <h2 class="shop-title" th:text="${shopLogoText != null ? shopLogoText : shopName}"></h2>
         </div>
 
+        <!-- ADDED: Conditional invoice barcode similar to gstinvoice.html -->
+        <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}" style="margin-top:6px; text-align:center;">
+            <img th:src="'data:image/png;base64,' + ${invoiceBarcodeBase64}" alt="Invoice Barcode" style="max-width:260px; height:auto; display:block; margin:0 auto;"/>
+        </div>
+
         <div class="shop-sub">
             <span th:text="${shopAddress}"></span><br>
             <span th:text="${shopPhone}"></span>
@@ -282,10 +287,18 @@
                     <span class="sub-desc" th:if="${showHsnColumn and product['hsnCode'] != null}" th:text="'HSN:' + ${product['hsnCode']}"></span>
 
                     <span class="sub-desc" th:if="${showIndividualDiscountPercentage and product['discountPercentage'] != null and product['discountPercentage'] > 0}"
-                          th:text="'Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 'NONE', 0, 'POINT')} + '%'"></span>
+                          th:text="'Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 'NONE', 0, 'POINT')} + '%'">
+                    </span>
 
-                    <span class="sub-desc" th:if="${gstBreakdown and product['taxPercentage'] != null and product['taxPercentage'] > 0}"
-                          th:text="'GST: ' + ${#numbers.formatDecimal(product['taxPercentage'], 1, 'NONE', 0, 'POINT')} + '%'"></span>
+                    <!-- ADDED: GST breakdown per product (show only when enabled) -->
+                    <div th:if="${showProductGst}">
+                        <span class="sub-desc" th:if="${product['igstAmount'] != null and product['igstAmount'] > 0}"
+                              th:text="'IGST: ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+                        <span class="sub-desc" th:if="${product['cgstAmount'] != null and product['cgstAmount'] > 0}"
+                              th:text="'CGST: ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                        <span class="sub-desc" th:if="${product['sgstAmount'] != null and product['sgstAmount'] > 0}"
+                              th:text="'SGST: ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+                    </div>
                 </td>
 
                 <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')}"></td>

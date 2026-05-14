@@ -233,6 +233,7 @@ public class Utility {
         Boolean showBankDetails=false;
         Boolean showUpiId=false;
         Boolean showQRCode=false;
+        Boolean showProductGst=false;
 
         try {
             UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(orderId));
@@ -253,6 +254,7 @@ public class Utility {
             showBankDetails=userSettingsEntity.getShowBankDetails();
             showUpiId=userSettingsEntity.getShowUpiId();
             showQRCode=userSettingsEntity.getShowQRCode();
+            showProductGst=userSettingsEntity.getShowProductGst();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -327,6 +329,7 @@ public class Utility {
                 .showBankDetails(showBankDetails)
                 .showUpiId(showUpiId)
                 .showQrcode(showQRCode)
+                .showProductGst(showProductGst)
 
 
                 .build();

@@ -60,7 +60,9 @@ public class PDFGSTInvoiceUtil {
 
         if(printerType != null && printerType.contains("THERMAL")){
 
-            qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(data.getInvoiceId()), 200, 200);
+           // qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(data.getInvoiceId()), 200, 200);
+            qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 300, 300);
+
         }
         else{
             qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 300, 300);
@@ -208,6 +210,7 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("showBankDetails", data.getShowBankDetails() != null ? data.getShowBankDetails() : false);
         context.setVariable("showUpiId", data.getShowUpiId() != null ? data.getShowUpiId() : false);
         context.setVariable("showQrCode", data.getShowQrcode() != null ? data.getShowQrcode() : false);
+        context.setVariable("showProductGst", data.getShowProductGst() != null ? data.getShowProductGst() : false);
 
 
 

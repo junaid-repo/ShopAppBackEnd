@@ -377,7 +377,7 @@
             <th class="text-right qty-col">QTY.</th>
             <th class="text-right amount-col">AMOUNT</th>
             <th class="text-right disc-col" th:if="${showIndividualDiscountPercentage}">DISC %</th>
-            <th class="text-right tax-col">TAX</th>
+            <th class="text-right tax-col" th:if="${showProductGst}">TAX</th>
             <th class="text-right total-col">TOTAL</th>
         </tr>
         </thead>
@@ -392,7 +392,7 @@
             <td class="text-right qty-col" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + ' Pcs'"></td>
             <td class="text-right amount-col" th:text="${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
             <td class="text-right disc-col" th:if="${showIndividualDiscountPercentage}" th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
-            <td class="text-right tax-col">
+            <td class="text-right tax-col"  th:if="${showProductGst}">
                 <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
                 <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
                 <br th:if="${product['sgstAmount'] > 0}" />
@@ -407,7 +407,7 @@
             <td class="text-right" th:text="${#aggregates.sum(products.![quantity])}"></td>
             <td></td>
             <td th:if="${showIndividualDiscountPercentage}"></td>
-            <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 0, 'POINT')}"></td>
+            <td th:if="${showProductGst}" class="text-right" th:text="' ' + ${#numbers.formatDecimal(#aggregates.sum(products.![taxAmount]), 1, 'COMMA', 0, 'POINT')}"></td>
             <td class="text-right" th:text="' ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}"></td>
         </tr>
         </tfoot>

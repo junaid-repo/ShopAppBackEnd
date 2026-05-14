@@ -310,7 +310,7 @@
             <th class="col-rate text-right" th:if="${showRateColumn}">Rate</th>
             <th class="col-amount text-right">Amount</th>
             <th class="col-disc text-right" th:if="${showIndividualDiscountPercentage}">Disc %</th>
-            <th class="col-tax text-right">Tax</th>
+            <th class="col-tax text-right" th:if="${showProductGst}">Tax</th>
             <th class="col-total text-right">Total</th>
         </tr>
         </thead>
@@ -329,7 +329,7 @@
                 th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
             <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}"
                 th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
-            <td class="col-tax text-right">
+            <td class="col-tax text-right"  th:if="${showProductGst}">
                     <span th:if="${product['igstAmount'] > 0}"
                           th:text="'₹ ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
                 <span th:if="${product['cgstAmount'] > 0}"

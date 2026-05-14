@@ -493,7 +493,7 @@
                 <th class="col-rate text-right" th:if="${showRateColumn}">RATE</th>
                 <th class="col-taxable text-right">TAXABLE AMT</th>
                 <th class="col-disc text-right" th:if="${showIndividualDiscountPercentage}">DISC %</th>
-                <th class="col-tax text-right">TAX</th>
+                <th class="col-tax text-right" th:if="${showProductGst}">TAX</th>
                 <th class="col-total text-right">TOTAL</th>
             </tr>
             </thead>
@@ -509,7 +509,7 @@
                 <td class="col-rate text-right" th:if="${showRateColumn}" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>
                 <td class="col-taxable text-right" th:text="${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}"></td>
                 <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}" th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
-                <td class="col-tax text-right" style="line-height: 1.6;">
+                <td class="col-tax text-right" style="line-height: 1.6;"  th:if="${showProductGst}">
                     <span th:if="${product['igstAmount'] > 0}" th:text="'' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
                     <span th:if="${product['cgstAmount'] > 0}" th:text="'CGST ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
                     <br th:if="${product['sgstAmount'] > 0}" />

@@ -152,6 +152,9 @@
 
         /* 🟢 Increased QR Size */
         .qr-img { width: 80px; height: 80px; }
+
+        /* Constrain overall container width for thermal paper to avoid overly wide layout */
+        .container { max-width: 56mm; width: 56mm; padding: 2mm; }
     </style>
 
     <style th:if="${printerType == 'THERMAL_3'}">
@@ -166,6 +169,9 @@
 
         /* 🟢 Increased QR Size */
         .qr-img { width: 120px; height: 120px; }
+
+        /* Constrain container for 80mm thermal */
+        .container { max-width: 78mm; width: 78mm; padding: 3mm; }
     </style>
 
     <style th:if="${printerType == 'THERMAL_4'}">
@@ -180,6 +186,9 @@
 
         /* 🟢 Increased QR Size */
         .qr-img { width: 160px; height: 160px; }
+
+        /* Constrain container for 112mm thermal */
+        .container { max-width: 110mm; width: 110mm; padding: 4mm; }
     </style>
 
 </head>
@@ -198,6 +207,12 @@
             <span th:text="${shopPhone}"></span>
             <span th:if="${gstNumber}" th:text="' | GST: ' + ${gstNumber}"></span>
         </div>
+
+        <!-- ADDED: Conditional invoice barcode -->
+        <div th:if="${invoiceBarcodeBase64 != null and !#strings.isEmpty(invoiceBarcodeBase64)}" style="margin-top:6px; text-align:center;">
+            <img th:src="'data:image/png;base64,' + ${invoiceBarcodeBase64}" alt="Invoice Barcode" class="qr-img" style="max-width:260px; height:60px; display:block; margin:6px auto;"/>
+        </div>
+
     </div>
 
     <div class="invoice-meta">
@@ -233,6 +248,13 @@
                     <span th:text="${product['productName']}"></span>
                     <span class="item-sub" th:if="${showHsnColumn}" th:text="'HSN: ' + ${product['hsnCode']}"></span>
                     <span class="item-sub" th:if="${showIndividualDiscountPercentage}" th:text="'Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 0)} + '%'"></span>
+
+                    <!-- ADDED: GST breakdown per product (show only when enabled) -->
+                    <div th:if="${showProductGst}" style="font-size:0.9em; color:#666; margin-top:3px;">
+                        <span th:if="${product['igstAmount'] != null and product['igstAmount'] > 0}" th:text="'IGST: ' + ${#numbers.formatDecimal(product['igstAmount'],1,'COMMA',2,'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+                        <span th:if="${product['cgstAmount'] != null and product['cgstAmount'] > 0}" th:text="'CGST: ' + ${#numbers.formatDecimal(product['cgstAmount'],1,'COMMA',2,'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                        <span th:if="${product['sgstAmount'] != null and product['sgstAmount'] > 0}" th:text="'SGST: ' + ${#numbers.formatDecimal(product['sgstAmount'],1,'COMMA',2,'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+                    </div>
                 </td>
                 <td class="col-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></td>
                 <td class="col-price" th:text="${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}"></td>

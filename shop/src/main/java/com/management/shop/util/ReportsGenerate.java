@@ -1,10 +1,7 @@
 package com.management.shop.util;
 
 import com.management.shop.dto.*;
-import com.management.shop.entity.BillingEntity;
-import com.management.shop.entity.CustomerEntity;
-import com.management.shop.entity.PaymentEntity;
-import com.management.shop.entity.ProductEntity;
+import com.management.shop.entity.*;
 import com.management.shop.repository.*;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.Page;
@@ -135,13 +132,15 @@ public class ReportsGenerate {
 
     // --- DATA PREPARATION HELPERS ---
 
-    private ReportData prepareSalesReportData(LocalDateTime fromDate, LocalDateTime toDate, String userId, String duration) {List<BillingEntity> listOfBills = billRepo.findPaymentsByDateRange(fromDate, toDate, userId);
+    private ReportData prepareSalesReportData(LocalDateTime fromDate, LocalDateTime toDate, String userId, String duration) {
+        List<BillingEntity> listOfBills = billRepo.findPaymentsByDateRange(fromDate, toDate, userId);
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm");
 
         List<String> headers = List.of("Invoice ID", "Customer", "GSTIN", "Date", "Total (₹)", "GST (₹)", "Status");
         List<List<String>> rows = new ArrayList<>();
+
         double totalSum = 0;
-        double totalGst=0;
+        double totalGst = 0;
         long idCount = 0;
 
         for (BillingEntity obj : listOfBills) {
@@ -162,9 +161,24 @@ public class ReportsGenerate {
             String gstin = (obj.getGstin() != null && !obj.getGstin().trim().isEmpty()) ? obj.getGstin() : "N/A";
 
             Double total = obj.getTotalAmount();
-            Double gst = obj.getTaxAmount();
+
+            // 🟢 FIX: Fetch exact, unrounded GST directly from product_sales line items
+            List<ProductSalesEntity> salesItems = prodSalesRepo.findByOrderId(obj.getId(), userId);
+            double exactGst = 0.0;
+            if (salesItems != null) {
+                for (ProductSalesEntity item : salesItems) {
+                    if (item.getTax() != null) {
+                        exactGst += item.getTax(); // Aggregating exact decimals
+                    }
+                }
+            }
+
             String totalStr = (total != null) ? String.format("%.2f", total) : "0.00";
-            String gstStr=(gst != null) ? String.format("%.2f", gst) : "0.00";
+
+            // 🟢 Note on Rounding:
+            // String.format("%.2f") performs standard half-up rounding for the final visual display (e.g., 14.555 -> 14.56).
+            // If you strictly want NO visual rounding at all (showing 14.555), change the line below to: String.valueOf(exactGst);
+            String gstStr = String.format("%.2f", exactGst);
 
             rows.add(List.of(
                     obj.getInvoiceNumber() != null ? obj.getInvoiceNumber() : "",
@@ -177,7 +191,8 @@ public class ReportsGenerate {
             ));
 
             if (total != null) totalSum += total;
-            if(gst!=null) totalGst+=gst;
+            totalGst += exactGst; // Summing the exact unrounded values to match the GST reports
+
             if (obj.getInvoiceNumber() != null && !obj.getInvoiceNumber().trim().isEmpty()) idCount++;
         }
 
@@ -187,7 +202,7 @@ public class ReportsGenerate {
                 "", // Empty cell for GSTIN
                 "", // Empty cell for Date
                 String.format("%.2f", totalSum),
-                String.format("%.2f", totalGst),// Cell for Total
+                String.format("%.2f", totalGst), // Cell for Total Exact GST
                 ""  // Empty cell for Status
         );
 
@@ -197,7 +212,8 @@ public class ReportsGenerate {
         data.headers = headers;
         data.rows = rows;
         data.footerCells = footerCells;
-        return data;}
+        return data;
+    }
     private ReportData prepareSalesByCustomerData(LocalDateTime fromDate, LocalDateTime toDate, String userId, String duration) {
 
         // 1. Call the new JPQL method

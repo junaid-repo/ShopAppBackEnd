@@ -49,6 +49,7 @@ public class UserSettingsEntity {
     private Boolean showItemDiscount;
     private Boolean showHsnColumn;
     private Boolean showRateColumn;
+    private Boolean showProductGst;
     private Boolean showTotalDiscount;
     private Boolean showSupportInfo;
     private Boolean showInvoiceBarcode;
