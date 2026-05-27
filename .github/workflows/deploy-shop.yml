@@ -2,7 +2,9 @@ name: Deploy Shop API
 
 on:
   push:
-    branches: [ "**" ] # 🟢 UPDATED: This wildcard matches any branch name
+    branches:
+      - '**'
+      - '!kubernetes-impl' # 🟢 UPDATED: This wildcard matches any branch name
     # Only run if files in the shop folder change!
     paths:
       - 'shop/**'
