@@ -269,12 +269,12 @@ public class AuthService {
             paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("SYSTEM").updatedBy("SYSTEM").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
 
             var invoiceSequence= InvoiceSequence.builder().shopId(res.getUsername())
-                            .financialYear("2026")
-                                    .prefix("CB")
+                    .financialYear("2026")
+                    .prefix("CB")
                     .updatedDate(LocalDateTime.now())
                     .username(res.getUsername())
-                                            .currentValue(0)
-                                                    .build();
+                    .currentValue(0)
+                    .build();
 
             try {
                 invoiceSeqRepo.save(invoiceSequence);
@@ -363,11 +363,11 @@ public class AuthService {
 
             try {
                 if (res.size() > 0){
-                UserInfoStatus userInfoStatus=userStatusRepo.validateUserStatus(res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getUsername());
+                    UserInfoStatus userInfoStatus=userStatusRepo.validateUserStatus(res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getUsername());
 
-                if(userInfoStatus.getStatus().equals("DELETEDBYUSER")){
-                    res=null;
-                }}
+                    if(userInfoStatus.getStatus().equals("DELETEDBYUSER")){
+                        res=null;
+                    }}
             } catch (Exception e) {
 
             }
@@ -451,10 +451,15 @@ public class AuthService {
                 String host = request.getHeader("Host");
                 String targetDomain = ".clearbills.info"; // Fallback default
 
-                if ((origin != null && origin.contains("clearbill.store")) ||
+                // Check for all three domains
+                if ((origin != null && origin.contains("clearbills.store")) ||
+                        (host != null && host.contains("clearbills.store"))) {
+                    targetDomain = ".clearbills.store";
+                } else if ((origin != null && origin.contains("clearbill.store")) ||
                         (host != null && host.contains("clearbill.store"))) {
                     targetDomain = ".clearbill.store";
                 }
+
                 log.info("Inside authAndsetCookiesGoogle with targetDomain --> " + targetDomain);
                 response.addHeader("Set-Cookie",
                         "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
@@ -503,7 +508,11 @@ public class AuthService {
                     String host = request.getHeader("Host");
                     String targetDomain = ".clearbills.info"; // Fallback default
 
-                    if ((origin != null && origin.contains("clearbill.store")) ||
+                    // Check for all three domains
+                    if ((origin != null && origin.contains("clearbills.store")) ||
+                            (host != null && host.contains("clearbills.store"))) {
+                        targetDomain = ".clearbills.store";
+                    } else if ((origin != null && origin.contains("clearbill.store")) ||
                             (host != null && host.contains("clearbill.store"))) {
                         targetDomain = ".clearbill.store";
                     }
@@ -528,13 +537,13 @@ public class AuthService {
     }
 
     private String randomPassword(Integer length) {
-           final String CHARACTERS =
+        final String CHARACTERS =
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
                         "abcdefghijklmnopqrstuvwxyz" +
                         "0123456789" +
                         "!@#$%^&*()-_=+<>?";
 
-            final SecureRandom random = new SecureRandom();
+        final SecureRandom random = new SecureRandom();
         StringBuilder password = new StringBuilder(length);
 
         for (int i = 0; i < length; i++) {

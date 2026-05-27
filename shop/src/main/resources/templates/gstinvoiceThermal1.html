@@ -154,7 +154,7 @@
         }
         .pay-info {
             margin-bottom: 8px;
-            border: 1px dashed #000;
+
             display: inline-block;
             padding: 4px 10px;
         }
@@ -347,11 +347,17 @@
     <div class="footer-area">
 
         <div th:if="${showBankDetails or showQrCode}">
-            <div th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">
-                <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-display"/>
-            </div>
 
-            <div class="pay-info" th:if="${invoiceId != null and !#strings.isEmpty(invoiceId)}" th:text="'INV #: ' + ${invoiceId}"></div>
+                <div th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}" style="text-align: center;">
+                    <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" class="qr-display"/>
+                </div>
+             
+                <div class="pay-info"
+
+                     style="text-align: center; margin-top: 8px;">
+                    Scan to Pay
+                </div>
+
 
             <div style="font-size: 0.9em;" th:if="${showBankDetails}">
                 <!-- Bank info shown only when showBankDetails is true -->

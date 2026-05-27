@@ -11,8 +11,8 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 
-# ✅ Copy your specific JAR
-COPY --from=build /app/target/gobalusers-0.0.1-SNAPSHOT.jar app.jar
+# ✅ Copies the predictable finalName JAR
+COPY --from=build /app/target/gobalusers.jar app.jar
 
 EXPOSE 8080
 
