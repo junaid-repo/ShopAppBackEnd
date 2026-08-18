@@ -1380,6 +1380,27 @@ public class ShopService {
         return response;
     }
 
+    public List<PaymentDetails> getPaymentListNew(String fromDate, String toDate) {
+
+        LocalDateTime startDate = LocalDate.parse(fromDate).atStartOfDay();
+        LocalDateTime endDate = LocalDate.parse(toDate).atTime(LocalTime.MAX);
+
+        return salesPaymentRepo.getPaymentListNew(startDate, endDate, extractUsername()).stream()
+                .map(payment -> PaymentDetails.builder()
+                        .id(payment.getId())
+                        .amount(payment.getAmount())
+                        .date(String.valueOf(payment.getPaymentDate()))
+                        .saleId(payment.getSaleId())
+                        .reminderCount(payment.getReminderCount())
+                        .method(payment.getMethod())
+                        .paid(payment.getPaid() != null ? payment.getPaid() : 0d)
+                        .due(payment.getDue() != null ? payment.getDue() : 0d)
+                        .status(payment.getStatus())
+                        .customerName(payment.getCustomerName())
+                        .build())
+                .toList();
+    }
+
     public ProductSuccessDTO uploadProduct(File request) {
 
         return null;

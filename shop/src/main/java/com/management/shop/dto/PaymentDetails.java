@@ -20,5 +20,6 @@ public class PaymentDetails {
     private Double due;
     private String status;
     private Integer reminderCount;
+    private String customerName;
 
 }

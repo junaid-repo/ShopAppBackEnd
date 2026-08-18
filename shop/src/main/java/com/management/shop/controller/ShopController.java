@@ -419,6 +419,15 @@ public class ShopController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @GetMapping("api/shop/get/paymentListsNew")
+    ResponseEntity<List<PaymentDetails>> getPaymentListNew(
+            @RequestParam String fromDate,
+            @RequestParam String toDate) {
+        List<PaymentDetails> response = serv.getPaymentListNew(fromDate, toDate);
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
     @PostMapping(path = "api/shop/bulk-upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('PREMIUM')")
     public ResponseEntity<?> bulkUpload(@RequestPart("file") MultipartFile file) {
@@ -1263,6 +1272,5 @@ public class ShopController {
 
 
 }
-
 
 

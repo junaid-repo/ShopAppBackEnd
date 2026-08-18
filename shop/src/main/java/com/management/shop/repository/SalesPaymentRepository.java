@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import com.management.shop.dto.PaymentDetailsProjection;
 import com.management.shop.dto.PaymentReportDto;
 import com.management.shop.dto.PaymentSummaryDto;
 import jakarta.transaction.Transactional;
@@ -72,6 +73,34 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
             + "ORDER BY MONTH(bp.created_date)", nativeQuery = true)
     List<PaymentEntity> getPaymentList(@Param("fromDate") LocalDateTime fromDate,
                                        @Param("toDate") LocalDateTime toDate, @Param("userId") String userId);
+
+    @Query(value = """
+        SELECT bp.payment_reference_number AS id,
+               bp.order_number AS saleId,
+               bp.created_date AS paymentDate,
+               bp.total AS amount,
+               bp.payment_method AS method,
+               bp.paid AS paid,
+               bp.to_be_paid AS due,
+               bp.status AS status,
+               bp.reminder_count AS reminderCount,
+               customer.name AS customerName
+        FROM billing_payments bp
+        JOIN billing_details bill
+          ON bp.billing_id = bill.id
+         AND bp.user_id = bill.user_id
+        LEFT JOIN shop_customer customer
+          ON bill.customer_id = customer.id
+         AND bill.user_id = customer.user_id
+        WHERE bp.created_date BETWEEN :fromDate AND :toDate
+          AND bp.user_id = :userId
+          AND bill.invoice_status = 'ACTIVE'
+        ORDER BY bp.created_date DESC
+        """, nativeQuery = true)
+    List<PaymentDetailsProjection> getPaymentListNew(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("userId") String userId);
 
     // Uses IN subquery for safe updates
     @Transactional
