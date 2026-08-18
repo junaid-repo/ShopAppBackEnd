@@ -1,6 +1,7 @@
 package com.management.shop.controller;
 
 import com.management.shop.dto.BillingResponse;
+import com.management.shop.dto.InternalSubscriptionRequest;
 import com.management.shop.dto.ReportResponse;
 import com.management.shop.dto.SubsriptionRequest;
 import com.management.shop.dto.VerifyAndBillRequest;
@@ -12,11 +13,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
 
@@ -32,12 +38,40 @@ public class SubsController {
     @Value("${razorpay.key.id}")
     private String keyId;
 
+    @Value("${internal.api.key}")
+    private String internalApiKey;
+
     @PostMapping("api/shop/subscription/create")
     ResponseEntity<Map<String, Object>> addSubscription(@RequestBody SubsriptionRequest request){
         Map<String, Object> response=    serv.saveSubscription(request);
 
         return ResponseEntity.ok(response);
 
+    }
+
+    @PostMapping("/internal/subscriptions/create")
+    ResponseEntity<Map<String, Object>> addInternalSubscription(
+            @RequestHeader("X-Internal-Api-Key") String apiKey,
+            @Valid @RequestBody InternalSubscriptionRequest request) {
+
+        if (!isValidInternalApiKey(apiKey)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid service credentials"));
+        }
+
+        SubsriptionRequest subscriptionRequest = new SubsriptionRequest();
+        subscriptionRequest.setPlanType(request.getPlanType());
+        subscriptionRequest.setAmount(request.getAmount());
+        subscriptionRequest.setType(request.getType());
+
+        return ResponseEntity.ok(
+                serv.provisionInitialSubscription(subscriptionRequest, request.getUsername()));
+    }
+
+    private boolean isValidInternalApiKey(String apiKey) {
+        return MessageDigest.isEqual(
+                apiKey.getBytes(StandardCharsets.UTF_8),
+                internalApiKey.getBytes(StandardCharsets.UTF_8));
     }
     @PostMapping("api/shop/subscription/verify")
     public ResponseEntity<?> verifyPayment(@RequestBody VerifyAndBillRequest request) {

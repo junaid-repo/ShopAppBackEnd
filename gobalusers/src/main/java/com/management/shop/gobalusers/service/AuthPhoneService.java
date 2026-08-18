@@ -9,6 +9,7 @@ import com.management.shop.gobalusers.entity.RegisterUserOTPEntity;
 import com.management.shop.gobalusers.entity.UserInfo;
 import com.management.shop.gobalusers.entity.UserInfoStatus;
 import com.management.shop.gobalusers.entity.UserPaymentModes;
+import com.management.shop.gobalusers.event.UserRegistrationCompletedEvent;
 import com.management.shop.gobalusers.repository.UserInfoRepository;
 import com.management.shop.gobalusers.repository.UserInfoStatusRepository;
 import com.management.shop.gobalusers.repository.UserOtpRepo;
@@ -19,6 +20,7 @@ import com.management.shop.gobalusers.util.OTPSender;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -63,6 +65,9 @@ public class AuthPhoneService {
     @Autowired
     private Environment environment;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
 
 
     @Transactional
@@ -86,15 +91,18 @@ public class AuthPhoneService {
 
                 }
                 String smsResponse="";
-
+                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
                     try {
-                        smsResponse  =  otpSender.sendOtpWithPhoneForReg(regRequest.getPhone(), String.valueOf(number), "30");
+                        smsResponse = otpSender.sendOtpWithPhoneForReg(regRequest.getPhone(), String.valueOf(number), "30");
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-
+                }
+                if(Arrays.asList(environment.getActiveProfiles()).contains("dev")){
+                    smsResponse="success";
+                }
                 if (smsResponse.contains("success")) {
                     var regsiterUserTemp = RegisterUserOTPEntity.builder().username(validateContactResponse.getUsername()).phoneNumber(regRequest.getPhone())
                             .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").retries(0).event(EventConstants.USER_REG.getEventName()).source("SMS").build();
@@ -134,15 +142,19 @@ public class AuthPhoneService {
                     otpRepo.updateOldOTP(res.getId(), "stale");
                 }
                 String smsResponse="";
-
-                try {
-                    smsResponse  =  otpSender.sendOtpWithPhoneForReg(regRequest.getPhone(), String.valueOf(number), "30");
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                    try {
+                        smsResponse = otpSender.sendOtpWithPhoneForReg(regRequest.getPhone(), String.valueOf(number), "30");
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-
+                if(Arrays.asList(environment.getActiveProfiles()).contains("dev")){
+                    smsResponse="success";
+                    System.out.println("The otp is "+number+" for user "+userInfo.getUsername());
+                }
                 if (smsResponse.contains("success")) {
                     var regsiterUserTemp = RegisterUserOTPEntity.builder().username(userInfo.getUsername()).phoneNumber(regRequest.getPhone())
                             .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").retries(0).event(EventConstants.USER_REG.getEventName()).source("SMS").build();
@@ -262,6 +274,7 @@ public class AuthPhoneService {
 
      }
 
+            eventPublisher.publishEvent(new UserRegistrationCompletedEvent(userInfo.getUsername()));
 
             var response = OtpVerifyResponse.builder().success(true)
                     .username(otpInfo.getUsername())

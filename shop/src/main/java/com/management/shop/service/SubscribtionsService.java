@@ -73,13 +73,39 @@ public class SubscribtionsService {
     }
 
     public Map<String, Object> saveSubscription(SubsriptionRequest request) {
-            String username=extractUsername();
+        return saveSubscriptionForUser(request, extractUsername());
+    }
 
-        UserSubscriptions userSubDetails= subsRepo.findByUsername(extractUsername(), "active");
+    public Map<String, Object> provisionInitialSubscription(SubsriptionRequest request, String username) {
+        UserSubscriptions existingSubscription = subsRepo.findByUsername(username, "active");
+        if (existingSubscription != null && "COMPLEMENTARY".equals(request.getType())) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("subscriptionId", existingSubscription.getSubscriptionId());
+            response.put("amount", existingSubscription.getPrice());
+            response.put("orderId", existingSubscription.getId());
+            return response;
+        }
+
+        Map<String, Object> response=  saveSubscriptionForUser(request, username);
+
+        if(response.get("subscriptionId")!=null && response.get("amount")!=null && response.get("orderId")!=null) {
+            try {
+                userinfoRepo.updateUserRole(username,"ROLE_PREMIUM");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return response;
+    }
+
+    private Map<String, Object> saveSubscriptionForUser(SubsriptionRequest request, String username) {
+
+        UserSubscriptions userSubDetails= subsRepo.findByUsername(username, "active");
 
 
            if(userSubDetails!=null) {
-               Map<String, Object> updateExistingSub = updateExistingSub(request, userSubDetails);
+               Map<String, Object> updateExistingSub = updateExistingSub(request, userSubDetails, username);
 
                return updateExistingSub;
            }
@@ -95,9 +121,18 @@ public class SubscribtionsService {
             }
         LocalDateTime startDate= LocalDateTime.now();
         LocalDateTime endDate= LocalDateTime.now().plusDays(numberOfDays);
+        String status="pending";
+        String subscriptionType="PAID";
+        String subscriptionId = "SUB-";
+        if(request.getType().equals("COMPLEMENTARY")){
+            status="active";
+             subscriptionId = "COMP-";
+            subscriptionType="COMPLEMENTARY";
+        }
     UserSubscriptions ent=    UserSubscriptions.builder().planType(request.getPlanType())
                 .days(numberOfDays)
-                .status("pending")
+                .status(status)
+                .subscriptionType(subscriptionType)
                 .username(username)
                 .startDate(startDate)
                 .endDate(endDate)
@@ -110,7 +145,8 @@ public class SubscribtionsService {
         if(userSub!=null){
             String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
             String sequentialPart = String.format("%04d", userSub.getId());
-            String subscriptionId = "SUB-" + datePart + "-" + sequentialPart;
+
+            subscriptionId=  subscriptionId + datePart + "-" + sequentialPart;
             ent.setSubscriptionId(subscriptionId);
             subsRepo.save(ent);
         }
@@ -122,9 +158,9 @@ public class SubscribtionsService {
         return response;
     }
 
-    private Map<String, Object> updateExistingSub(SubsriptionRequest request, UserSubscriptions existingSub) {
+    private Map<String, Object> updateExistingSub(SubsriptionRequest request, UserSubscriptions existingSub,
+                                                   String username) {
 
-        String username=extractUsername();
         Map<String, Object> response = new HashMap<>();
         Integer numberOfDays=0;
 
@@ -236,6 +272,7 @@ public class SubscribtionsService {
             if (userSub != null) {
                 response.put("subscriptionId", userSub.getSubscriptionId());
                 response.put("planType", userSub.getPlanType());
+                response.put("subscriptionType", userSub.getSubscriptionType());
                 response.put("status", userSub.getStatus());
                 response.put("startDate", userSub.getStartDate());
                 response.put("endDate", userSub.getEndDate());

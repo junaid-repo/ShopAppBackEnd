@@ -21,6 +21,7 @@ public class UserSubscriptions {
     private Integer id;
     private String subscriptionId;
     private String planType;
+    private String subscriptionType;
     private Integer days;
     private Double price;
 
