@@ -37,7 +37,7 @@ public class RegistrationSubscriptionListener {
         this.subscriptionType = subscriptionType;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void provisionSubscription(UserRegistrationCompletedEvent event) {
         InternalSubscriptionRequest request = InternalSubscriptionRequest.builder()
                 .username(event.username())
@@ -54,7 +54,7 @@ public class RegistrationSubscriptionListener {
         }
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void addDummyData(UserRegistrationCompletedEvent event) {
 
         List<CustomerRequest> customers = List.of(CustomerRequest.builder().username(event.username()).name("John Doe").email("na@na.com").phone("0000000000").gstNumber("na").city("na").customerState("Maharashtra").username(event.username()).build());
