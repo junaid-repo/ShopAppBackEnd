@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/internal/subscriptions/create").permitAll()
+                        .requestMatchers("/internal/create/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .requestMatchers("/ping").permitAll()
                         .requestMatchers("/ws/**").permitAll()

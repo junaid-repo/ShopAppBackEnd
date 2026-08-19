@@ -306,6 +306,44 @@ public class ShopService {
 
     }
 
+    public CustomerSuccessDTO saveCustomerInternal(CustomerRequest request) {
+        log.info("entered into saveCustomer with" + request.toString());
+
+
+        CustomerEntity ent = null;
+
+
+        var customerEntity = CustomerEntity.builder().userId(request.getUsername()).name(request.getName()).email(request.getEmail())
+                .createdDate(LocalDateTime.now())
+                .state(request.getCustomerState())
+                .gstNumber(request.getGstNumber())
+                .city(request.getCity())
+                .isActive(Boolean.TRUE)
+                .phone(request.getPhone()).status("ACTIVE").totalSpent(0d).build();
+
+        ent = shopRepo.save(customerEntity);
+
+
+        salesCacheService.evictUserCustomers(request.getUsername());
+        salesCacheService.evictsUserAnalytics(request.getUsername());
+        if (ent.getId() != null) {
+            try {
+                salesCacheService.evictUserCustomers(request.getUsername());
+                salesCacheService.evictsUserAnalytics(request.getUsername());
+                salesCacheService.evictsReportsCache(request.getUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            return CustomerSuccessDTO.builder().success(true).customer(request).build();
+        }
+
+        return CustomerSuccessDTO.builder().id(ent.getId()).success(false).customer(request).build();
+
+    }
+
     @CacheEvict(value = "customers", key = "#root.target.extractUsername()")
     public CustomerEntity saveCustomerForBilling(CustomerRequest request) {
         log.info("entered into saveCustomer with" + request.toString());
@@ -418,6 +456,57 @@ public class ShopService {
 
             try {
                 salesCacheService.evictUserProducts(extractUsername());
+
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            return ProductSuccessDTO.builder().success(true).product(request).build();
+
+
+        }
+
+        return ProductSuccessDTO.builder().success(false).product(request).build();
+
+    }
+
+    @Transactional
+    public ProductSuccessDTO saveProductInternal(ProductRequest request) {
+
+        String status = "In Stock";
+        if (request.getStock() < 0)
+            status = "Out of Stock";
+
+        log.info("The new request" + request.getTax());
+
+        ProductEntity productEntity = null;
+
+
+            productEntity = ProductEntity.builder()
+                    .name(request.getName() == null ? "" : request.getName())
+                    .userId(request.getUsername())
+                    .category(request.getCategory() == null ? "" : request.getCategory())
+                    .location(request.getLocation() == null ? "" : request.getLocation())
+                    .active(true)
+                    .status(status)
+                    .stock(request.getStock())
+                    .taxPercent(request.getTax())
+                    .costPrice(request.getCostPrice())
+                    .price(request.getPrice())
+                    .hsn(request.getHsn() == null ? "" : request.getHsn())
+                    .createdDate(LocalDateTime.now())
+                    .updatedDate(LocalDateTime.now())
+                    .updatedBy("SYSTEM")
+                    .build();
+
+
+
+        ProductEntity ent = prodRepo.save(productEntity);
+        if (ent.getId() != null) {
+
+            try {
+                salesCacheService.evictUserProducts(request.getUsername());
 
             } catch (Exception e) {
                 // TODO Auto-generated catch block

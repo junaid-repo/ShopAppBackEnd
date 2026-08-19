@@ -7,6 +7,7 @@ import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.management.shop.gobalusers.constants.EventConstants;
 import com.management.shop.gobalusers.dto.*;
 import com.management.shop.gobalusers.entity.*;
+import com.management.shop.gobalusers.event.UserRegistrationCompletedEvent;
 import com.management.shop.gobalusers.repository.*;
 import com.management.shop.gobalusers.util.AccountEmailTemplate;
 import com.management.shop.gobalusers.util.OTPSender;
@@ -17,6 +18,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -79,6 +81,9 @@ public class AuthService {
 
     @Autowired
     InvoiceSequenceRepository invoiceSeqRepo;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     public AuthService(AuthenticationManager authenticationManager, JwtService jwtService) {
         this.authenticationManager = authenticationManager;
@@ -402,6 +407,9 @@ public class AuthService {
 
                         var authRequest = AuthRequest.builder().username(username).build();
                         jwtToken = authAndsetCookiesGoogle(authRequest, request, httpServletResponse);
+                        if (jwtToken != null) {
+                            eventPublisher.publishEvent(new UserRegistrationCompletedEvent(username));
+                        }
                     }
                 }
 
@@ -411,6 +419,8 @@ public class AuthService {
                     response.setUsername(email);
                     response.setSecureToken(secureToken);
                     response.setToken(jwtToken);
+
+
                 } else {
                     response.setMessage("Login unsuccessful");
                     response.setSuccess(Boolean.FALSE);

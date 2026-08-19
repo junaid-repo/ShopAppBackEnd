@@ -1,4 +1,4 @@
-package com.management.shop.dto;
+package com.management.shop.gobalusers.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

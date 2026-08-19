@@ -1,10 +1,7 @@
 package com.management.shop.controller;
 
-import com.management.shop.dto.BillingResponse;
-import com.management.shop.dto.InternalSubscriptionRequest;
-import com.management.shop.dto.ReportResponse;
-import com.management.shop.dto.SubsriptionRequest;
-import com.management.shop.dto.VerifyAndBillRequest;
+import com.management.shop.dto.*;
+import com.management.shop.service.ShopService;
 import com.management.shop.service.SubscribtionsService;
 import com.razorpay.Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +30,9 @@ public class SubsController {
     @Autowired
     SubscribtionsService serv;
 
+    @Autowired
+    ShopService shopService;
+
     @Value("${razorpay.key.secret}")
     private String keySecret;
     @Value("${razorpay.key.id}")
@@ -49,7 +49,7 @@ public class SubsController {
 
     }
 
-    @PostMapping("/internal/subscriptions/create")
+    @PostMapping("/internal/create/subscription")
     ResponseEntity<Map<String, Object>> addInternalSubscription(
             @RequestHeader("X-Internal-Api-Key") String apiKey,
             @Valid @RequestBody InternalSubscriptionRequest request) {
@@ -66,6 +66,35 @@ public class SubsController {
 
         return ResponseEntity.ok(
                 serv.provisionInitialSubscription(subscriptionRequest, request.getUsername()));
+    }
+
+    @PostMapping("/internal/create/data")
+    ResponseEntity<Map<String, Object>> addDummyProductsAndCustomers(
+            @RequestHeader("X-Internal-Api-Key") String apiKey,
+            @Valid @RequestBody DummyDataDto request) {
+
+        if (!isValidInternalApiKey(apiKey)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid service credentials"));
+        }
+        List<ProductRequest> dummyProducts = request.getDummyProducts();
+
+        List<CustomerRequest> dummyCustomers = request.getDummyCustomers();
+
+        try {
+            dummyProducts.stream().forEach(i -> {
+                ;
+                shopService.saveProductInternal(i);
+            });
+            dummyCustomers.stream().forEach(i -> {
+                shopService.saveCustomerInternal(i);
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        return ResponseEntity.ok(null);
     }
 
     private boolean isValidInternalApiKey(String apiKey) {

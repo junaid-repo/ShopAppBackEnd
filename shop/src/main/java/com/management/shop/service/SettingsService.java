@@ -202,7 +202,7 @@ public class SettingsService {
 
     private void saveUserSettings(String username) {
 
-      var invoiceLayout=  SelectedInvoiceEntity.builder().printerType("THERMAL_2").templateName("gstinvoiceThermal1").username(username).updatedBy(username).updatedDate(LocalDateTime.now()).build();
+      var invoiceLayout=  SelectedInvoiceEntity.builder().printerType("A4").templateName("gstinvoice").username(username).updatedBy(username).updatedDate(LocalDateTime.now()).build();
 
         invoiceRepo.save(invoiceLayout);
 
