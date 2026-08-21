@@ -1,9 +1,8 @@
 package com.management.shop.service;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -14,6 +13,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -50,6 +50,8 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import javax.imageio.ImageIO;
 
 @Service
 @Slf4j
@@ -3622,33 +3624,80 @@ public class ShopService {
         List<GeminiTextExtract> apiLogs = apiSaveRepo.findCreatedWithinLast24Hours(last24Hours, extractUsername(), "Gemini Text Extraction API");
         Integer count = apiLogs.size();
 
-
-        if (extractRole().equals("USER")) {
+        if ("USER".equals(extractRole())) {
             if (count > 2) {
-
                 return "Sorry, you have exceeded the free usage limit for text extraction. Please upgrade to Premium for unlimited access.";
             }
-
         }
         if (count > 10) {
-
-            return "Sorry, you have exceeded the   usage limit for text extraction for the day. Please retry tomorrow.";
+            return "Sorry, you have exceeded the usage limit for text extraction for the day. Please retry tomorrow.";
         }
 
-        String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
-
-        String mimeType = file.getContentType(); // e.g., "image/jpeg" or "image/png"
-
-        if (mimeType == null || !mimeType.startsWith("image/")) {
-            mimeType = "image/jpeg"; // Fallback
-        }
+        // Pre-scale and compress image to a max dimension of 1024px
+        byte[] optimizedImageBytes = resizeAndCompressImage(file.getBytes(), 1024);
+        String base64Image = Base64.getEncoder().encodeToString(optimizedImageBytes);
+        String mimeType = "image/jpeg"; // Resized image is always output as JPEG
 
         String response = geminiCalls.geminiApiCall(base64Image, mimeType);
 
         log.info("The response of textExtraction is " + response);
 
-
         return response;
+    }
+    private byte[] resizeAndCompressImage(byte[] originalImageBytes, int maxDimension) {
+        try {
+            ByteArrayInputStream bais = new ByteArrayInputStream(originalImageBytes);
+            BufferedImage originalImage = ImageIO.read(bais);
+
+            if (originalImage == null) {
+                // If ImageIO cannot parse the format, return original bytes as fallback
+                return originalImageBytes;
+            }
+
+            int originalWidth = originalImage.getWidth();
+            int originalHeight = originalImage.getHeight();
+
+            // If the image is already smaller than the max dimension, keep original size but convert to JPEG
+            if (originalWidth <= maxDimension && originalHeight <= maxDimension) {
+                maxDimension = Math.max(originalWidth, originalHeight);
+            }
+
+            // Calculate scaled dimensions while preserving aspect ratio
+            int targetWidth = originalWidth;
+            int targetHeight = originalHeight;
+
+            if (originalWidth > originalHeight) {
+                if (originalWidth > maxDimension) {
+                    targetWidth = maxDimension;
+                    targetHeight = (int) ((double) originalHeight / originalWidth * maxDimension);
+                }
+            } else {
+                if (originalHeight > maxDimension) {
+                    targetHeight = maxDimension;
+                    targetWidth = (int) ((double) originalWidth / originalHeight * maxDimension);
+                }
+            }
+
+            // Render scaled image using high-quality rendering hints
+            BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = resizedImage.createGraphics();
+
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+            g2d.dispose();
+
+            // Write out compressed JPEG bytes
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(resizedImage, "jpg", baos);
+            return baos.toByteArray();
+
+        } catch (IOException e) {
+            log.error("Failed to resize image, falling back to original image", e);
+            return originalImageBytes;
+        }
     }
 
     public List<String> getCategories() {

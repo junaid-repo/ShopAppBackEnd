@@ -45,7 +45,7 @@ public class GeminiApiCalls {
 
     public String geminiApiCall(String base64Image, String mimeType) {
 
-        String promptText = "Analyze this image and extract all products. " +
+    /*    String promptText = "Analyze this image and extract all products. " +
                 "Return ONLY a valid CSV format with the following exact headers on the first line: " +
                 "name,hsn,category,costPrice,price,stock,tax,location. " +
                 "Rules: " +
@@ -55,7 +55,24 @@ public class GeminiApiCalls {
                 "3. tax should be 0 if not specified. " +
                 "4. stock should be 1 if not specified. " +
                 "5. location should be blank if not specified. " +
-                "Do not include markdown formatting like ```csv or any other text.";
+                "Do not include markdown formatting like ```csv or any other text.";*/
+
+        String promptText ="Extract all products from this image as raw CSV.\n" +
+                "Headers: name,hsn,category,costPrice,price,stock,tax,location\n" +
+                "\n" +
+                "Rules for missing data:\n" +
+                "\n" +
+                "category: 'Product'\n" +
+                "\n" +
+                "costPrice: use price\n" +
+                "\n" +
+                "tax: 0\n" +
+                "\n" +
+                "stock: 1\n" +
+                "\n" +
+                "location: leave blank\n" +
+                "\n" +
+                "Output ONLY raw CSV text. No markdown blocks, no formatting, no explanations.";
 
         // 4. Build the JSON payload request body
         Map<String, Object> inlineData = new HashMap<>();
