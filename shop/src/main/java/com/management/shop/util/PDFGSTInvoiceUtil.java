@@ -369,6 +369,22 @@ public class PDFGSTInvoiceUtil {
         }
     }
 
+    public byte[] getPaymentQrCodeImage(InvoiceData data) {
+        String paidAmount = String.format(Locale.ROOT, "%.2f", data.getPaidAmount());
+        String upiUrl = "upi://pay?pa=" + nullSafeString(data.getUpiId())
+                + "&pn=" + nullSafeString(data.getShopName())
+                + "&tn=" + nullSafeString(data.getInvoiceId())
+                + "&am=" + paidAmount
+                + "&cu=INR";
+
+        String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(upiUrl, 500, 500);
+        if (qrCodeBase64 == null) {
+            throw new IllegalStateException("Unable to generate payment QR code");
+        }
+
+        return Base64.getDecoder().decode(qrCodeBase64);
+    }
+
     // --- Helper Method for Barcode ---
     private String generateBarcodeBase64(String text, int width, int height) {
         try {

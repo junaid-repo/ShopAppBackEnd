@@ -135,11 +135,11 @@ AND p.updated_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)
     @Query("update ProductEntity  pe set pe.stock = pe.stock + :quantity, pe.updatedBy = :username, pe.updatedDate = :updatedDate where pe.id = :productId and pe.userId = :username")
     void restoreProductStocks(@Param("productId") Integer productId,@Param("quantity") Integer quantity, @Param("username")String username, @Param("updatedDate")LocalDateTime now);
 
-    @Query("SELECT p FROM ProductEntity p WHERE LOWER(REPLACE(p.name, ' ', '')) = :normalizedName AND p.userId = :userId AND p.status = :status")
-    Optional<ProductEntity> findByNormalizedNameAndUserIdAndStatus(
+    @Query("SELECT p FROM ProductEntity p WHERE LOWER(REPLACE(p.name, ' ', '')) = :normalizedName AND p.userId = :userId AND p.active = :isActive")
+    List<Optional<ProductEntity>> findByNormalizedNameAndUserIdAndStatus(
             @Param("normalizedName") String normalizedName,
             @Param("userId") String userId,
-            @Param("status") Boolean status
+            @Param("isActive") Boolean isActive
     );
 }
 

@@ -537,13 +537,13 @@ public class ShopService {
             }
 
             // Query the database using the custom normalized query
-            Optional<ProductEntity> existingProductOpt = prodRepo.findByNormalizedNameAndUserIdAndStatus(
+            List<Optional<ProductEntity>> existingProductOpt = prodRepo.findByNormalizedNameAndUserIdAndStatus(
                     normalizedName, username, Boolean.TRUE
             );
 
             // If a match is found, attach the existing ID to the request object
-            if (existingProductOpt.isPresent()) {
-                request.setSelectedProductId(existingProductOpt.get().getId());
+            if (!existingProductOpt.isEmpty()) {
+                request.setSelectedProductId(existingProductOpt.get(1).get().getId());
             }
         }
     }
@@ -3758,6 +3758,29 @@ public class ShopService {
 
         byte[] response = pdfgstutil.getReminderImage(invoiceData);
         return response;
+    }
+
+    public byte[] getPaymentQrCode(String orderReference) {
+        String username = extractUsername();
+        PaymentEntity payment = salesPaymentRepo.findByOrderNumber(orderReference, username);
+        if (payment == null) {
+            throw new IllegalArgumentException("Payment not found for order " + orderReference);
+        }
+
+        ShopUPIEntity upiDetails = salesUPIRepo.findByShopFinanceId(username);
+        if (upiDetails == null || upiDetails.getUpiId() == null || upiDetails.getUpiId().isBlank()) {
+            throw new IllegalArgumentException("UPI details are not configured");
+        }
+
+        ShopBasicEntity shopDetails = shopBasicRepo.findByUserId(username);
+        InvoiceData qrData = InvoiceData.builder()
+                .invoiceId(orderReference)
+                .paidAmount(payment.getPaid() != null ? payment.getPaid() : 0d)
+                .upiId(upiDetails.getUpiId())
+                .shopName(shopDetails != null ? shopDetails.getShopName() : username)
+                .build();
+
+        return pdfgstutil.getPaymentQrCodeImage(qrData);
     }
 
 

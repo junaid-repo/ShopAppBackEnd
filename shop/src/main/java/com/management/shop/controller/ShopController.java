@@ -1045,6 +1045,25 @@ public class ShopController {
         }
     }
 
+    @GetMapping(value = "api/shop/payment/qr-code/{orderRef}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getPaymentQrCode(@PathVariable String orderRef) {
+        try {
+            byte[] imageBytes = serv.getPaymentQrCode(orderRef);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_PNG)
+                    .contentLength(imageBytes.length)
+                    .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                    .body(imageBytes);
+        } catch (IllegalArgumentException exception) {
+            log.warn("Payment QR code is unavailable for order {}: {}", orderRef, exception.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception exception) {
+            log.error("Failed to generate payment QR code for order {}", orderRef, exception);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @GetMapping("api/shop/payment/get-reminderList")
     @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<List<ReminderCounter>> getPaymentReminderList(@RequestParam String orderId) {
@@ -1272,5 +1291,4 @@ public class ShopController {
 
 
 }
-
 
