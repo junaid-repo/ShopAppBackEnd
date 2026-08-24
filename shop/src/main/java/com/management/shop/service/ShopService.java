@@ -427,7 +427,7 @@ public class ShopService {
                     .active(true)
                     .taxPercent(request.getTax())
                     .price(request.getPrice())
-                    .costPrice(request.getCostPrice())
+                    .costPrice((request.getCostPrice()==null||request.getCostPrice()==0?request.getPrice():request.getCostPrice()))
                     .hsn(request.getHsn() == null ? "" : request.getHsn())
                     .updatedDate(LocalDateTime.now())
                     .updatedBy(extractUsername())
@@ -443,7 +443,7 @@ public class ShopService {
                     .status(status)
                     .stock(request.getStock())
                     .taxPercent(request.getTax())
-                    .costPrice(request.getCostPrice())
+                    .costPrice((request.getCostPrice()==null||request.getCostPrice()==0?request.getPrice():request.getCostPrice()))
                     .price(request.getPrice())
                     .hsn(request.getHsn() == null ? "" : request.getHsn())
                     .createdDate(LocalDateTime.now())
@@ -543,7 +543,7 @@ public class ShopService {
 
             // If a match is found, attach the existing ID to the request object
             if (!existingProductOpt.isEmpty()) {
-                request.setSelectedProductId(existingProductOpt.get(1).get().getId());
+                request.setSelectedProductId(existingProductOpt.get(0).get().getId());
             }
         }
     }
