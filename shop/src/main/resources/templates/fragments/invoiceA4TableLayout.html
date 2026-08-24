@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:fragment="styles">
+        <style>
+            /* Shared page and product-table layout for every selectable A4 invoice. */
+            @page {
+                size: A4 portrait;
+                margin: 0 !important;
+            }
+
+            html,
+            body {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .invoice-container {
+                width: calc(100% - 18px) !important;
+                max-width: calc(100% - 18px) !important;
+                margin: 9px !important;
+                padding: 4px !important;
+                box-sizing: border-box !important;
+            }
+
+            /* Headers and footers that previously relied on large container padding. */
+            .invoice-container > .invoice-header,
+            .invoice-container > .header {
+                margin-top: 0 !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            .invoice-container > .invoice-footer {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+                margin-bottom: 0 !important;
+            }
+
+            .items-table {
+                width: 100% !important;
+                table-layout: fixed !important;
+            }
+
+            .items-table th,
+            .items-table td {
+                box-sizing: border-box;
+                padding-left: 3px;
+                padding-right: 3px;
+                overflow-wrap: anywhere;
+            }
+
+            /* Compact identifiers. */
+            .items-table .col-sr { width: 4% !important; }
+            .items-table .hsn-col,
+            .items-table .col-hsn { width: 8% !important; }
+            .items-table .qty-col,
+            .items-table .col-qty { width: 5% !important; }
+            .items-table .disc-col,
+            .items-table .col-disc { width: 6% !important; }
+
+            /* Give monetary columns enough room for grouped amounts. */
+            .items-table .rate-col,
+            .items-table .col-rate { width: 12% !important; }
+            .items-table .amount-col,
+            .items-table .col-amount,
+            .items-table .col-taxable,
+            .items-table .total-col,
+            .items-table .col-total { width: 13% !important; }
+
+            /* Product name and tax breakdown remain the widest columns. */
+            .items-table .item-col,
+            .items-table .col-item,
+            .items-table .col-item-name,
+            .items-table .col-name { width: 23% !important; }
+            .items-table.has-serial .col-item,
+            .items-table.has-serial .col-name { width: 21% !important; }
+            .items-table .tax-col,
+            .items-table .col-tax { width: 20% !important; }
+        </style>
+    </th:block>
+</head>
+</html>
