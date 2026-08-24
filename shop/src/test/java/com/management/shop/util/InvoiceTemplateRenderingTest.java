@@ -23,6 +23,7 @@ class InvoiceTemplateRenderingTest {
             "gstInvoiceSeaGreen", "gstinvoiceThermal1", "gstinvoiceThermal2",
             "gstinvoiceThermal3", "gstinvoiceThermal4", "gstinvoiceThermal5",
             "gstinvoiceThermal6");
+    private static final List<String> A4_TEMPLATES = GST_TEMPLATES.subList(0, 8);
 
     private final SpringTemplateEngine templateEngine = templateEngine();
 
@@ -32,6 +33,11 @@ class InvoiceTemplateRenderingTest {
         for (String template : GST_TEMPLATES) {
             String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
             assertFalse(html.contains("(rounded off)"), template);
+            if (A4_TEMPLATES.contains(template)) {
+                assertTrue(html.contains("width: calc(100% - 18px)"), template);
+                assertTrue(html.contains(".items-table .col-sr { width: 4%"), template);
+                assertTrue(html.contains(".items-table .col-tax { width: 20%"), template);
+            }
         }
     }
 
@@ -113,9 +119,6 @@ class InvoiceTemplateRenderingTest {
         }
 
         context.setVariables(values);
-        // Some existing templates treat this string as a boolean in their condition.
-        // Disable the optional QR block here so the rendering test focuses on amount expressions.
-        context.setVariable("showQrCode", false);
         return context;
     }
 

@@ -386,6 +386,7 @@
             page-break-inside: avoid;
         }
     </style>
+    <th:block th:replace="~{fragments/invoiceA4TableLayout :: styles}"></th:block>
 </head>
 
 <body>
@@ -537,8 +538,8 @@
                         <p><strong>UPI ID:</strong> <span th:text="${upiId}" th:if="${showUpiId}"></span></p>
                     </div>
                     <div class="qr-code">
-                        <img th:if="${showQrCode and qrCodeBase64}" th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
-                        <p th:if="${showQrCode and qrCodeBase64}">Scan to pay via UPI</p>
+                        <img th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}" th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Code"/>
+                        <p th:if="${showQrCode and qrCodeBase64 != null and !#strings.isEmpty(qrCodeBase64)}">Scan to pay via UPI</p>
                     </div>
                 </div>
             </div>

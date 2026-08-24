@@ -151,8 +151,8 @@
             margin-top: 10px;
         }
         .items-table thead th {
-            background-color: #333;
-            color: #fff;
+            background-color: #f2f2f2;
+            color: #000;
             padding: 8px;
             font-size: 13px;
             border: 1px solid #000;
@@ -256,6 +256,7 @@
         }
 
     </style>
+    <th:block th:replace="~{fragments/invoiceA4TableLayout :: styles}"></th:block>
 </head>
 
 <body>
@@ -376,7 +377,7 @@
         </tr>
     </table>
 
-    <table class="layout-table items-table bordered">
+    <table class="layout-table items-table bordered has-serial">
         <thead>
         <tr>
             <th class="col-sr">Sr. No.</th>

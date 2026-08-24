@@ -423,6 +423,7 @@
         .items-table tbody tr { page-break-inside: avoid; page-break-after: auto; }
 
     </style>
+    <th:block th:replace="~{fragments/invoiceA4TableLayout :: styles}"></th:block>
 </head>
 
 <body>
@@ -531,7 +532,7 @@
         </div>
     </section>
 
-    <table class="items-table">
+    <table class="items-table has-serial">
         <thead>
         <tr>
             <th class="col-sr">#</th>
