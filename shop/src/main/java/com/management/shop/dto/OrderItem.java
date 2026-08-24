@@ -16,11 +16,11 @@ public class OrderItem {
     private String details;
     private double gst;
     private double cgst;
-    private Integer cgstPercentage;
+    private Double cgstPercentage;
     private double sgst;
-    private Integer sgstPercentage;
+    private Double sgstPercentage;
     private double igst;
-    private Integer igstPercentage;
+    private Double igstPercentage;
     private String hsn;
     private Double discount;
 }

@@ -1,5 +1,6 @@
 package com.management.shop.repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -398,7 +399,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
     @Transactional
     @Modifying
     @Query(value="update billing_details set paying_amount=paying_amount+?4, remaining_amount= remaining_amount-?4, updated_by=?2, updated_date=?3 where invoice_number=?1 and user_id=?2 and invoice_status = 'ACTIVE'", nativeQuery = true)
-    void updateDuePayment(String orderNo, String username, LocalDateTime updatedDate, Double amount);
+    void updateDuePayment(String orderNo, String username, LocalDateTime updatedDate, BigDecimal amount);
 
     @Query(value="select count(*) from billing_details where user_id=?1 and created_date BETWEEN ?2 AND ?3 and invoice_status = 'ACTIVE'", nativeQuery = true)
     Integer countOrdersForToday(String username, LocalDateTime localDateTime, LocalDateTime localDateTime1);

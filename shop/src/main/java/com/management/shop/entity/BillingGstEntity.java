@@ -23,7 +23,9 @@ public class BillingGstEntity {
 
     private Integer billingId;
     private String gstType; // CGST, SGST, IGST
+    @Column(columnDefinition = "DECIMAL(7,4)")
     private Double gstPercentage;
+    @Column(columnDefinition = "DECIMAL(19,2)")
     private Double gstAmount;
     private LocalDateTime updatedDate;
     private String updatedBy;

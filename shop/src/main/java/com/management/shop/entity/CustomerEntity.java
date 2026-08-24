@@ -23,6 +23,7 @@ public class CustomerEntity {
 	private String email;
     @Column(name="phone", unique=true,nullable=true)
 	private String phone;
+	@Column(columnDefinition = "DECIMAL(19,2)")
 	private Double totalSpent;
 	private String status;
     private Boolean isActive;

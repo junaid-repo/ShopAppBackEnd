@@ -30,6 +30,7 @@ public class PaymentHistory {
 
 
     private Integer paymentId;
+    @Column(columnDefinition = "DECIMAL(19,2)")
     private Double paidAmount;
     private String tokenNo;
     private LocalDateTime createdDate;

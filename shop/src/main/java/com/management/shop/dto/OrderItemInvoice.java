@@ -20,10 +20,10 @@ public class OrderItemInvoice {
     private double discountPercentage; // e.g., 10.0 for 10% discount
     private double totalAmount;
     private double cgst;
-    private Integer cgstPercentage;
+    private Double cgstPercentage;
     private double sgst;
-    private Integer sgstPercentage;
+    private Double sgstPercentage;
     private double igst;
-    private Integer igstPercentage;// Total for this line (rate * quantity + tax)
+    private Double igstPercentage;// Total for this line (rate * quantity + tax)
 
 }

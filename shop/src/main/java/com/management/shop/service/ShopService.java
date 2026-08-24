@@ -805,66 +805,61 @@ public class ShopService {
 
     @Transactional
     public BillingResponse doPayment2(BillingRequest request) throws Exception {
-        checkAnonymousCustomer(request);
         String username = extractUsername();
-
         Map<String, Object> validateMap = validateBillingRequest(request);
-
-        // 1. Setup & Initial Billing Entity
-        if((boolean) validateMap.get("validated")) {
-            UserSettingsEntity userSettings = userSettingsRepo.findByUsername(username);
-            int unitsSold = calculateTotalUnits(request.getCart());
-            BillingEntity billResponse = createInitialBill(request, unitsSold, username);
-
-            // 2. Generate Invoice Number
-            if (userSettings != null) {
-                assignInvoiceNumber2(billResponse, userSettings);
-            }
-
-            if (billResponse.getId() == null) {
-                return BillingResponse.builder().status("FAILURE").build();
-            }
-
-            // 3. Process Cart Items (Calculates taxes, profits, stock)
-            double totalProfitOnCP = processCartItems(request, billResponse, userSettings, username);
-
-            // 4. Update Bill with final profit
-            billResponse.setTotalProfitOnCP(totalProfitOnCP);
-            billResponse.setInvoiceStatus("ACTIVE");
-            billRepo.save(billResponse);
-
-            // 5. Process Payment
-            PaymentEntity payment = processPayment(request, billResponse, username);
-
-            // 6. Post-Payment Actions
-            savePaymentHistorySafe(billResponse, payment, request);
-            updateCustomerMetricsSafe(request, username);
-            handleInvoiceEmail(request, billResponse, userSettings);
-            clearSalesCachesSafe(username);
-
-            return BillingResponse.builder()
-                    .paymentReferenceNumber(payment.getPaymentReferenceNumber())
-                    .invoiceNumber(billResponse.getInvoiceNumber())
-                    .status("SUCCESS")
-                    .build();
-        }
-        else{
+        if (!(boolean) validateMap.get("validated")) {
             return (BillingResponse) validateMap.get("validateResponse");
         }
+
+        // 1. Setup & Initial Billing Entity
+        UserSettingsEntity userSettings = userSettingsRepo.findByUsername(username);
+        CartProcessingResult cartResult = calculateCartItems(request, username);
+
+        BillingResponse amountValidation = validateCalculatedPayment(request, cartResult.totalAmount());
+        if (amountValidation != null) {
+            return amountValidation;
+        }
+
+        checkAnonymousCustomer(request);
+        int unitsSold = calculateTotalUnits(request.getCart());
+        BillingEntity billResponse = createInitialBill(request, unitsSold, username, cartResult);
+
+        // 2. Generate Invoice Number
+        if (userSettings != null) {
+            assignInvoiceNumber2(billResponse, userSettings);
+        }
+
+        if (billResponse.getId() == null) {
+            return BillingResponse.builder().status("FAILURE").build();
+        }
+
+        // 3. Process Cart Items (Calculates taxes, profits, stock)
+        persistCartItems(cartResult, billResponse, userSettings, username);
+        billingProcess.saveGstListing(billResponse.getInvoiceNumber(), username);
+
+        // 4. Update Bill with final profit
+        billResponse.setInvoiceStatus("ACTIVE");
+        billRepo.save(billResponse);
+
+        // 5. Process Payment
+        PaymentEntity payment = processPayment(request, billResponse, username);
+
+        // 6. Post-Payment Actions
+        savePaymentHistorySafe(billResponse, payment);
+        updateCustomerMetricsSafe(request, billResponse, username);
+        handleInvoiceEmail(request, billResponse, userSettings);
+        clearSalesCachesSafe(username);
+
+        return BillingResponse.builder()
+                .paymentReferenceNumber(payment.getPaymentReferenceNumber())
+                .invoiceNumber(billResponse.getInvoiceNumber())
+                .status("SUCCESS")
+                .build();
     }
 
     private Map<String, Object> validateBillingRequest(BillingRequest request) {
         Map<String, Object> res=new HashMap<>();
-        if(request.getPayingAmount()>request.getTotal()) {
-          var validateResponse=  BillingResponse.builder()
-                    .errorCode("401")
-                    .errorMessage("Paying amount cannnot be more than total amount")
-                    .status("VALIDATED")
-                    .build();
-            res.put("validated", Boolean.FALSE);
-            res.put("validateResponse", validateResponse);
-        }
-        if(request.getSelectedCustomer()==null) {
+        if(request == null || request.getSelectedCustomer()==null) {
             var validateResponse=  BillingResponse.builder()
                     .errorCode("401")
                     .errorMessage("Please select valid customer")
@@ -872,8 +867,9 @@ public class ShopService {
                     .build();
             res.put("validated", Boolean.FALSE);
             res.put("validateResponse", validateResponse);
+            return res;
         }
-        if(request.getCart().size()<1) {
+        if(request.getCart() == null || request.getCart().isEmpty()) {
             var validateResponse=  BillingResponse.builder()
                     .errorCode("401")
                     .errorMessage("No item in cart")
@@ -881,32 +877,74 @@ public class ShopService {
                     .build();
             res.put("validated", Boolean.FALSE);
             res.put("validateResponse", validateResponse);
+            return res;
         }
-        else{
-            res.put("validated", Boolean.TRUE);
+        if (MoneyUtils.decimal(request.getPayingAmount()).signum() < 0) {
+            var validateResponse = BillingResponse.builder()
+                    .errorCode("401")
+                    .errorMessage("Paying amount cannot be negative")
+                    .status("VALIDATED")
+                    .build();
+            res.put("validated", Boolean.FALSE);
+            res.put("validateResponse", validateResponse);
+            return res;
+        }
+        BigDecimal invoiceDiscount = MoneyUtils.percentage(request.getDiscountPercentage());
+        if (invoiceDiscount.signum() < 0 || invoiceDiscount.compareTo(BigDecimal.valueOf(100)) > 0) {
+            var validateResponse = BillingResponse.builder()
+                    .errorCode("401")
+                    .errorMessage("Discount percentage must be between 0 and 100")
+                    .status("VALIDATED")
+                    .build();
+            res.put("validated", Boolean.FALSE);
+            res.put("validateResponse", validateResponse);
+            return res;
         }
 
+        res.put("validated", Boolean.TRUE);
         return res;
+    }
+
+    private BillingResponse validateCalculatedPayment(BillingRequest request, BigDecimal calculatedTotal) {
+        BigDecimal payingAmount = MoneyUtils.amount(request.getPayingAmount());
+        if (payingAmount.compareTo(calculatedTotal) <= 0) {
+            return null;
+        }
+
+        return BillingResponse.builder()
+                .errorCode("401")
+                .errorMessage("Paying amount cannot be more than total amount")
+                .status("VALIDATED")
+                .build();
     }
 
     private int calculateTotalUnits(List<ProductBillDTO> cart) { // Note: Replace CartItemDto with your actual class name
         return cart.stream().mapToInt(obj -> obj.getQuantity()).sum();
     }
 
-    private BillingEntity createInitialBill(BillingRequest request, int unitsSold, String username) {
+    private BillingEntity createInitialBill(BillingRequest request, int unitsSold, String username,
+                                            CartProcessingResult cartResult) {
+        BigDecimal payingAmount = MoneyUtils.amount(request.getPayingAmount());
+        BigDecimal remainingAmount = MoneyUtils.amount(cartResult.totalAmount().subtract(payingAmount));
+
         BillingEntity billingEntity = BillingEntity.builder()
                 .customerId(request.getSelectedCustomer().getId())
                 .unitsSold(unitsSold)
-                .taxAmount(request.getTax())
+                .taxAmount(MoneyUtils.asAmountDouble(cartResult.taxAmount()))
                 .userId(username)
-                .totalAmount(request.getTotal())
-                .payingAmount(request.getPayingAmount())
+                .totalAmount(MoneyUtils.asAmountDouble(cartResult.totalAmount()))
+                .payingAmount(MoneyUtils.asAmountDouble(payingAmount))
                 .gstin(request.getGstin())
                 .dueReminderCount(0)
-                .remainingAmount(request.getRemainingAmount())
-                .discountPercent(request.getDiscountPercentage())
+                .remainingAmount(MoneyUtils.asAmountDouble(remainingAmount))
+                .discountPercent(MoneyUtils.asPercentageDouble(request.getDiscountPercentage()))
+                .discountAmount(MoneyUtils.asAmountDouble(cartResult.discountAmount()))
+                .cgstAmount(MoneyUtils.asAmountDouble(cartResult.cgstAmount()))
+                .sgstAmount(MoneyUtils.asAmountDouble(cartResult.sgstAmount()))
+                .igstAmount(MoneyUtils.asAmountDouble(cartResult.igstAmount()))
+                .totalProfitOnCP(MoneyUtils.asAmountDouble(cartResult.totalProfit()))
                 .remarks(request.getRemarks())
-                .subTotalAmount(request.getTotal() - request.getTax())
+                .subTotalAmount(MoneyUtils.asAmountDouble(cartResult.baseAmount()))
                 .createdDate(LocalDateTime.now())
                 .invoiceStatus("PROCESSING")
                 .build();
@@ -968,68 +1006,167 @@ public class ShopService {
         billRepo.save(billResponse);
     }
 
-    private double processCartItems(BillingRequest request, BillingEntity billResponse, UserSettingsEntity userSettings, String username) {
-        double totalProfit = 0d;
-        boolean allowNoStockBilling = userSettings != null && userSettings.getAllowNoStockBilling();
+    private record ProductSaleDraft(ProductSalesEntity sale, ProductEntity product) {
+    }
 
-        // Replaced stream with standard loop for cleaner exception handling and primitive math tracking
-        for (var obj : request.getCart()) {
-            ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getId(), username);
+    private record CartProcessingResult(
+            List<ProductSaleDraft> lines,
+            BigDecimal baseAmount,
+            BigDecimal taxAmount,
+            BigDecimal totalAmount,
+            BigDecimal cgstAmount,
+            BigDecimal sgstAmount,
+            BigDecimal igstAmount,
+            BigDecimal discountAmount,
+            BigDecimal totalProfit) {
+    }
 
-            double discountedTotal = obj.getPrice();
-            if (obj.getDiscountPercentage() != 0) {
-                discountedTotal = obj.getPrice() - (obj.getDiscountPercentage() * obj.getPrice()) / 100;
-                obj.setPrice(discountedTotal);
+    private CartProcessingResult calculateCartItems(BillingRequest request, String username) {
+        List<ProductSaleDraft> lines = new ArrayList<>();
+        BigDecimal baseAmount = BigDecimal.ZERO;
+        BigDecimal taxAmount = BigDecimal.ZERO;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal cgstAmount = BigDecimal.ZERO;
+        BigDecimal sgstAmount = BigDecimal.ZERO;
+        BigDecimal igstAmount = BigDecimal.ZERO;
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        BigDecimal totalProfit = BigDecimal.ZERO;
+
+        ShopBasicEntity shop = shopBasicRepo.findByUserId(username);
+        String shopState = shop != null && shop.getShopState() != null ? shop.getShopState() : "West Bengal";
+        String customerState = request.getSelectedCustomer().getState();
+        boolean intraStateSale = customerState != null && customerState.equalsIgnoreCase(shopState);
+
+        for (ProductBillDTO item : request.getCart()) {
+            ProductEntity product = prodRepo.findByIdAndUserId(item.getId(), username);
+            if (product == null) {
+                throw new IllegalArgumentException("Product not found: " + item.getId());
+            }
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Product quantity must be greater than zero: " + item.getId());
             }
 
-            double total = obj.getQuantity() * Math.round(discountedTotal);
-            double profitOnCp = (discountedTotal - prodRes.getCostPrice()) * obj.getQuantity();
-            totalProfit += Math.round(profitOnCp);
+            BigDecimal quantity = BigDecimal.valueOf(item.getQuantity());
+            BigDecimal originalUnitPrice = MoneyUtils.amount(item.getPrice());
+            if (originalUnitPrice.signum() < 0) {
+                throw new IllegalArgumentException("Product price cannot be negative: " + item.getId());
+            }
+            BigDecimal discountPercentage = MoneyUtils.percentage(item.getDiscountPercentage());
+            if (discountPercentage.signum() < 0
+                    || discountPercentage.compareTo(BigDecimal.valueOf(100)) > 0) {
+                throw new IllegalArgumentException("Discount percentage must be between 0 and 100: " + item.getId());
+            }
+            BigDecimal discountPerUnit = originalUnitPrice
+                    .multiply(discountPercentage)
+                    .divide(BigDecimal.valueOf(100), 8, MoneyUtils.ROUNDING_MODE);
+            BigDecimal discountedUnitPrice = originalUnitPrice.subtract(discountPerUnit);
 
-            ProductSalesEntity gstCalc = getGSTBreakDown(request.getSelectedCustomer(), obj, prodRes, username);
+            BigDecimal originalLineTotal = MoneyUtils.amount(originalUnitPrice.multiply(quantity));
+            BigDecimal lineTotal = MoneyUtils.amount(discountedUnitPrice.multiply(quantity));
+            BigDecimal lineDiscount = MoneyUtils.amount(originalLineTotal.subtract(lineTotal));
 
-            ProductSalesEntity productSalesEntity = ProductSalesEntity.builder()
-                    .billingId(billResponse.getId())
-                    .profitOnCP(profitOnCp)
-                    .sgstPercentage(gstCalc.getSgstPercentage())
-                    .sgst(gstCalc.getSgst())
-                    .cgstPercentage(gstCalc.getCgstPercentage())
-                    .cgst(gstCalc.getCgst())
-                    .igstPercentage(gstCalc.getIgstPercentage())
-                    .igst(gstCalc.getIgst())
-                    .productId(obj.getId())
-                    .productDetails(obj.getDetails())
+            BigDecimal taxPercentage = MoneyUtils.percentage(product.getTaxPercent());
+            if (taxPercentage.signum() < 0) {
+                throw new IllegalArgumentException("GST percentage cannot be negative: " + item.getId());
+            }
+            BigDecimal taxDivisor = BigDecimal.ONE.add(
+                    taxPercentage.divide(BigDecimal.valueOf(100), 8, MoneyUtils.ROUNDING_MODE));
+            BigDecimal lineBaseAmount = MoneyUtils.amount(
+                    lineTotal.divide(taxDivisor, 8, MoneyUtils.ROUNDING_MODE));
+            BigDecimal lineTaxAmount = MoneyUtils.amount(lineTotal.subtract(lineBaseAmount));
+
+            BigDecimal cgst = BigDecimal.ZERO.setScale(MoneyUtils.AMOUNT_SCALE);
+            BigDecimal sgst = BigDecimal.ZERO.setScale(MoneyUtils.AMOUNT_SCALE);
+            BigDecimal igst = BigDecimal.ZERO.setScale(MoneyUtils.AMOUNT_SCALE);
+            BigDecimal cgstPercentage = BigDecimal.ZERO.setScale(MoneyUtils.PERCENTAGE_SCALE);
+            BigDecimal sgstPercentage = BigDecimal.ZERO.setScale(MoneyUtils.PERCENTAGE_SCALE);
+            BigDecimal igstPercentage = BigDecimal.ZERO.setScale(MoneyUtils.PERCENTAGE_SCALE);
+
+            if (intraStateSale) {
+                cgst = MoneyUtils.amount(lineTaxAmount.divide(BigDecimal.valueOf(2), 8, MoneyUtils.ROUNDING_MODE));
+                sgst = MoneyUtils.amount(lineTaxAmount.subtract(cgst));
+                cgstPercentage = MoneyUtils.percentage(
+                        taxPercentage.divide(BigDecimal.valueOf(2), 8, MoneyUtils.ROUNDING_MODE));
+                sgstPercentage = cgstPercentage;
+            } else {
+                igst = lineTaxAmount;
+                igstPercentage = taxPercentage;
+            }
+
+            BigDecimal lineProfit = MoneyUtils.amount(
+                    discountedUnitPrice
+                            .subtract(MoneyUtils.decimal(product.getCostPrice()))
+                            .multiply(quantity));
+
+            ProductSalesEntity sale = ProductSalesEntity.builder()
+                    .profitOnCP(MoneyUtils.asAmountDouble(lineProfit))
+                    .sgstPercentage(MoneyUtils.asPercentageDouble(sgstPercentage))
+                    .sgst(MoneyUtils.asAmountDouble(sgst))
+                    .cgstPercentage(MoneyUtils.asPercentageDouble(cgstPercentage))
+                    .cgst(MoneyUtils.asAmountDouble(cgst))
+                    .igstPercentage(MoneyUtils.asPercentageDouble(igstPercentage))
+                    .igst(MoneyUtils.asAmountDouble(igst))
+                    .productId(item.getId())
+                    .productDetails(item.getDetails())
                     .userId(username)
-                    .discountPercentage(obj.getDiscountPercentage())
-                    .quantity(obj.getQuantity())
-                    .tax(gstCalc.getTax())
-                    .subTotal(gstCalc.getSubTotal())
-                    .total(total)
+                    .discountPercentage(MoneyUtils.asPercentageDouble(discountPercentage))
+                    .discountAmount(MoneyUtils.asAmountDouble(lineDiscount))
+                    .quantity(item.getQuantity())
+                    .tax(MoneyUtils.asAmountDouble(lineTaxAmount))
+                    .subTotal(MoneyUtils.asAmountDouble(lineBaseAmount))
+                    .total(MoneyUtils.asAmountDouble(lineTotal))
                     .updatedAt(LocalDateTime.now())
                     .build();
 
-            ProductSalesEntity prodSalesResponse = prodSalesRepo.save(productSalesEntity);
+            lines.add(new ProductSaleDraft(sale, product));
+            baseAmount = baseAmount.add(lineBaseAmount);
+            taxAmount = taxAmount.add(lineTaxAmount);
+            totalAmount = totalAmount.add(lineTotal);
+            cgstAmount = cgstAmount.add(cgst);
+            sgstAmount = sgstAmount.add(sgst);
+            igstAmount = igstAmount.add(igst);
+            discountAmount = discountAmount.add(lineDiscount);
+            totalProfit = totalProfit.add(lineProfit);
+        }
 
-            try {
-                billingProcess.saveGstListing(billResponse.getInvoiceNumber(), username);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to save GST listing", e);
-            }
+        return new CartProcessingResult(
+                List.copyOf(lines),
+                MoneyUtils.amount(baseAmount),
+                MoneyUtils.amount(taxAmount),
+                MoneyUtils.amount(totalAmount),
+                MoneyUtils.amount(cgstAmount),
+                MoneyUtils.amount(sgstAmount),
+                MoneyUtils.amount(igstAmount),
+                MoneyUtils.amount(discountAmount),
+                MoneyUtils.amount(totalProfit));
+    }
 
-            if (!allowNoStockBilling && prodSalesResponse.getId() != null) {
-                prodRepo.updateProductStock(obj.getId(), obj.getQuantity(), username, LocalDateTime.now());
+    private void persistCartItems(CartProcessingResult cartResult, BillingEntity billResponse,
+                                  UserSettingsEntity userSettings, String username) {
+        boolean allowNoStockBilling = userSettings != null
+                && Boolean.TRUE.equals(userSettings.getAllowNoStockBilling());
+
+        for (ProductSaleDraft draft : cartResult.lines()) {
+            ProductSalesEntity sale = draft.sale();
+            sale.setBillingId(billResponse.getId());
+            ProductSalesEntity savedSale = prodSalesRepo.save(sale);
+
+            if (!allowNoStockBilling && savedSale.getId() != null) {
+                prodRepo.updateProductStock(
+                        draft.product().getId(), sale.getQuantity(), username, LocalDateTime.now());
             }
         }
-        return totalProfit;
     }
 
     private PaymentEntity processPayment(BillingRequest request, BillingEntity billResponse, String username) {
         String paymentMethod = request.getPaymentMethod() != null ? request.getPaymentMethod() : "CASH";
         String payingStatus = "Paid";
+        BigDecimal paidAmount = MoneyUtils.amount(billResponse.getPayingAmount());
+        BigDecimal totalAmount = MoneyUtils.amount(billResponse.getTotalAmount());
 
-        if (request.getPayingAmount() == 0) {
+        if (paidAmount.signum() == 0) {
             payingStatus = "UnPaid";
-        } else if (request.getTotal() > request.getPayingAmount()) {
+        } else if (totalAmount.compareTo(paidAmount) > 0) {
             payingStatus = "SemiPaid";
         }
 
@@ -1038,32 +1175,36 @@ public class ShopService {
                 .createdDate(LocalDateTime.now())
                 .paymentMethod(paymentMethod)
                 .status(payingStatus)
-                .tax(request.getTax())
+                .tax(MoneyUtils.asAmountDouble(billResponse.getTaxAmount()))
                 .userId(username)
                 .orderNumber(billResponse.getInvoiceNumber())
-                .paid(request.getPayingAmount())
-                .toBePaid(request.getRemainingAmount())
+                .paid(MoneyUtils.asAmountDouble(paidAmount))
+                .toBePaid(MoneyUtils.asAmountDouble(billResponse.getRemainingAmount()))
                 .reminderCount(0)
                 .updatedBy(username)
                 .updatedDate(LocalDateTime.now())
-                .subtotal(request.getTotal() - request.getTax())
-                .total(request.getTotal())
+                .subtotal(MoneyUtils.asAmountDouble(billResponse.getSubTotalAmount()))
+                .total(MoneyUtils.asAmountDouble(totalAmount))
                 .build();
 
         return salesPaymentRepo.save(paymentEntity);
     }
 
-    private void savePaymentHistorySafe(BillingEntity bill, PaymentEntity payment, BillingRequest request) {
+    private void savePaymentHistorySafe(BillingEntity bill, PaymentEntity payment) {
         try {
-            utils.asyncSavePaymentHistory(bill.getId(), payment.getId(), request.getPayingAmount(), bill.getInvoiceNumber());
+            utils.asyncSavePaymentHistory(
+                    bill.getId(), payment.getId(), MoneyUtils.asAmountDouble(payment.getPaid()), bill.getInvoiceNumber());
         } catch (Exception e) {
             throw new RuntimeException("Failed to save payment history", e);
         }
     }
 
-    private void updateCustomerMetricsSafe(BillingRequest request, String username) {
+    private void updateCustomerMetricsSafe(BillingRequest request, BillingEntity bill, String username) {
         try {
-            shopRepo.updateCustomerSpentAmountAndOrdersCount(request.getSelectedCustomer().getId(), request.getTotal(), username);
+            shopRepo.updateCustomerSpentAmountAndOrdersCount(
+                    request.getSelectedCustomer().getId(),
+                    MoneyUtils.asAmountDouble(bill.getTotalAmount()),
+                    username);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1154,7 +1295,7 @@ public class ShopService {
 
     private void checkAnonymousCustomer(BillingRequest request) {
 
-        if (request.getSelectedCustomer().getName().equals("Anonymous")) {
+        if ("Anonymous".equals(request.getSelectedCustomer().getName())) {
             CustomerEntity existingCustomer = shopRepo.findByNameAndId(extractUsername(), request.getSelectedCustomer().getName());
 
             if (existingCustomer == null) {
@@ -1173,61 +1314,6 @@ public class ShopService {
                 request.getSelectedCustomer().setId(existingCustomer.getId());
             }
         }
-    }
-
-    private ProductSalesEntity getGSTBreakDown(CustomerEntity selectedCustomer, ProductBillDTO obj, ProductEntity prodRes, String username) {
-        String customerState = selectedCustomer.getState();
-        String shopState = "";
-        try {
-            shopState = shopBasicRepo.findByUserId(username).getShopState();
-        } catch (Exception e) {
-            shopState = "West Bengal";
-        }
-
-        double taxPercent = prodRes.getTaxPercent(); // e.g., 18
-        double qty = obj.getQuantity();
-        double price = obj.getPrice(); // MRP (tax inclusive)
-
-        // Extract base price (tax exclusive)
-        double basePrice = price / (1 + taxPercent / 100.0);
-        double totalTax = price - basePrice;
-
-        double cgst = 0, sgst = 0, igst = 0;
-        double cgstPercent = 0, sgstPercent = 0, igstPercent = 0;
-
-        if (customerState.equals(shopState)) {
-            // Intra-state: CGST + SGST
-            cgst = totalTax / 2;
-            sgst = totalTax / 2;
-            cgstPercent = taxPercent / 2;
-            sgstPercent = taxPercent / 2;
-        } else {
-            // Inter-state: IGST only
-            igst = totalTax;
-            igstPercent = taxPercent;
-        }
-
-        // Multiply by quantity
-        basePrice *= qty;
-        cgst *= qty;
-        sgst *= qty;
-        igst *= qty;
-        totalTax *= qty;
-
-        return ProductSalesEntity.builder()
-                .cgstPercentage((int) Math.round(cgstPercent))
-                .cgst(round2(cgst))
-                .sgstPercentage((int) Math.round(sgstPercent))
-                .sgst(round2(sgst))
-                .igstPercentage((int) Math.round(igstPercent))
-                .igst(round2(igst))
-                .tax(round2(totalTax))
-                .subTotal(round2(basePrice))
-                .build();
-    }
-
-    private static double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
     }
 
     @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
@@ -3152,7 +3238,16 @@ public class ShopService {
     public Map<String, Object> updateDuePayments(Map<String, Object> request) {
 
         String orderNo = (String) request.get("invoiceId");
-        Double amount = Double.parseDouble((String) request.get("amount"));
+        BigDecimal amount;
+        try {
+            amount = MoneyUtils.amount(new BigDecimal(String.valueOf(request.get("amount"))));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Payment amount must be a valid number", e);
+        }
+
+        if (amount.signum() <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than zero");
+        }
 
 
         try {
@@ -3173,7 +3268,8 @@ public class ShopService {
             }
             salesPaymentRepo.updatePaymentStatus(orderNo, extractUsername(), status);
 
-            utils.asyncSavePaymentHistory(paymentDetails.getBillingId(), paymentDetails.getId(), amount, orderNo);
+            utils.asyncSavePaymentHistory(
+                    paymentDetails.getBillingId(), paymentDetails.getId(), amount.doubleValue(), orderNo);
 
         } catch (Exception e) {
             throw new RuntimeException(e);

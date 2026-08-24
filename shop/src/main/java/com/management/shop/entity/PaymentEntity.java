@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,10 +31,15 @@ public class PaymentEntity {
 	private Integer billingId;
 	private String paymentMethod;
 	private String status;
+	@Column(columnDefinition = "DECIMAL(19,2)")
 	private Double tax;
+	@Column(columnDefinition = "DECIMAL(19,2)")
 	private Double subtotal;
+	@Column(columnDefinition = "DECIMAL(19,2)")
 	private Double total;
+    @Column(columnDefinition = "DECIMAL(19,2)")
     private Double paid;
+    @Column(columnDefinition = "DECIMAL(19,2)")
     private Double toBePaid;
 	private String paymentReferenceNumber;
 	private LocalDateTime createdDate;

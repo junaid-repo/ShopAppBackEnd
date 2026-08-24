@@ -1,5 +1,6 @@
 package com.management.shop.repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +113,7 @@ public interface SalesPaymentRepository extends JpaRepository<PaymentEntity, Int
     @Transactional
     @Modifying
     @Query(value = "UPDATE billing_payments SET paid = paid + ?4, to_be_paid = to_be_paid - ?4, updated_by = ?2, updated_date = ?3 WHERE order_number = ?1 AND user_id = ?2 AND billing_id IN (SELECT id FROM billing_details WHERE invoice_status = 'ACTIVE')", nativeQuery = true)
-    void updateDueAmount(String orderNo, String username, LocalDateTime updatedDate, Double payingAmount);
+    void updateDueAmount(String orderNo, String username, LocalDateTime updatedDate, BigDecimal payingAmount);
 
     // Uses IN subquery for safe updates
     @Transactional

@@ -1,6 +1,7 @@
 package com.management.shop.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -26,17 +27,30 @@ public class ProductSalesEntity {
 	private Integer billingId;
 	private Integer productId;
 	private Integer quantity;
+    @Column(columnDefinition = "DECIMAL(19,2)")
     private Double tax;
+	@Column(columnDefinition = "DECIMAL(19,2)")
 	private Double cgst;
-    private Integer cgstPercentage;
+    @Column(columnDefinition = "DECIMAL(7,4)")
+    private Double cgstPercentage;
+    @Column(columnDefinition = "DECIMAL(19,2)")
     private Double sgst;
-    private Integer sgstPercentage;
+    @Column(columnDefinition = "DECIMAL(7,4)")
+    private Double sgstPercentage;
+    @Column(columnDefinition = "DECIMAL(19,2)")
     private Double igst;
-    private Integer igstPercentage;
+    @Column(columnDefinition = "DECIMAL(7,4)")
+    private Double igstPercentage;
+	@Column(columnDefinition = "DECIMAL(19,2)")
 	private Double subTotal;
+	@Column(columnDefinition = "DECIMAL(19,2)")
 	private Double total;
     private String productDetails;
+    @Column(columnDefinition = "DECIMAL(7,4)")
     private Double discountPercentage;
+    @Column(columnDefinition = "DECIMAL(19,2)")
+    private Double discountAmount;
+    @Column(columnDefinition = "DECIMAL(19,2)")
     private Double profitOnCP;
     private LocalDateTime updatedAt;
     private String userId;

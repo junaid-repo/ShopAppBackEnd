@@ -757,7 +757,7 @@ public class Utility {
 
             PaymentHistory paymentHistoryEntity= PaymentHistory.builder()
                     .billingId(billingId)
-                    .paidAmount(paidAmount)
+                    .paidAmount(MoneyUtils.asAmountDouble(paidAmount))
                     .orderNumber(orderNumber)
                     .userId(extractUsername())
                     .createdDate(LocalDateTime.now())
