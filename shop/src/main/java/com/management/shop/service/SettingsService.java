@@ -188,6 +188,8 @@ public class SettingsService {
                         .showUpiId(userSettings != null && userSettings.getShowUpiId() != null ? userSettings.getShowUpiId() : false)
                         .showQrCode(userSettings != null && userSettings.getShowQRCode() != null ? userSettings.getShowQRCode() : false)
                         .showProductGst(userSettings != null && userSettings.getShowProductGst() != null ? userSettings.getShowProductGst() : false)
+                        .enableDecimalPlace(userSettings == null || userSettings.getEnableDecimalPlace() == null
+                                || userSettings.getEnableDecimalPlace())
                         .build())
                 .reports(ReportSchedulerSettings.builder().enabled(userSettings != null && userSettings.getIsDailyReportsEnabled() != null ? userSettings.getIsDailyReportsEnabled() : false)
                         .email(userSettings != null && userSettings.getDailyReportEmailId()!= null ? userSettings.getDailyReportEmailId() : "")
@@ -232,6 +234,7 @@ public class SettingsService {
                 .showItemDiscount(Boolean.FALSE)
                 .showRateColumn(Boolean.TRUE)
                 .showTotalDiscount(Boolean.FALSE)
+                .enableDecimalPlace(Boolean.TRUE)
                 .showSupportInfo(Boolean.FALSE)
                 .showBillToGstinOption(Boolean.FALSE)
                 .username(username)
@@ -283,10 +286,11 @@ public class SettingsService {
         Boolean showUpiId= (Boolean) request.get("showUpiId");
         Boolean showQRCode= (Boolean) request.get("showQrCode");
         Boolean showProductGst= (Boolean) request.get("showProductGst");
+        Boolean enableDecimalPlace = (Boolean) request.get("enableDecimalPlace");
 
         settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms, showCustomerGstin, extractUsername(), LocalDateTime.now(),
                 showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown, showShopSignature
-        , showBankDetails, showUpiId, showQRCode, showProductGst);
+        , showBankDetails, showUpiId, showQRCode, showProductGst, enableDecimalPlace);
 
 
         return "saved";

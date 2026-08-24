@@ -208,9 +208,9 @@
             <td>
                 <span class="item-name" th:text="${planName}">Premium - Monthly Plan</span>
             </td>
-            <td class="text-right" th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}">168.64</td>
-            <td class="text-right" th:text="${#numbers.formatDecimal(totalGstAmount, 1, 'COMMA', 2, 'POINT')}">30.36</td>
-            <td class="text-right" th:text="${#numbers.formatDecimal(totalAmount, 1, 'COMMA', 2, 'POINT')}">199.00</td>
+            <td class="text-right" th:text="${amounts.grouped(taxableAmount)}">168.64</td>
+            <td class="text-right" th:text="${amounts.grouped(totalGstAmount)}">30.36</td>
+            <td class="text-right" th:text="${amounts.grouped(totalAmount)}">199.00</td>
         </tr>
         </tbody>
     </table>
@@ -218,17 +218,17 @@
     <div class="totals-summary">
         <div class="summary-item">
             <span>Subtotal</span>
-            <span th:text="${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}">168.64</span>
+            <span th:text="${amounts.grouped(taxableAmount)}">168.64</span>
         </div>
 
         <div class="summary-item" th:each="entry : ${gstSummary}">
             <span th:text="${entry.key}">CGST @9%</span>
-            <span th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">15.18</span>
+            <span th:text="${amounts.grouped(entry.value)}">15.18</span>
         </div>
 
         <div class="summary-item total">
             <span>TOTAL</span>
-            <span th:text="${#numbers.formatDecimal(totalAmount, 1, 'COMMA', 2, 'POINT')}">199.00</span>
+            <span th:text="${amounts.grouped(totalAmount)}">199.00</span>
         </div>
     </div>
 

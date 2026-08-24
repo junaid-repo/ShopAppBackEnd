@@ -23,6 +23,7 @@ public class InvoiceDetails {
 	    private String customerName;
 	    private double gstRate;      // e.g., 0.18 for 18%
 	    private double discountRate;
+        private double discountAmount;
         private String gstNumber;
 	    private String customerEmail;
 	    private String customerPhone;

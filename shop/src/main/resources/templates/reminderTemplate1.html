@@ -231,7 +231,7 @@
             <tr th:each="product : ${products}">
                 <td class="item-name" th:text="${product.productName}">Product Name</td>
                 <td class="item-qty" th:text="${#numbers.formatDecimal(product.quantity, 0, 'COMMA', 0, 'POINT')}">1</td>
-                <td class="item-total">₹<span th:text="${#numbers.formatDecimal(product.totalAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></td>
+                <td class="item-total">₹<span th:text="${amounts.grouped(product.totalAmount)}">0</span></td>
             </tr>
             </tbody>
         </table>
@@ -240,15 +240,15 @@
     <div class="summary-row">
         <div class="metric">
             <span class="metric-label">Total Bill</span>
-            <span class="metric-value val-total">₹<span th:text="${#numbers.formatDecimal(totalAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></span>
+            <span class="metric-value val-total">₹<span th:text="${amounts.grouped(totalAmount)}">0</span></span>
         </div>
         <div class="metric metric-center">
             <span class="metric-label">Paid</span>
-            <span class="metric-value val-paid">₹<span th:text="${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></span>
+            <span class="metric-value val-paid">₹<span th:text="${amounts.grouped(paidAmount)}">0</span></span>
         </div>
         <div class="metric metric-right">
             <span class="metric-label" style="color: var(--rose-500);">Balance Due</span>
-            <span class="metric-value val-due">₹<span th:text="${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}">0.00</span></span>
+            <span class="metric-value val-due">₹<span th:text="${amounts.grouped(dueAmount)}">0</span></span>
         </div>
     </div>
 

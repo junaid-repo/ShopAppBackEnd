@@ -287,23 +287,23 @@
                     <span class="sub-desc" th:if="${showHsnColumn and product['hsnCode'] != null}" th:text="'HSN:' + ${product['hsnCode']}"></span>
 
                     <span class="sub-desc" th:if="${showIndividualDiscountPercentage and product['discountPercentage'] != null and product['discountPercentage'] > 0}"
-                          th:text="'Disc: ' + ${#numbers.formatDecimal(product['discountPercentage'], 1, 'NONE', 0, 'POINT')} + '%'">
+                          th:text="'Disc: ' + ${amounts.percentage(product['discountPercentage'])} + '%'">
                     </span>
 
                     <!-- ADDED: GST breakdown per product (show only when enabled) -->
                     <div th:if="${showProductGst}">
                         <span class="sub-desc" th:if="${product['igstAmount'] != null and product['igstAmount'] > 0}"
-                              th:text="'IGST: ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'"></span>
+                              th:text="'IGST: ' + ${amounts.plain(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
                         <span class="sub-desc" th:if="${product['cgstAmount'] != null and product['cgstAmount'] > 0}"
-                              th:text="'CGST: ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                              th:text="'CGST: ' + ${amounts.plain(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
                         <span class="sub-desc" th:if="${product['sgstAmount'] != null and product['sgstAmount'] > 0}"
-                              th:text="'SGST: ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'NONE', 0, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+                              th:text="'SGST: ' + ${amounts.plain(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
                     </div>
                 </td>
 
                 <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')}"></td>
-                <td class="c-price" th:text="${#numbers.formatDecimal(product['rate'], 1, 'NONE', 0, 'POINT')}"></td>
-                <td class="c-total" th:text="${#numbers.formatDecimal(product['totalAmount'], 1, 'NONE', 0, 'POINT')}"></td>
+                <td class="c-price" th:text="${amounts.plain(product['rate'])}"></td>
+                <td class="c-total" th:text="${amounts.plain(product['totalAmount'])}"></td>
             </tr>
         </th:block>
         </tbody>
@@ -312,33 +312,33 @@
     <div class="totals-block">
         <div class="t-row">
             <span>SUBTOTAL</span>
-            <span th:text="${#numbers.formatDecimal(taxableAmount, 1, 'NONE', 0, 'POINT')}"></span>
+            <span th:text="${amounts.plain(taxableAmount)}"></span>
         </div>
 
         <div class="t-row" th:if="${showTotalDiscountPercentage and totalDiscountAmount > 0}">
             <span>DISCOUNT</span>
-            <span th:text="'-' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'NONE', 0, 'POINT')}"></span>
+            <span th:text="'-' + ${amounts.plain(totalDiscountAmount)}"></span>
         </div>
 
         <th:block th:if="${gstBreakdown}">
             <div class="t-row" th:each="gst : ${gstSummary}">
-                <span th:text="${gst['type']} + ' (' + ${gst['percentage']} + '%)'"></span>
-                <span th:text="${#numbers.formatDecimal(gst['amount'], 1, 'NONE', 0, 'POINT')}"></span>
+                <span th:text="${gst['type']} + ' (' + ${amounts.percentage(gst['percentage'])} + '%)'"></span>
+                <span th:text="${amounts.plain(gst['amount'])}"></span>
             </div>
         </th:block>
 
         <div class="t-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px dotted #000;"
              th:if="${showDueAmount and dueAmount != null and dueAmount > 0}">
             <span class="uppercase">BALANCE DUE</span>
-            <span th:text="'Rs. ' + ${#numbers.formatDecimal(dueAmount, 1, 'NONE', 0, 'POINT')}"></span>
+            <span th:text="'Rs. ' + ${amounts.plain(dueAmount)}"></span>
         </div>
 
         <div class="grand-total-row">
             <div class="gt-label">
                 TOTAL
-                <div style="font-size: 0.65em; font-weight: normal; text-transform: lowercase; margin-top: 2px;">*(rounded off)</div>
+                <div th:if="${!enableDecimalPlace}" style="font-size: 0.65em; font-weight: normal; text-transform: lowercase; margin-top: 2px;">(rounded off)</div>
             </div>
-            <span class="gt-value" th:text="'Rs. ' + ${#numbers.formatDecimal(grandTotal, 1, 'NONE', 0, 'POINT')}"></span>
+            <span class="gt-value" th:text="'Rs. ' + ${amounts.plain(grandTotal)}"></span>
         </div>
 
         <div class="text-center" style="font-size: 0.85em; margin-top: 8px;" th:text="${grandTotalInWords}"></div>

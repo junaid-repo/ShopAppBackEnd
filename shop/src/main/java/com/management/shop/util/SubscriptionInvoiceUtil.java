@@ -24,6 +24,7 @@ public class SubscriptionInvoiceUtil {
 
         // --- 1. Prepare Thymeleaf Context ---
         Context context = new Context();
+        context.setVariable("amounts", AmountDisplayFormatter.INSTANCE);
 
         // App Details
         context.setVariable("appName", data.getAppName());

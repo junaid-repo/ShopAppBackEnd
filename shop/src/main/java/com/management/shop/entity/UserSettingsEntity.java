@@ -59,6 +59,8 @@ public class UserSettingsEntity {
     private Boolean showBankDetails;
     private  Boolean showUpiId;
     private  Boolean showQRCode;
+    @Column(columnDefinition = "BOOLEAN DEFAULT TRUE")
+    private Boolean enableDecimalPlace;
 
     private Boolean isDailyReportsEnabled;
     private String  dailyReportEmailId;

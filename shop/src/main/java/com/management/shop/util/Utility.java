@@ -234,6 +234,7 @@ public class Utility {
         Boolean showUpiId=false;
         Boolean showQRCode=false;
         Boolean showProductGst=false;
+        Boolean enableDecimalPlace=true;
 
         try {
             UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(orderId));
@@ -255,6 +256,7 @@ public class Utility {
             showUpiId=userSettingsEntity.getShowUpiId();
             showQRCode=userSettingsEntity.getShowQRCode();
             showProductGst=userSettingsEntity.getShowProductGst();
+            enableDecimalPlace=!Boolean.FALSE.equals(userSettingsEntity.getEnableDecimalPlace());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -301,6 +303,7 @@ public class Utility {
                 .previousBalance(0d)
                 .grandTotal(order.getTotalAmount())
                 .discountPercentage(order.getDiscountRate())
+                .discountAmount(order.getDiscountAmount())
                 .gstSummary(gstSummary)
 
                 .bankAccountName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankHolder())).orElse(""))
@@ -330,6 +333,7 @@ public class Utility {
                 .showUpiId(showUpiId)
                 .showQrcode(showQRCode)
                 .showProductGst(showProductGst)
+                .enableDecimalPlace(enableDecimalPlace)
 
 
                 .build();
@@ -511,6 +515,7 @@ public class Utility {
 
         return InvoiceDetails.builder()
                 .discountRate(billDetails.getDiscountPercent())
+                .discountAmount(MoneyUtils.asAmountDouble(billDetails.getDiscountAmount()))
                 .invoiceId(toEmpty(orderReferenceNumber))
                 .paymentReferenceNumber(toEmpty(paymentEntity.getPaymentReferenceNumber()))
                 .paidAmount(paymentEntity.getPaid())

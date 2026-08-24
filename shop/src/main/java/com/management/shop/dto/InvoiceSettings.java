@@ -30,4 +30,5 @@ public class InvoiceSettings {
     Boolean showUpiId;
     Boolean showQrCode;
     Boolean showProductGst;
+    Boolean enableDecimalPlace;
 }

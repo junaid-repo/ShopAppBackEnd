@@ -179,18 +179,18 @@
             <td th:text="${product.productName}"></td>
             <td th:text="${product.details}" style="text-align: left;"></td>
             <td th:text="${product.quantity}"></td>
-            <td th:text="${product.unitPrice - product.gst}"></td>
+            <td th:text="${amounts.grouped(product.unitPrice - product.gst)}"></td>
 
-            <td th:text="${product.gst}"></td>
-            <td th:text="${product.unitPrice}"></td>
+            <td th:text="${amounts.grouped(product.gst)}"></td>
+            <td th:text="${amounts.grouped(product.unitPrice)}"></td>
         </tr>
         </tbody>
     </table>
 
     <div class="total-section">
-        <h4>Sub Total: <span th:text="${totalAmount}"></span></h4>
-        <h4>GST: <span th:text="${gstRate}"></span></h4>
-        <h3>Grand Total: <span th:text="${grandTotal}"></span></h3>
+        <h4>Sub Total: <span th:text="${amounts.grouped(totalAmount)}"></span></h4>
+        <h4>GST: <span th:text="${amounts.grouped(gstRate)}"></span></h4>
+        <h3>Grand Total: <span th:text="${amounts.grouped(grandTotal)}"></span></h3>
     </div>
 
     <div class="footer">

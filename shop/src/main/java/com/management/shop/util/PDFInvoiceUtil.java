@@ -25,6 +25,7 @@ public class PDFInvoiceUtil {
 		public byte[] generateInvoice(String customerName, String customerEmail, String customerPhone, String invoiceId, List<OrderItem> products, String orderedDate, double totalAmount, boolean paid, double gstRate, String shopName, String shopAddress, String shopEmail, String shopPhone, String gstNumber)
 				throws Exception {
 			Context context = new Context();
+            context.setVariable("amounts", AmountDisplayFormatter.INSTANCE);
             double grandTotal = totalAmount;
             totalAmount=totalAmount-gstRate;
 
@@ -81,5 +82,4 @@ public class PDFInvoiceUtil {
             public String getDetails(){return details;}
 	    }
 }
-
 

@@ -515,16 +515,16 @@
                 <h3>Payment Record</h3>
                 <div class="meta-item">
                     <span class="label">Invoiced Amount</span>
-                    <span class="value" th:text="'₹' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">₹94,240</span>
+                    <span class="value" th:text="'₹' + ${amounts.grouped(grandTotal)}">₹94,240</span>
                 </div>
                 <th:block th:if="${showDueAmount}">
                     <div class="meta-item" th:if="${paidAmount != null and paidAmount > 0}">
                         <span class="label">Paid Amount</span>
-                        <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span class="value" th:text="'₹ ' + ${amounts.grouped(paidAmount)}"></span>
                     </div>
                     <div class="meta-item" th:if="${dueAmount != null and dueAmount > 0}">
                         <span class="label">Due Amount</span>
-                        <span class="value" th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></span>
+                        <span class="value" th:text="'₹ ' + ${amounts.grouped(dueAmount)}"></span>
                     </div>
                 </th:block>
             </th:block>
@@ -554,16 +554,16 @@
             </td>
             <td class="col-hsn text-right" th:if="${showHsnColumn}" th:text="${product['hsnCode']}">0056</td>
             <td class="col-qty text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}">10</td>
-            <td class="col-rate text-right" th:if="${showRateColumn}" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'], 1, 'COMMA', 2, 'POINT')}">₹ 1,000</td>
-            <td class="col-taxable text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['rate'] * product['quantity'], 1, 'COMMA', 2, 'POINT')}">₹ 10,000</td>
-            <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}" th:text="${#numbers.formatDecimal(product['discountPercentage'], 1, 'COMMA', 1, 'POINT')} + '%'"></td>
+            <td class="col-rate text-right" th:if="${showRateColumn}" th:text="'₹ ' + ${amounts.grouped(product['rate'])}">₹ 1,000</td>
+            <td class="col-taxable text-right" th:text="'₹ ' + ${amounts.grouped(product['rate'] * product['quantity'])}">₹ 10,000</td>
+            <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}" th:text="${amounts.percentage(product['discountPercentage'])} + '%'"></td>
             <td class="col-tax text-right"  th:if="${showProductGst}">
-                <span th:if="${product['igstAmount'] > 0}" th:text="'₹ ' + ${#numbers.formatDecimal(product['igstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['igstPercentage']} + '%)'">₹900 (9%)</span>
-                <span th:if="${product['cgstAmount'] > 0}" th:text="'₹ ' + ${#numbers.formatDecimal(product['cgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['cgstPercentage']} + '%)'"></span>
+                <span th:if="${product['igstAmount'] > 0}" th:text="'₹ ' + ${amounts.grouped(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'">₹900 (9%)</span>
+                <span th:if="${product['cgstAmount'] > 0}" th:text="'₹ ' + ${amounts.grouped(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
                 <br th:if="${product['sgstAmount'] > 0}" />
-                <span th:if="${product['sgstAmount'] > 0}" th:text="'₹ ' + ${#numbers.formatDecimal(product['sgstAmount'], 1, 'COMMA', 2, 'POINT')} + ' (' + ${product['sgstPercentage']} + '%)'"></span>
+                <span th:if="${product['sgstAmount'] > 0}" th:text="'₹ ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
             </td>
-            <td class="col-total text-right" th:text="'₹ ' + ${#numbers.formatDecimal(product['totalAmount'], 1, 'COMMA', 2, 'POINT')}">₹11,800</td>
+            <td class="col-total text-right" th:text="'₹ ' + ${amounts.grouped(product['totalAmount'])}">₹11,800</td>
         </tr>
         </tbody>
     </table>
@@ -627,24 +627,24 @@
             <table class="totals-table">
                 <tbody>
                 <tr>
-                    <td>Sub Total</td> <td th:text="'₹ ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}">₹ 11,800</td>
+                    <td>Sub Total</td> <td th:text="'₹ ' + ${amounts.grouped(taxableAmount)}">₹ 11,800</td>
                 </tr>
                 <tr th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
                     <td>Discount</td>
-                    <td th:text="'- ₹ ' + ${#numbers.formatDecimal(totalDiscountAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                    <td th:text="'- ₹ ' + ${amounts.grouped(totalDiscountAmount)}"></td>
                 </tr>
                 <tr>
                     <td>Taxable Amount</td>
-                    <td th:text="'₹ ' + ${#numbers.formatDecimal(taxableAmount, 1, 'COMMA', 2, 'POINT')}">₹ 36,000</td>
+                    <td th:text="'₹ ' + ${amounts.grouped(taxableAmount)}">₹ 36,000</td>
                 </tr>
                 <tr th:each="gst : ${gstSummary}">
-                    <td class="label" th:text="'Add: ' + ${gst['type']} + ' @' + ${gst['percentage']} + '%'">Add: IGST</td>
-                    <td class="text-right text-bold" th:text="${#numbers.formatDecimal(gst['amount'], 1, 'COMMA', 2, 'POINT')}"></td>
+                    <td class="label" th:text="'Add: ' + ${gst['type']} + ' @' + ${amounts.percentage(gst['percentage'])} + '%'">Add: IGST</td>
+                    <td class="text-right text-bold" th:text="${amounts.grouped(gst['amount'])}"></td>
                 </tr>
 
                 <tr class="total-due">
-                    <td>Total(INR)</td>
-                    <td th:text="'₹ ' + ${#numbers.formatDecimal(grandTotal, 1, 'COMMA', 0, 'POINT')}">₹94,240</td>
+                    <td>Total(INR) <small th:if="${!enableDecimalPlace}">(rounded off)</small></td>
+                    <td th:text="'₹ ' + ${amounts.grouped(grandTotal)}">₹94,240</td>
                 </tr>
                 </tbody>
             </table>
@@ -654,11 +654,11 @@
                     <tbody>
                     <tr th:if="${paidAmount != null and paidAmount > 0}">
                         <td>Paid Amount</td>
-                        <td th:text="'₹ ' + ${#numbers.formatDecimal(paidAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                        <td th:text="'₹ ' + ${amounts.grouped(paidAmount)}"></td>
                     </tr>
                     <tr th:if="${dueAmount != null and dueAmount > 0}">
                         <td>Due Amount</td>
-                        <td th:text="'₹ ' + ${#numbers.formatDecimal(dueAmount, 1, 'COMMA', 2, 'POINT')}"></td>
+                        <td th:text="'₹ ' + ${amounts.grouped(dueAmount)}"></td>
                     </tr>
                     </tbody>
                 </table>

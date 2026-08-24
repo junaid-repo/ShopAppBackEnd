@@ -17,6 +17,7 @@ import org.thymeleaf.context.Context;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.util.*;
 
 @Component
@@ -37,25 +38,22 @@ public class PDFGSTInvoiceUtil {
 
     public byte[] generateGSTInvoice(InvoiceData data, String invoiceTemplate, String printerType)   {
 
-        // --- Core Calculations (null-safe & rounded to nearest integer) ---
+        // --- Core Calculations (null-safe, exact and normalized to two decimals) ---
         List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
+        boolean enableDecimalPlace = !Boolean.FALSE.equals(data.getEnableDecimalPlace());
 
-        long taxableAmount = Math.round(rawProducts.stream()
-                .mapToDouble(p -> safeGetDouble(p, "getRate", "getPrice") * safeGetDouble(p, "getQuantity", "getQty"))
-                .sum());
+        BigDecimal taxableAmount = sumTaxableAmount(rawProducts);
+        BigDecimal gstAmount = sumAmount(rawProducts, "getTaxAmount", "getTax");
+        BigDecimal grandTotal = MoneyUtils.amount(taxableAmount.add(gstAmount));
+        BigDecimal currentBalance = MoneyUtils.amount(grandTotal
+                .add(MoneyUtils.amount(data.getPreviousBalance()))
+                .subtract(MoneyUtils.amount(data.getReceivedAmount())));
 
-        long gstAmount = Math.round(rawProducts.stream()
-                .mapToDouble(p -> safeGetDouble(p, "getTaxAmount", "getTax"))
-                .sum());
-
-        long grandTotal = taxableAmount + gstAmount;
-        long currentBalance = Math.round(grandTotal + safeGetDoubleFromPrimitive(data.getPreviousBalance()) - safeGetDoubleFromPrimitive(data.getReceivedAmount()));
-
-        String grandTotalInWords = NumberToWordsConverter.convert(grandTotal);
+        String grandTotalInWords = amountInWords(grandTotal, enableDecimalPlace);
 
         // --- QR Code (UPI) ---
         // Using the rounded grandTotal for the UPI string instead of the raw data value
-        String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+grandTotal+"&cu=INR";
+        String upiUrl = "upi://pay?pa="+data.getUpiId()+"&pn="+data.getShopName()+"&tn="+data.getInvoiceId()+"&am="+grandTotal.toPlainString()+"&cu=INR";
         String qrCodeBase64="";
 
         if(printerType != null && printerType.contains("THERMAL")){
@@ -112,9 +110,9 @@ public class PDFGSTInvoiceUtil {
             m.put("rate", getRoundedAmount(p, "getRate", "getPrice"));
             m.put("taxAmount", getRoundedAmount(p, "getTaxAmount", "getTax"));
             m.put("totalAmount", getRoundedAmount(p, "getTotalAmount", "getAmount", "getTotal"));
-            m.put("igstAmount", roundDouble(p.getIgst()));
-            m.put("cgstAmount", roundDouble(p.getCgst()));
-            m.put("sgstAmount", roundDouble(p.getSgst()));
+            m.put("igstAmount", normalizeAmount(p.getIgst()));
+            m.put("cgstAmount", normalizeAmount(p.getCgst()));
+            m.put("sgstAmount", normalizeAmount(p.getSgst()));
 
             m.put("igstPercentage", p.getIgstPercentage());
             m.put("cgstPercentage", p.getCgstPercentage());
@@ -129,7 +127,7 @@ public class PDFGSTInvoiceUtil {
             for (Map<String, Object> gstMap : data.getGstSummary()) {
                 Map<String, Object> roundedGst = new HashMap<>(gstMap);
                 if (roundedGst.containsKey("amount")) {
-                    roundedGst.put("amount", Math.round(Double.parseDouble(String.valueOf(roundedGst.get("amount")))));
+                    roundedGst.put("amount", normalizeAmount(roundedGst.get("amount")));
                 }
                 roundedGstSummary.add(roundedGst);
             }
@@ -137,6 +135,8 @@ public class PDFGSTInvoiceUtil {
 
         // --- Prepare Thymeleaf Context ---
         Context context = new Context();
+        context.setVariable("amounts", AmountDisplayFormatter.forSetting(enableDecimalPlace));
+        context.setVariable("enableDecimalPlace", enableDecimalPlace);
 
         if (data.getShopLogoBytes() != null && data.getShopLogoBytes().length > 0) {
             String shopLogoBase64 = Base64.getEncoder().encodeToString(data.getShopLogoBytes());
@@ -176,11 +176,11 @@ public class PDFGSTInvoiceUtil {
         // Apply rounded amounts to the context
         context.setVariable("taxableAmount", taxableAmount);
         context.setVariable("grandTotal", grandTotal);
-        context.setVariable("paidAmount", roundDouble(data.getPaidAmount()));
-        context.setVariable("dueAmount", roundDouble(data.getDueAmount()));
-        context.setVariable("totalDiscountAmount", roundDouble(data.getDiscountPercentage()));
-        context.setVariable("receivedAmount", roundDouble(data.getReceivedAmount()));
-        context.setVariable("previousBalance", roundDouble(data.getPreviousBalance()));
+        context.setVariable("paidAmount", normalizeAmount(data.getPaidAmount()));
+        context.setVariable("dueAmount", normalizeAmount(data.getDueAmount()));
+        context.setVariable("totalDiscountAmount", normalizeAmount(data.getDiscountAmount()));
+        context.setVariable("receivedAmount", normalizeAmount(data.getReceivedAmount()));
+        context.setVariable("previousBalance", normalizeAmount(data.getPreviousBalance()));
         context.setVariable("currentBalance", currentBalance);
         context.setVariable("grandTotalInWords", nullSafeString(grandTotalInWords));
 
@@ -201,7 +201,7 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("showIndividualDiscountPercentage", data.getItemDiscount() != null ? data.getItemDiscount() : false);
         context.setVariable("showHsnColumn", data.getShowHsnColumn() != null ? data.getShowHsnColumn() : true);
         context.setVariable("showRateColumn", data.getShowRateColumn() != null ? data.getShowRateColumn() : true);
-        context.setVariable("showTotalDiscountPercentage", data.getShowTotalDiscount() != null ? data.getShowTotalDiscount() : false);
+        context.setVariable("showTotalDiscountPercentage", false);
         context.setVariable("showDueAmount", data.getPrintDueAmount() != null ? data.getPrintDueAmount() : false);
         context.setVariable("showDueDate", data.getAddDueDate() != null ? data.getShowTotalDiscount() : false);
         context.setVariable("showSupportInfo", data.getShowSupportInfo() != null ? data.getShowSupportInfo() : false);
@@ -280,23 +280,17 @@ public class PDFGSTInvoiceUtil {
         // --- 1. Core Calculations ---
         List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
 
-        long taxableAmount = Math.round(rawProducts.stream()
-                .mapToDouble(p -> safeGetDouble(p, "getRate", "getPrice") * safeGetDouble(p, "getQuantity", "getQty"))
-                .sum());
-
-        long gstAmount = Math.round(rawProducts.stream()
-                .mapToDouble(p -> safeGetDouble(p, "getTaxAmount", "getTax"))
-                .sum());
-
-        long grandTotal = taxableAmount + gstAmount;
-        long dueAmount = roundDouble(data.getDueAmount());
-        long paidAmount = roundDouble(data.getPaidAmount());
+        BigDecimal taxableAmount = sumTaxableAmount(rawProducts);
+        BigDecimal gstAmount = sumAmount(rawProducts, "getTaxAmount", "getTax");
+        BigDecimal grandTotal = MoneyUtils.amount(taxableAmount.add(gstAmount));
+        BigDecimal dueAmount = normalizeAmount(data.getDueAmount());
+        BigDecimal paidAmount = normalizeAmount(data.getPaidAmount());
 
         // --- 2. QR Code (Generated specifically for the DUE AMOUNT) ---
         String upiUrl = "upi://pay?pa=" + data.getUpiId() +
                 "&pn=" + data.getShopName() +
                 "&tn=" + data.getInvoiceId() +
-                "&am=" + dueAmount + "&cu=INR";
+                "&am=" + dueAmount.toPlainString() + "&cu=INR";
 
         String qrCodeBase64 = QRCodeGenerator.generateQRCodeBase64(nullSafeString(upiUrl), 400, 400);
 
@@ -312,6 +306,7 @@ public class PDFGSTInvoiceUtil {
 
         // --- 4. Prepare Thymeleaf Context ---
         Context context = new Context();
+        context.setVariable("amounts", AmountDisplayFormatter.INSTANCE);
         context.setVariable("shopName", nullSafeString(data.getShopName()));
         context.setVariable("invoiceId", nullSafeString(data.getInvoiceId()));
         context.setVariable("products", productsForTemplate);
@@ -370,7 +365,7 @@ public class PDFGSTInvoiceUtil {
     }
 
     public byte[] getPaymentQrCodeImage(InvoiceData data) {
-        String paidAmount = String.format(Locale.ROOT, "%.2f", data.getPaidAmount());
+        String paidAmount = normalizeAmount(data.getPaidAmount()).toPlainString();
         String upiUrl = "upi://pay?pa=" + nullSafeString(data.getUpiId())
                 + "&pn=" + nullSafeString(data.getShopName())
                 + "&tn=" + nullSafeString(data.getInvoiceId())
@@ -414,22 +409,59 @@ public class PDFGSTInvoiceUtil {
         return "";
     }}
 
-    // --- Rounding Helpers ---
-    private long roundDouble(Double d) {
-        return d == null ? 0L : Math.round(d);
+    // --- Amount Helpers ---
+    private BigDecimal normalizeAmount(Object value) {
+        if (value == null) {
+            return BigDecimal.ZERO.setScale(MoneyUtils.AMOUNT_SCALE);
+        }
+        if (value instanceof Number number) {
+            return MoneyUtils.amount(number);
+        }
+        try {
+            return MoneyUtils.amount(new BigDecimal(String.valueOf(value)));
+        } catch (NumberFormatException ignored) {
+            return BigDecimal.ZERO.setScale(MoneyUtils.AMOUNT_SCALE);
+        }
     }
 
-    private long getRoundedAmount(Object bean, String... methodNames) {
-        return Math.round(safeGetDouble(bean, methodNames));
+    private BigDecimal getRoundedAmount(Object bean, String... methodNames) {
+        return MoneyUtils.amount(safeGetDouble(bean, methodNames));
+    }
+
+    private BigDecimal sumTaxableAmount(List<OrderItemInvoice> products) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (OrderItemInvoice product : products) {
+            BigDecimal rate = MoneyUtils.decimal(safeGetDouble(product, "getRate", "getPrice"));
+            BigDecimal quantity = MoneyUtils.decimal(safeGetDouble(product, "getQuantity", "getQty"));
+            total = total.add(rate.multiply(quantity));
+        }
+        return MoneyUtils.amount(total);
+    }
+
+    private BigDecimal sumAmount(List<OrderItemInvoice> products, String... methodNames) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (OrderItemInvoice product : products) {
+            total = total.add(MoneyUtils.decimal(safeGetDouble(product, methodNames)));
+        }
+        return MoneyUtils.amount(total);
+    }
+
+    private String amountInWords(BigDecimal amount, boolean enableDecimalPlace) {
+        BigDecimal normalized = (enableDecimalPlace
+                ? MoneyUtils.amount(amount)
+                : amount.setScale(0, MoneyUtils.ROUNDING_MODE)).abs();
+        long rupees = normalized.longValue();
+        int paise = normalized.remainder(BigDecimal.ONE).movePointRight(2).intValue();
+        String words = (rupees == 0 ? "Zero" : NumberToWordsConverter.convert(rupees)) + " Rupees";
+        if (paise > 0) {
+            words += " And " + NumberToWordsConverter.convert(paise) + " Paise";
+        }
+        return (amount.signum() < 0 ? "Minus " : "") + words + " Only";
     }
 
     // --- Existing Helpers ---
     private String nullSafeString(Object o) {
         return o == null ? "" : String.valueOf(o);
-    }
-
-    private double safeGetDoubleFromPrimitive(Double d) {
-        return d == null ? 0.0 : d;
     }
 
     private String safeGetString(Object bean, String... methodNames) {
