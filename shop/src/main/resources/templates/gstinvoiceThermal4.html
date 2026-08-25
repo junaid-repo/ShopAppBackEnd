@@ -225,16 +225,16 @@
                     <!-- ADDED: GST breakdown per product -->
                     <div th:if="${showProductGst}" style="font-size:0.85em; color:#444; margin-top:4px;">
                         <span th:if="${product['igstAmount'] != null and product['igstAmount'] > 0}"
-                              th:text="'IGST: ' + ${amounts.plain(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
+                              th:text="'IGST: ' + ${amounts.grouped(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
                         <span th:if="${product['cgstAmount'] != null and product['cgstAmount'] > 0}"
-                              th:text="'CGST: ' + ${amounts.plain(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
+                              th:text="'CGST: ' + ${amounts.grouped(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
                         <span th:if="${product['sgstAmount'] != null and product['sgstAmount'] > 0}"
-                              th:text="'SGST: ' + ${amounts.plain(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
+                              th:text="'SGST: ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
                     </div>
                 </td>
                 <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')}"></td>
-                <td class="c-rate" th:text="${amounts.plain(product['rate'])}"></td>
-                <td class="c-total" th:text="${amounts.plain(product['totalAmount'])}"></td>
+                <td class="c-rate" th:text="${amounts.grouped(product['rate'])}"></td>
+                <td class="c-total" th:text="${amounts.grouped(product['totalAmount'])}"></td>
             </tr>
         </th:block>
         </tbody>
@@ -245,17 +245,17 @@
     <div class="totals-area">
         <div class="total-row">
             <span>Subtotal:</span>
-            <span th:text="${amounts.plain(taxableAmount)}"></span>
+            <span th:text="${amounts.grouped(taxableAmount)}"></span>
         </div>
 
         <div class="total-row" th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
             <span>Discount:</span>
-            <span th:text="'- ' + ${amounts.plain(totalDiscountAmount)}"></span>
+            <span th:text="'- ' + ${amounts.grouped(totalDiscountAmount)}"></span>
         </div>
 
         <div class="total-row" th:each="gst : ${gstSummary}">
             <span th:text="${gst['type']} + ' (' + ${amounts.percentage(gst['percentage'])} + '%):'"></span>
-            <span th:text="${amounts.plain(gst['amount'])}"></span>
+            <span th:text="${amounts.grouped(gst['amount'])}"></span>
         </div>
     </div>
 
@@ -264,7 +264,7 @@
             <span class="bold">TOTAL</span>
             <div th:if="${!enableDecimalPlace}" style="font-size: 0.6em; font-weight: normal; text-transform: lowercase; margin-top: 2px;">(rounded off)</div>
         </div>
-        <div class="bold" th:text="'₹ ' + ${amounts.plain(grandTotal)}"></div>
+        <div class="bold" th:text="'₹ ' + ${amounts.grouped(grandTotal)}"></div>
     </div>
 
     <div class="text-center" style="font-size: 0.85em; margin-top: 6px;" th:text="${grandTotalInWords}"></div>
@@ -272,7 +272,7 @@
     <div class="border-box text-center" style="margin-top: 20px; border-style: dashed;"
          th:if="${showDueAmount and dueAmount != null and dueAmount > 0}">
         <span class="bold">BALANCE DUE: </span>
-        <span class="bold" th:text="'₹ ' + ${amounts.plain(dueAmount)}"></span>
+        <span class="bold" th:text="'₹ ' + ${amounts.grouped(dueAmount)}"></span>
     </div>
 
     <div class="payment-section" th:if="${showBankDetails}">

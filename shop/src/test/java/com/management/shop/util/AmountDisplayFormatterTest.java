@@ -19,6 +19,8 @@ class AmountDisplayFormatterTest {
     @Test
     void displaysNonZeroValuesWithTwoDecimalPlaces() {
         assertEquals("1,234.50", formatter.grouped(new BigDecimal("1234.5")));
+        assertEquals("1,34,553.25", formatter.grouped(new BigDecimal("134553.25")));
+        assertEquals("-12,34,567.89", formatter.grouped(new BigDecimal("-1234567.89")));
         assertEquals("10.01", formatter.plain(new BigDecimal("10.005")));
     }
 
@@ -27,6 +29,7 @@ class AmountDisplayFormatterTest {
         AmountDisplayFormatter integerFormatter = AmountDisplayFormatter.forSetting(false);
 
         assertEquals("1,235", integerFormatter.grouped(new BigDecimal("1234.50")));
+        assertEquals("1,34,553", integerFormatter.grouped(new BigDecimal("134552.50")));
         assertEquals("10", integerFormatter.plain(new BigDecimal("10.49")));
         assertEquals("0", integerFormatter.plain(new BigDecimal("0.49")));
     }

@@ -39,12 +39,28 @@ public final class AmountDisplayFormatter {
         }
 
         DecimalFormat formatter = new DecimalFormat(
-                showDecimalPlaces
-                        ? (grouped ? "#,##0.00" : "0.00")
-                        : (grouped ? "#,##0" : "0"),
+                showDecimalPlaces ? "0.00" : "0",
                 DecimalFormatSymbols.getInstance(Locale.ROOT));
         formatter.setRoundingMode(MoneyUtils.ROUNDING_MODE);
-        return formatter.format(amount);
+        String formatted = formatter.format(amount);
+        return grouped ? applyIndianGrouping(formatted) : formatted;
+    }
+
+    private String applyIndianGrouping(String formatted) {
+        boolean negative = formatted.startsWith("-");
+        String unsigned = negative ? formatted.substring(1) : formatted;
+        int decimalIndex = unsigned.indexOf('.');
+        String integerPart = decimalIndex >= 0 ? unsigned.substring(0, decimalIndex) : unsigned;
+        String decimalPart = decimalIndex >= 0 ? unsigned.substring(decimalIndex) : "";
+
+        StringBuilder groupedInteger = new StringBuilder(integerPart);
+        for (int separatorIndex = integerPart.length() - 3;
+             separatorIndex > 0;
+             separatorIndex -= 2) {
+            groupedInteger.insert(separatorIndex, ',');
+        }
+
+        return (negative ? "-" : "") + groupedInteger + decimalPart;
     }
 
     private BigDecimal parse(Object value) {

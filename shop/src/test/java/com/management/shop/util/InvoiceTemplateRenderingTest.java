@@ -34,7 +34,9 @@ class InvoiceTemplateRenderingTest {
             String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
             assertFalse(html.contains("(rounded off)"), template);
             if (A4_TEMPLATES.contains(template)) {
-                assertTrue(html.contains("width: calc(100% - 18px)"), template);
+                assertTrue(html.contains("width: calc(100% - 28px)"), template);
+                assertTrue(html.contains("background-color: #fff !important"), template);
+                assertTrue(html.contains("box-shadow: none !important"), template);
                 assertTrue(html.contains(".items-table .col-sr { width: 4%"), template);
                 assertTrue(html.contains(".items-table .col-tax { width: 20%"), template);
             }
@@ -49,6 +51,17 @@ class InvoiceTemplateRenderingTest {
         for (String template : GST_TEMPLATES) {
             String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
             assertTrue(html.contains("(rounded off)"), template);
+        }
+    }
+
+    @Test
+    void rendersIndianNumberGroupingForEveryInvoiceTemplate() {
+        Context context = invoiceContext();
+        context.setVariable("grandTotal", new BigDecimal("134553.25"));
+
+        for (String template : GST_TEMPLATES) {
+            String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
+            assertTrue(html.contains("1,34,553.25"), template);
         }
     }
 

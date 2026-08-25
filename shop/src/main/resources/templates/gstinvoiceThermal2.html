@@ -361,7 +361,7 @@
                     <div class="item-calc">
                         <span th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')}"></span>
                         x
-                        <span th:text="${amounts.plain(product['rate'])}"></span>
+                        <span th:text="${amounts.grouped(product['rate'])}"></span>
 
                         <span class="item-discount" th:if="${showIndividualDiscountPercentage and product['discountPercentage'] > 0}"
                               th:text="'(Disc: ' + ${amounts.percentage(product['discountPercentage'])} + '%)'"></span>
@@ -370,17 +370,17 @@
                     <div class="tax-breakdown">
                         <div th:if="${showProductGst}">
                             <span th:if="${product['igstAmount'] > 0}"
-                                  th:text="'IGST: ' + ${amounts.plain(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
+                                  th:text="'IGST: ' + ${amounts.grouped(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
                             <span th:if="${product['cgstAmount'] > 0}"
-                                  th:text="'CGST: ' + ${amounts.plain(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
+                                  th:text="'CGST: ' + ${amounts.grouped(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
                             <span th:if="${product['sgstAmount'] > 0}"
-                                  th:text="'SGST: ' + ${amounts.plain(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
+                                  th:text="'SGST: ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
                         </div>
                     </div>
                 </td>
 
                 <td class="col-total">
-                    <strong th:text="${amounts.plain(product['totalAmount'])}"></strong>
+                    <strong th:text="${amounts.grouped(product['totalAmount'])}"></strong>
                 </td>
             </tr>
         </th:block>
@@ -392,17 +392,17 @@
         <tbody>
         <tr>
             <td class="label">Taxable Amount</td>
-            <td class="value" th:text="${amounts.plain(taxableAmount)}"></td>
+            <td class="value" th:text="${amounts.grouped(taxableAmount)}"></td>
         </tr>
 
         <tr th:if="${showTotalDiscountPercentage and totalDiscountAmount != null and totalDiscountAmount > 0}">
             <td class="label">Discount</td>
-            <td class="value" th:text="'-' + ${amounts.plain(totalDiscountAmount)}"></td>
+            <td class="value" th:text="'-' + ${amounts.grouped(totalDiscountAmount)}"></td>
         </tr>
 
         <tr th:each="gst : ${gstSummary}">
             <td class="label" th:text="${gst['type']} + ' @' + ${amounts.percentage(gst['percentage'])} + '%'"></td>
-            <td class="value" th:text="${amounts.plain(gst['amount'])}"></td>
+            <td class="value" th:text="${amounts.grouped(gst['amount'])}"></td>
         </tr>
 
         <tr class="grand-total">
@@ -410,7 +410,7 @@
                 <strong>TOTAL</strong>
                 <div th:if="${!enableDecimalPlace}" style="font-size: 0.65em; font-weight: normal; margin-top: 3px; text-transform: lowercase;">(rounded off)</div>
             </td>
-            <td class="value" th:text="'₹ ' + ${amounts.plain(grandTotal)}"></td>
+            <td class="value" th:text="'₹ ' + ${amounts.grouped(grandTotal)}"></td>
         </tr>
         </tbody>
     </table>
@@ -420,11 +420,11 @@
         <tbody>
         <tr th:if="${paidAmount != null && paidAmount > 0}">
             <td class="label">Paid Amount:</td>
-            <td class="value" th:text="'₹ ' + ${amounts.plain(paidAmount)}"></td>
+            <td class="value" th:text="'₹ ' + ${amounts.grouped(paidAmount)}"></td>
         </tr>
         <tr th:if="${dueAmount != null and dueAmount > 0}">
             <td class="label due">DUE AMOUNT:</td>
-            <td class="value due" th:text="'₹ ' + ${amounts.plain(dueAmount)}"></td>
+            <td class="value due" th:text="'₹ ' + ${amounts.grouped(dueAmount)}"></td>
         </tr>
         </tbody>
     </table>
