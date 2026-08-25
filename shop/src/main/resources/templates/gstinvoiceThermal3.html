@@ -380,7 +380,7 @@
                 </td>
 
                 <td class="col-total">
-                    <span th:text="${amounts.grouped(product['totalAmount'])}"></span>
+                    <span th:text="${amounts.roundedTotal(product['totalAmount'])}"></span>
                 </td>
             </tr>
         </th:block>
@@ -407,10 +407,10 @@
 
         <tr class="grand-total">
             <td class="label">
-                <span style="font-size: 1.1em;">TOTAL <small th:if="${!enableDecimalPlace}">(rounded off)</small></span>
+                <span style="font-size: 1.1em;">TOTAL <small>(rounded off)</small></span>
             </td>
             <td class="value">
-                <span style="font-size: 1.1em;" th:text="'₹ ' + ${amounts.grouped(grandTotal)}"></span>
+                <span style="font-size: 1.1em;" th:text="'₹ ' + ${amounts.roundedTotal(grandTotal)}"></span>
             </td>
         </tr>
         </tbody>

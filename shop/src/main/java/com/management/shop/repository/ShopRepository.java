@@ -27,12 +27,12 @@ public interface ShopRepository extends JpaRepository<CustomerEntity, Integer> {
 
     @Modifying
     @Transactional
-    @Query(value = "UPDATE shop_customer  SET total_spent = total_spent + ?2, total_orders=total_orders+1, updated_date = NOW() WHERE id = ?1 and user_id = ?3", nativeQuery = true)
-    void updateCustomerSpentAmountAndOrdersCount(Integer id, Double spent_value, String userId);
+    @Query(value = "UPDATE shop_customer  SET total_spent = total_spent + ?2, total_orders=total_orders+ ?3, updated_date = NOW() WHERE id = ?1 and user_id = ?4", nativeQuery = true)
+    void updateCustomerSpentAmountAndOrdersCount(Integer id, Double spent_value, Integer orderCount, String userId);
 
     @Modifying
     @Transactional
-    @Query(value = "UPDATE shop_customer  SET total_spent = total_spent - ?2, total_orders=total_orders+1, updated_date = NOW() WHERE id = ?1 and user_id = ?3", nativeQuery = true)
+    @Query(value = "UPDATE shop_customer  SET total_spent = total_spent - ?2, total_orders=total_orders-1, updated_date = NOW() WHERE id = ?1 and user_id = ?3", nativeQuery = true)
     void updateCustomerSpentAmountAndOrdersCountForCancelled(Integer id, Double spent_value, String userId);
 
 	@Query(value = "SELECT   * FROM    shop_customer WHERE    created_date BETWEEN ?1 AND ?2  and user_id = ?3 ", nativeQuery = true)

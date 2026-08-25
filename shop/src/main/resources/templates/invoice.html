@@ -182,7 +182,7 @@
             <td th:text="${amounts.grouped(product.unitPrice - product.gst)}"></td>
 
             <td th:text="${amounts.grouped(product.gst)}"></td>
-            <td th:text="${amounts.grouped(product.unitPrice)}"></td>
+            <td th:text="${amounts.roundedTotal(product.unitPrice)}"></td>
         </tr>
         </tbody>
     </table>
@@ -190,7 +190,7 @@
     <div class="total-section">
         <h4>Sub Total: <span th:text="${amounts.grouped(totalAmount)}"></span></h4>
         <h4>GST: <span th:text="${amounts.grouped(gstRate)}"></span></h4>
-        <h3>Grand Total: <span th:text="${amounts.grouped(grandTotal)}"></span></h3>
+        <h3>Grand Total <small>(rounded off)</small>: <span th:text="${amounts.roundedTotal(grandTotal)}"></span></h3>
     </div>
 
     <div class="footer">

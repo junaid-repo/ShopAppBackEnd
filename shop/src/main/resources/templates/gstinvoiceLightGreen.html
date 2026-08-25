@@ -501,19 +501,19 @@
                 <br th:if="${product['sgstAmount'] > 0}" />
                 <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
             </td>
-            <td class="col-total text-right" th:text="' ' + ${amounts.grouped(product['totalAmount'])}"></td>
+            <td class="col-total text-right" th:text="' ' + ${amounts.roundedTotal(product['totalAmount'])}"></td>
         </tr>
         </tbody>
         <tfoot>
         <tr>
-            <td th:attr="colspan=1 + (${showHsnColumn} ? 1 : 0)" class="text-right">SUBTOTAL</td>
+            <td th:attr="colspan=1 + (${showHsnColumn} ? 1 : 0)" class="text-right">TOTAL <small>(rounded off)</small></td>
             <td class="text-right" th:text="${#aggregates.sum(products.![quantity])}"></td>
             <td th:if="${showRateColumn}"></td> <td class="text-right" th:text="${amounts.grouped(taxableAmount)}"></td>
             <td th:if="${showIndividualDiscountPercentage}"></td>
             <td th:if="${showProductGst}" class="text-right" th:text="' ' + ${amounts.grouped(#aggregates.sum(products.![taxAmount]))}">
         </td>
             <td class="text-right"
-                th:text="' ' + ${amounts.grouped(grandTotal)}">
+                th:text="' ' + ${amounts.roundedTotal(grandTotal)}">
             </td>
 
         </tr>
@@ -570,8 +570,8 @@
                 </tr>
 
                 <tr class="total-due">
-                    <td>Total(INR) <small th:if="${!enableDecimalPlace}">(rounded off)</small></td>
-                    <td th:text="' ' + ${amounts.grouped(grandTotal)}"></td>
+                    <td>Total(INR) <small>(rounded off)</small></td>
+                    <td th:text="' ' + ${amounts.roundedTotal(grandTotal)}"></td>
                 </tr>
                 </tbody>
             </table>

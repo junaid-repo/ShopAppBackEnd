@@ -234,7 +234,7 @@
                 </td>
                 <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')}"></td>
                 <td class="c-rate" th:text="${amounts.grouped(product['rate'])}"></td>
-                <td class="c-total" th:text="${amounts.grouped(product['totalAmount'])}"></td>
+                <td class="c-total" th:text="${amounts.roundedTotal(product['totalAmount'])}"></td>
             </tr>
         </th:block>
         </tbody>
@@ -262,9 +262,9 @@
     <div class="grand-total-box">
         <div>
             <span class="bold">TOTAL</span>
-            <div th:if="${!enableDecimalPlace}" style="font-size: 0.6em; font-weight: normal; text-transform: lowercase; margin-top: 2px;">(rounded off)</div>
+            <div style="font-size: 0.6em; font-weight: normal; text-transform: lowercase; margin-top: 2px;">(rounded off)</div>
         </div>
-        <div class="bold" th:text="'₹ ' + ${amounts.grouped(grandTotal)}"></div>
+        <div class="bold" th:text="'₹ ' + ${amounts.roundedTotal(grandTotal)}"></div>
     </div>
 
     <div class="text-center" style="font-size: 0.85em; margin-top: 6px;" th:text="${grandTotalInWords}"></div>

@@ -32,7 +32,7 @@ class InvoiceTemplateRenderingTest {
         Context context = invoiceContext();
         for (String template : GST_TEMPLATES) {
             String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
-            assertFalse(html.contains("(rounded off)"), template);
+            assertTrue(html.contains("(rounded off)"), template);
             if (A4_TEMPLATES.contains(template)) {
                 assertTrue(html.contains("width: calc(100% - 28px)"), template);
                 assertTrue(html.contains("background-color: #fff !important"), template);
@@ -57,11 +57,29 @@ class InvoiceTemplateRenderingTest {
     @Test
     void rendersIndianNumberGroupingForEveryInvoiceTemplate() {
         Context context = invoiceContext();
-        context.setVariable("grandTotal", new BigDecimal("134553.25"));
+        context.setVariable("taxableAmount", new BigDecimal("134553.25"));
+        context.setVariable("grandTotal", new BigDecimal("134553.75"));
 
         for (String template : GST_TEMPLATES) {
             String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
             assertTrue(html.contains("1,34,553.25"), template);
+            assertTrue(html.contains("1,34,554"), template);
+        }
+    }
+
+    @Test
+    void roundsProductAndGrandTotalsWhenDecimalPlacesAreEnabled() {
+        Context context = invoiceContext();
+        Map<String, Object> product = product();
+        product.put("totalAmount", new BigDecimal("1233.99"));
+        context.setVariable("products", List.of(product));
+        context.setVariable("grandTotal", new BigDecimal("1233.99"));
+
+        for (String template : GST_TEMPLATES) {
+            String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
+            assertTrue(html.contains("1,234"), template);
+            assertTrue(html.indexOf("1,234") != html.lastIndexOf("1,234"), template);
+            assertFalse(html.contains("1,233.99"), template);
         }
     }
 

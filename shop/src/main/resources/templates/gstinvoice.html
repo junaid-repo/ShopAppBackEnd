@@ -399,17 +399,17 @@
                 <br th:if="${product['sgstAmount'] > 0}" />
                 <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
             </td>
-            <td class="text-right total-col" th:text="' ' + ${amounts.grouped(product['totalAmount'])}"></td>
+            <td class="text-right total-col" th:text="' ' + ${amounts.roundedTotal(product['totalAmount'])}"></td>
         </tr>
         </tbody>
         <tfoot>
         <tr>
-            <td th:attr="colspan=1 + (${showHsnColumn} ? 1 : 0) + (${showRateColumn} ? 1 : 0)">SUBTOTAL</td>
+            <td th:attr="colspan=1 + (${showHsnColumn} ? 1 : 0) + (${showRateColumn} ? 1 : 0)">TOTAL <small>(rounded off)</small></td>
             <td class="text-right" th:text="${#aggregates.sum(products.![quantity])}"></td>
             <td></td>
             <td th:if="${showIndividualDiscountPercentage}"></td>
             <td th:if="${showProductGst}" class="text-right" th:text="' ' + ${amounts.grouped(#aggregates.sum(products.![taxAmount]))}"></td>
-            <td class="text-right" th:text="' ' + ${amounts.grouped(grandTotal)}"></td>
+            <td class="text-right" th:text="' ' + ${amounts.roundedTotal(grandTotal)}"></td>
         </tr>
         </tfoot>
     </table>
@@ -458,8 +458,8 @@
                     <span th:text="' ' + ${amounts.grouped(gst['amount'])}"></span>
                 </div>
                 <div class="summary-item total">
-                    <span>TOTAL AMOUNT <small th:if="${!enableDecimalPlace}" style="color: #ffffff; font-size: 0.8em; font-weight: normal;">(rounded off)</small></span>
-                    <span><span th:text="' ' + ${amounts.grouped(grandTotal)}"></span></span>
+                    <span>TOTAL AMOUNT <small style="color: #ffffff; font-size: 0.8em; font-weight: normal;">(rounded off)</small></span>
+                    <span><span th:text="' ' + ${amounts.roundedTotal(grandTotal)}"></span></span>
                 </div>
             </div>
 

@@ -32,6 +32,11 @@ public final class AmountDisplayFormatter {
         return format(value, false, true);
     }
 
+    /** Invoice line totals and grand totals are always rounded to the nearest whole amount. */
+    public String roundedTotal(Object value) {
+        return format(value, true, false);
+    }
+
     private String format(Object value, boolean grouped, boolean showDecimalPlaces) {
         BigDecimal amount = parse(value);
         if (amount.signum() == 0) {

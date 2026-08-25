@@ -517,7 +517,7 @@
                     <br th:if="${product['sgstAmount'] > 0}" />
                     <span th:if="${product['sgstAmount'] > 0}" th:text="'SGST ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
                 </td>
-                <td class="col-total text-right" th:text="' ' + ${amounts.grouped(product['totalAmount'])}"></td>
+                <td class="col-total text-right" th:text="' ' + ${amounts.roundedTotal(product['totalAmount'])}"></td>
             </tr>
             </tbody>
         </table>
@@ -600,8 +600,8 @@
                 </th:block>
 
                 <tr class="total-due grand-total">
-                    <td>Total Due Amount <small th:if="${!enableDecimalPlace}">(rounded off)</small></td>
-                    <td th:text="'₹' + ${amounts.grouped(grandTotal)}"></td>
+                    <td>Total Due Amount <small>(rounded off)</small></td>
+                    <td th:text="'₹' + ${amounts.roundedTotal(grandTotal)}"></td>
                 </tr>
                 </tbody>
             </table>

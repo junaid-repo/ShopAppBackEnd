@@ -335,7 +335,7 @@
                       th:text="'SGST ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
             </td>
             <td class="col-total text-right"
-                th:text="'₹ ' + ${amounts.grouped(product['totalAmount'])}"></td>
+                th:text="'₹ ' + ${amounts.roundedTotal(product['totalAmount'])}"></td>
         </tr>
         </tbody>
     </table>
@@ -377,8 +377,8 @@
                 </div>
                 <!-- ... other summary rows ... -->
                 <div class="total-due-row">
-                    <span class="label">Grand Total <small th:if="${!enableDecimalPlace}">(rounded off)</small></span>
-                    <span class="value" th:text="'₹ ' + ${amounts.grouped(grandTotal)}"></span>
+                    <span class="label">Grand Total <small>(rounded off)</small></span>
+                    <span class="value" th:text="'₹ ' + ${amounts.roundedTotal(grandTotal)}"></span>
                 </div>
             </div>
 

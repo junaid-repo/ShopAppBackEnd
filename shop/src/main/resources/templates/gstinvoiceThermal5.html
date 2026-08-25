@@ -258,7 +258,7 @@
                 </td>
                 <td class="col-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></td>
                 <td class="col-price" th:text="${amounts.grouped(product['rate'])}"></td>
-                <td class="col-amt" th:text="${amounts.grouped(product['totalAmount'])}"></td>
+                <td class="col-amt" th:text="${amounts.roundedTotal(product['totalAmount'])}"></td>
             </tr>
         </th:block>
         </tbody>
@@ -281,8 +281,8 @@
         </div>
 
         <div class="total-bar-black">
-            <span>TOTAL PAYABLE <small th:if="${!enableDecimalPlace}">(rounded off)</small></span>
-            <span th:text="'₹ ' + ${amounts.grouped(grandTotal)}"></span>
+            <span>TOTAL PAYABLE <small>(rounded off)</small></span>
+            <span th:text="'₹ ' + ${amounts.roundedTotal(grandTotal)}"></span>
         </div>
 
         <div class="text-center" style="margin-top: 5px; color: #d00; font-weight: bold;"

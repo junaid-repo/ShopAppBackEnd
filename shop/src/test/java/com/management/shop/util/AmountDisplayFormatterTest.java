@@ -41,4 +41,11 @@ class AmountDisplayFormatterTest {
         assertEquals("2.50", integerFormatter.percentage(new BigDecimal("2.5")));
         assertEquals("0", integerFormatter.percentage(BigDecimal.ZERO));
     }
+
+    @Test
+    void alwaysRoundsInvoiceTotalsEvenWhenDecimalPlacesAreEnabled() {
+        assertEquals("1,234", formatter.roundedTotal(new BigDecimal("1233.99")));
+        assertEquals("1,23,457", formatter.roundedTotal(new BigDecimal("123456.50")));
+        assertEquals("0", formatter.roundedTotal(new BigDecimal("0.49")));
+    }
 }

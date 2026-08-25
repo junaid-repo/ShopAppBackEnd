@@ -271,7 +271,7 @@ public class ShopService {
                     .isActive(Boolean.TRUE)
                     .state(request.getCustomerState())
                     .city(request.getCity())
-                    .phone(request.getPhone()).status("ACTIVE").totalSpent(existingCustomer.get(0).getTotalSpent()).build();
+                    .phone(request.getPhone()).status("ACTIVE").totalSpent(existingCustomer.get(0).getTotalSpent()).totalOrders(existingCustomer.get(0).getTotalOrders()).build();
 
             ent = shopRepo.save(customerEntity);
 
@@ -283,7 +283,7 @@ public class ShopService {
                     .gstNumber(request.getGstNumber())
                     .city(request.getCity())
                     .isActive(Boolean.TRUE)
-                    .phone(request.getPhone()).status("ACTIVE").totalSpent(0d).build();
+                    .phone(request.getPhone()).status("ACTIVE").totalOrders(0).totalSpent(0d).build();
 
             ent = shopRepo.save(customerEntity);
         }
@@ -362,7 +362,7 @@ public class ShopService {
                     .state(request.getCustomerState())
                     .gstNumber(request.getGstNumber())
                     .city(request.getCity())
-                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").isActive(Boolean.TRUE).totalSpent(existingCustomer.get(0).getTotalSpent()).build();
+                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").isActive(Boolean.TRUE).totalSpent(existingCustomer.get(0).getTotalSpent()).totalOrders(existingCustomer.get(0).getTotalOrders()).build();
 
             ent = shopRepo.save(customerEntity);
 
@@ -372,7 +372,7 @@ public class ShopService {
                     .state(request.getCustomerState())
                     .gstNumber(request.getGstNumber())
                     .city(request.getCity())
-                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").isActive(Boolean.TRUE).totalSpent(0d).build();
+                    .createdDate(LocalDateTime.now()).phone(request.getPhone()).status("ACTIVE").isActive(Boolean.TRUE).totalOrders(0).totalSpent(0d).build();
 
             ent = shopRepo.save(customerEntity);
         }
@@ -1203,7 +1203,8 @@ public class ShopService {
         try {
             shopRepo.updateCustomerSpentAmountAndOrdersCount(
                     request.getSelectedCustomer().getId(),
-                    MoneyUtils.asAmountDouble(bill.getTotalAmount()),
+                    MoneyUtils.asAmountDouble(bill.getTotalAmount()
+                    ), 1,
                     username);
         } catch (Exception e) {
             e.printStackTrace();

@@ -515,8 +515,8 @@
             <th:block th:if="${combineAddress}">
                 <h3>Payment Record</h3>
                 <div class="meta-item">
-                    <span class="label">Invoiced Amount</span>
-                    <span class="value" th:text="'₹' + ${amounts.grouped(grandTotal)}">₹94,240</span>
+                    <span class="label">Invoiced Amount <small>(rounded off)</small></span>
+                    <span class="value" th:text="'₹' + ${amounts.roundedTotal(grandTotal)}">₹94,240</span>
                 </div>
                 <th:block th:if="${showDueAmount}">
                     <div class="meta-item" th:if="${paidAmount != null and paidAmount > 0}">
@@ -564,7 +564,7 @@
                 <br th:if="${product['sgstAmount'] > 0}" />
                 <span th:if="${product['sgstAmount'] > 0}" th:text="'₹ ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
             </td>
-            <td class="col-total text-right" th:text="'₹ ' + ${amounts.grouped(product['totalAmount'])}">₹11,800</td>
+            <td class="col-total text-right" th:text="'₹ ' + ${amounts.roundedTotal(product['totalAmount'])}">₹11,800</td>
         </tr>
         </tbody>
     </table>
@@ -644,8 +644,8 @@
                 </tr>
 
                 <tr class="total-due">
-                    <td>Total(INR) <small th:if="${!enableDecimalPlace}">(rounded off)</small></td>
-                    <td th:text="'₹ ' + ${amounts.grouped(grandTotal)}">₹94,240</td>
+                    <td>Total(INR) <small>(rounded off)</small></td>
+                    <td th:text="'₹ ' + ${amounts.roundedTotal(grandTotal)}">₹94,240</td>
                 </tr>
                 </tbody>
             </table>
