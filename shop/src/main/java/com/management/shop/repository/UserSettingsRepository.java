@@ -12,8 +12,8 @@ public interface UserSettingsRepository extends JpaRepository<UserSettingsEntity
 
     @Modifying
     @Transactional
-    @Query(value="update user_settings_entity us set auto_print_invoice=?1, is_billing_page_default=?2, is_dark_mode_default=?3, updated_date=?5 where username=?4", nativeQuery = true)
-    void updateUiSettings(boolean autoPrintInvoice, boolean billingPageDefault, boolean darkModeDefault, String username, LocalDateTime updatedDate);
+    @Query(value="update user_settings_entity us set auto_print_invoice=?1, is_billing_page_default=?2, is_dark_mode_default=?3, theme_color=?4, updated_date=?6 where username=?5", nativeQuery = true)
+    void updateUiSettings(boolean autoPrintInvoice, boolean billingPageDefault, boolean darkModeDefault, String themeColor, String username, LocalDateTime updatedDate);
 
 
     @Modifying

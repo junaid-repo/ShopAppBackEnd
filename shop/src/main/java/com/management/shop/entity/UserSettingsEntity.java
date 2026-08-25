@@ -24,6 +24,8 @@ public class UserSettingsEntity {
     private Boolean isDarkModeDefault;
     private Boolean isBillingPageDefault;
     private Boolean autoPrintInvoice;
+    @Column(columnDefinition = "VARCHAR(16) DEFAULT 'green'")
+    private String themeColor;
     private Boolean lowStockAlert;
     private Boolean sendDailyReports;
     private Integer autoDeleteNotification;

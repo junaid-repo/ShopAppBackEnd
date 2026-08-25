@@ -14,5 +14,6 @@ public class UiSettings {
     private boolean billingPageDefault;
     private boolean autoPrintInvoice;
     private boolean autoSendInvoice;
+    private String themeColor;
 
 }

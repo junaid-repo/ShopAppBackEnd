@@ -58,9 +58,16 @@ public class SettingsService {
 
     public String saveUserUISettings(UiSettings request) {
 
-        settingsRepo.updateUiSettings(request.isAutoPrintInvoice(), request.isBillingPageDefault(), request.isDarkModeDefault(), extractUsername(), LocalDateTime.now());
+        settingsRepo.updateUiSettings(request.isAutoPrintInvoice(), request.isBillingPageDefault(), request.isDarkModeDefault(), normalizeThemeColor(request.getThemeColor()), extractUsername(), LocalDateTime.now());
 
         return "saved";
+    }
+
+    private String normalizeThemeColor(String themeColor) {
+        String normalizedThemeColor = themeColor == null ? "" : themeColor.trim().toLowerCase();
+        return normalizedThemeColor.equals("red") || normalizedThemeColor.equals("blue") || normalizedThemeColor.equals("green")
+                ? normalizedThemeColor
+                : "green";
     }
 
     public String saveUserSchedulerSettings(SchedulerSettings request) {
@@ -143,6 +150,7 @@ public class SettingsService {
                                 .autoPrintInvoice(userSettings != null && userSettings.getAutoPrintInvoice() != null ? userSettings.getAutoPrintInvoice() : false)
                                 .darkModeDefault(userSettings != null && userSettings.getIsDarkModeDefault() != null ? userSettings.getIsDarkModeDefault() : false)
                                 .billingPageDefault(userSettings != null && userSettings.getIsBillingPageDefault() != null ? userSettings.getIsBillingPageDefault() : false)
+                                .themeColor(userSettings != null ? normalizeThemeColor(userSettings.getThemeColor()) : "green")
                                 .build())
                 .schedulers(
                         SchedulerSettings.builder()
@@ -215,6 +223,7 @@ public class SettingsService {
                 .hideNoStockProducts(Boolean.TRUE)
                 .isDarkModeDefault(Boolean.FALSE)
                 .isBillingPageDefault(Boolean.FALSE)
+                .themeColor("green")
                 .lowStockAlert(Boolean.TRUE)
                 .sendDailyReports(Boolean.FALSE)
                 .serialNumberPattern("CB")
