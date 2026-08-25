@@ -104,6 +104,40 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
             Pageable pageable
     );
 
+    @Query(
+            value = "SELECT b.* FROM billing_details b " +
+                    "LEFT JOIN shop_customer s ON b.customer_id = s.id " +
+                    "WHERE b.user_id = :userId " +
+                    "AND :priority IN ('gst', 'due') " +
+                    "AND (:searchTerm = '' " +
+                    "  OR LOWER(b.invoice_number) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+                    "  OR LOWER(s.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+                    "  OR CAST(b.total_amount AS CHAR) LIKE CONCAT('%', :searchTerm, '%')) " +
+                    "ORDER BY " +
+                    "CASE WHEN :priority = 'gst' THEN " +
+                    "  CASE WHEN b.gstin IS NOT NULL AND TRIM(b.gstin) <> '' THEN 0 ELSE 1 END " +
+                    "ELSE 0 END ASC, " +
+                    "CASE WHEN :priority = 'due' THEN " +
+                    "  CASE WHEN COALESCE(b.total_amount, 0) - COALESCE(b.paying_amount, 0) > 0 THEN 0 ELSE 1 END " +
+                    "ELSE 0 END ASC, " +
+                    "b.created_date DESC, b.id DESC",
+            countQuery = "SELECT COUNT(*) FROM billing_details b " +
+                    "LEFT JOIN shop_customer s ON b.customer_id = s.id " +
+                    "WHERE b.user_id = :userId " +
+                    "AND :priority IN ('gst', 'due') " +
+                    "AND (:searchTerm = '' " +
+                    "  OR LOWER(b.invoice_number) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+                    "  OR LOWER(s.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+                    "  OR CAST(b.total_amount AS CHAR) LIKE CONCAT('%', :searchTerm, '%'))",
+            nativeQuery = true
+    )
+    Page<BillingEntity> findSalesWithPriority(
+            @Param("userId") String userId,
+            @Param("searchTerm") String searchTerm,
+            @Param("priority") String priority,
+            Pageable pageable
+    );
+
     @Query(value = "SELECT DATE_FORMAT(bp.created_date, '%a') AS day, " +
             "SUM(ps.quantity) AS totalStocksSold " +
             "FROM billing_payments bp " +

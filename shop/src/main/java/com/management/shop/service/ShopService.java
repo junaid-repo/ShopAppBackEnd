@@ -1319,44 +1319,40 @@ public class ShopService {
     @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
     public Page<SalesResponseDTO> getAllSales(int page, int size, String sort, String dir, String searchTerm) {
         String username = extractUsername();
+        boolean isGstPrioritySort = "gstBilling".equalsIgnoreCase(sort);
+        boolean isDuePrioritySort = "dueAmount".equalsIgnoreCase(sort);
+        Pageable pageable;
+        Page<BillingEntity> billingPage;
 
-        String sortField = sort;
-
-        // Map API field name to DB field
-        if ("date".equalsIgnoreCase(sortField)) {
-            sortField = "created_date";
-        }
-        if ("id".equalsIgnoreCase(sortField)) {
-            sortField = "invoice_number";
-        }
-        if ("total".equalsIgnoreCase(sortField)) {
-            sortField = "total_amount";
-        }
-        if ("customer".equalsIgnoreCase(sortField)) {
-            sortField = "customer_id";
-        }
-        if ("paid".equalsIgnoreCase(sortField)) {
-            sortField = "paying_amount";
-        }
-
-        Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
-
-        Sort sortOrder = Sort.by(direction, sortField);
-
-        // Follow same paging convention as getAllProducts (1-based page param)
-        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size, sortOrder);
-
-        Page<BillingEntity> billingPage = null;
-
-        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            // Use a custom query to search by invoice number or customer name
-            try {
-                billingPage = billRepo.findByUserIdAndSearchNative(username, searchTerm.trim(), pageable);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (isGstPrioritySort || isDuePrioritySort) {
+            pageable = PageRequest.of(Math.max(0, page - 1), size);
+            billingPage = billRepo.findSalesWithPriority(
+                    username,
+                    searchTerm == null ? "" : searchTerm.trim(),
+                    isGstPrioritySort ? "gst" : "due",
+                    pageable
+            );
         } else {
-            billingPage = billRepo.findAllByUserId(username, pageable);
+            String sortField = sort;
+
+            // Map API field name to DB field
+            if ("date".equalsIgnoreCase(sortField)) sortField = "created_date";
+            if ("id".equalsIgnoreCase(sortField)) sortField = "invoice_number";
+            if ("total".equalsIgnoreCase(sortField)) sortField = "total_amount";
+            if ("customer".equalsIgnoreCase(sortField)) sortField = "customer_id";
+            if ("paid".equalsIgnoreCase(sortField)) sortField = "paying_amount";
+
+            Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+            Sort sortOrder = Sort.by(direction, sortField);
+
+            // Follow same paging convention as getAllProducts (1-based page param)
+            pageable = PageRequest.of(Math.max(0, page - 1), size, sortOrder);
+
+            if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+                billingPage = billRepo.findByUserIdAndSearchNative(username, searchTerm.trim(), pageable);
+            } else {
+                billingPage = billRepo.findAllByUserId(username, pageable);
+            }
         }
 
         List<SalesResponseDTO> dtoList = billingPage.getContent().stream()
