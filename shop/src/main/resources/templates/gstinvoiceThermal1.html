@@ -298,6 +298,8 @@
                               th:text="'CGST: ' + ${amounts.grouped(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
                         <span class="sub-desc" th:if="${product['sgstAmount'] != null and product['sgstAmount'] > 0}"
                               th:text="'SGST: ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
+                        <span class="sub-desc" th:if="${product['zeroGst']}"
+                              th:text="'GST: ' + ${amounts.grouped(product['taxAmount'])} + ' (' + ${amounts.percentage(product['taxPercentage'])} + '%)'"></span>
                     </div>
                 </td>
 

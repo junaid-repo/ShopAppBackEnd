@@ -84,6 +84,24 @@ class InvoiceTemplateRenderingTest {
     }
 
     @Test
+    void rendersZeroGstForEveryProductInvoiceTemplate() {
+        Context context = invoiceContext();
+        Map<String, Object> product = product();
+        product.put("taxAmount", BigDecimal.ZERO);
+        product.put("taxPercentage", BigDecimal.ZERO);
+        product.put("igstAmount", BigDecimal.ZERO);
+        product.put("cgstAmount", BigDecimal.ZERO);
+        product.put("sgstAmount", BigDecimal.ZERO);
+        product.put("zeroGst", true);
+        context.setVariable("products", List.of(product));
+
+        for (String template : GST_TEMPLATES) {
+            String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
+            assertTrue(html.contains("0 (0%)"), template);
+        }
+    }
+
+    @Test
     void rendersReminderAndSubscriptionTemplatesWithDecimalAmounts() {
         Context context = invoiceContext();
         context.setVariable("totalAmount", new BigDecimal("12.35"));
@@ -161,6 +179,8 @@ class InvoiceTemplateRenderingTest {
         product.put("quantity", 1);
         product.put("rate", new BigDecimal("12.35"));
         product.put("taxAmount", new BigDecimal("2.35"));
+        product.put("taxPercentage", new BigDecimal("18.00"));
+        product.put("zeroGst", false);
         product.put("totalAmount", new BigDecimal("12.35"));
         product.put("discountPercentage", BigDecimal.ZERO);
         product.put("igstAmount", BigDecimal.ZERO);

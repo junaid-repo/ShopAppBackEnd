@@ -563,6 +563,7 @@
                 <span th:if="${product['cgstAmount'] > 0}" th:text="'₹ ' + ${amounts.grouped(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
                 <br th:if="${product['sgstAmount'] > 0}" />
                 <span th:if="${product['sgstAmount'] > 0}" th:text="'₹ ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
+                <span th:if="${product['zeroGst']}" th:text="'₹ ' + ${amounts.grouped(product['taxAmount'])} + ' (' + ${amounts.percentage(product['taxPercentage'])} + '%)'"></span>
             </td>
             <td class="col-total text-right" th:text="'₹ ' + ${amounts.roundedTotal(product['totalAmount'])}">₹11,800</td>
         </tr>

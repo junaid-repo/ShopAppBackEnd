@@ -108,7 +108,10 @@ public class PDFGSTInvoiceUtil {
 
             // Rounding monetary amounts
             m.put("rate", getRoundedAmount(p, "getRate", "getPrice"));
-            m.put("taxAmount", getRoundedAmount(p, "getTaxAmount", "getTax"));
+            BigDecimal taxAmount = getRoundedAmount(p, "getTaxAmount", "getTax");
+            m.put("taxAmount", taxAmount);
+            m.put("taxPercentage", MoneyUtils.percentage(p.getTaxPercentage()));
+            m.put("zeroGst", taxAmount.signum() == 0);
             m.put("totalAmount", getRoundedAmount(p, "getTotalAmount", "getAmount", "getTotal"));
             m.put("igstAmount", normalizeAmount(p.getIgst()));
             m.put("cgstAmount", normalizeAmount(p.getCgst()));
