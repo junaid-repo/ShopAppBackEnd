@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
@@ -927,6 +928,8 @@ public class ShopService {
         BigDecimal payingAmount = MoneyUtils.amount(request.getPayingAmount());
         BigDecimal remainingAmount = MoneyUtils.amount(cartResult.totalAmount().subtract(payingAmount));
 
+        Double discountPercentage=calculateDiscountPercentage(cartResult.totalAmount(), cartResult.discountAmount());
+
         BillingEntity billingEntity = BillingEntity.builder()
                 .customerId(request.getSelectedCustomer().getId())
                 .unitsSold(unitsSold)
@@ -937,7 +940,7 @@ public class ShopService {
                 .gstin(request.getGstin())
                 .dueReminderCount(0)
                 .remainingAmount(MoneyUtils.asAmountDouble(remainingAmount))
-                .discountPercent(MoneyUtils.asPercentageDouble(request.getDiscountPercentage()))
+                .discountPercent(MoneyUtils.asPercentageDouble(discountPercentage))
                 .discountAmount(MoneyUtils.asAmountDouble(cartResult.discountAmount()))
                 .cgstAmount(MoneyUtils.asAmountDouble(cartResult.cgstAmount()))
                 .sgstAmount(MoneyUtils.asAmountDouble(cartResult.sgstAmount()))
@@ -950,6 +953,22 @@ public class ShopService {
                 .build();
 
         return billRepo.save(billingEntity);
+    }
+
+    private Double calculateDiscountPercentage(BigDecimal payingAmount, BigDecimal discountAmount) {
+        if (payingAmount == null || discountAmount == null) {
+            return 0.0;
+        }
+
+        BigDecimal total = payingAmount.add(discountAmount);
+
+        if (total.compareTo(BigDecimal.ZERO) == 0) {
+            return 0.0;
+        }
+
+         return discountAmount.multiply(new BigDecimal("100"))
+                .divide(total, 2, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     private void assignInvoiceNumber(BillingEntity billResponse, UserSettingsEntity userSettings) {
