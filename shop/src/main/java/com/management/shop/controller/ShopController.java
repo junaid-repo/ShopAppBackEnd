@@ -39,6 +39,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.management.shop.service.ShopService;
+import com.management.shop.service.InvoiceDownloadService;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @Slf4j
@@ -46,6 +48,9 @@ public class ShopController {
 
     @Autowired
     ShopService serv;
+
+    @Autowired
+    InvoiceDownloadService invoiceDownloadService;
 
     @Autowired
     private Environment environment;
@@ -1064,6 +1069,59 @@ public class ShopController {
         }
     }
 
+    @GetMapping(value = "api/shop/invoice/download-qr/{orderRef}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getInvoiceDownloadQr(@PathVariable String orderRef) {
+        try {
+            String requestBaseUrl = ServletUriComponentsBuilder
+                    .fromCurrentContextPath()
+                    .build()
+                    .toUriString();
+
+            byte[] imageBytes = invoiceDownloadService.createInvoiceDownloadQr(
+                    orderRef,
+                    serv.extractUsername(),
+                    requestBaseUrl
+            );
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_PNG)
+                    .contentLength(imageBytes.length)
+                    .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                    .body(imageBytes);
+        } catch (IllegalArgumentException exception) {
+            log.warn("Invoice download QR is unavailable for order {}: {}", orderRef, exception.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception exception) {
+            log.error("Failed to generate invoice download QR for order {}", orderRef, exception);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping(value = "api/public/invoices/{token}/download", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> downloadInvoiceWithToken(@PathVariable String token) {
+        try {
+            InvoiceDownloadService.InvoiceDownloadAccess access = invoiceDownloadService.validateToken(token);
+            byte[] invoiceImage = serv.generateGSTInvoicePdf(access.invoiceNumber(), access.userId());
+            byte[] invoicePdf = invoiceDownloadService.wrapInvoiceImageAsPdf(invoiceImage);
+            String safeInvoiceNumber = access.invoiceNumber().replaceAll("[^a-zA-Z0-9._-]", "_");
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentLength(invoicePdf.length)
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"Invoice_" + safeInvoiceNumber + ".pdf\"")
+                    .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate")
+                    .header("Pragma", "no-cache")
+                    .body(invoicePdf);
+        } catch (IllegalArgumentException exception) {
+            log.warn("Rejected invoice download token: {}", exception.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception exception) {
+            log.error("Failed to prepare tokenized invoice download", exception);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @GetMapping("api/shop/payment/get-reminderList")
     @PreAuthorize("hasRole('PREMIUM')")
     ResponseEntity<List<ReminderCounter>> getPaymentReminderList(@RequestParam String orderId) {
@@ -1291,4 +1349,3 @@ public class ShopController {
 
 
 }
-

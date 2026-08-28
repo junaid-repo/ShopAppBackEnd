@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/internal/create/**").permitAll()
+                        .requestMatchers("/api/public/invoices/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .requestMatchers("/ping").permitAll()
                         .requestMatchers("/ws/**").permitAll()
