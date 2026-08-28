@@ -26,8 +26,8 @@ public interface UserSettingsRepository extends JpaRepository<UserSettingsEntity
 
     @Modifying
     @Transactional
-    @Query(value="update user_settings_entity us set auto_send_invoice=?1, allow_no_stock_billing=?2, hide_no_stock_products=?3, serial_number_pattern=?4, updated_date=?6, show_partial_payment_option=?7, show_remarks_options=?8, show_anonymous_customer_option=?9, show_bill_to_gstin_option=?10 where username=?5", nativeQuery = true)
-    void updateBillingSettings(Boolean autoSendInvoice, Boolean allowNoStockBilling, Boolean hideNoStockProducts, String serialNumberPattern, String s, LocalDateTime now,  Boolean doPartialBilling, Boolean showRemarksOption, Boolean showAnonymousCustomerOption, Boolean showBillToGstinOption);
+    @Query(value="update user_settings_entity us set auto_send_invoice=?1, allow_no_stock_billing=?2, hide_no_stock_products=?3, serial_number_pattern=?4, updated_date=?6, show_partial_payment_option=?7, show_remarks_options=?8, show_anonymous_customer_option=?9, show_bill_to_gstin_option=?10, use_payment_qr_code=COALESCE(?11, use_payment_qr_code, FALSE) where username=?5", nativeQuery = true)
+    void updateBillingSettings(Boolean autoSendInvoice, Boolean allowNoStockBilling, Boolean hideNoStockProducts, String serialNumberPattern, String s, LocalDateTime now, Boolean doPartialBilling, Boolean showRemarksOption, Boolean showAnonymousCustomerOption, Boolean showBillToGstinOption, Boolean usePaymentQrCode);
     @Modifying
     @Transactional
     @Query(value="update user_settings_entity us set add_due_date=?1, combine_addresses=?2, show_payment_status=?3, remove_terms=?4, show_customer_gstin=?5, updated_date=?7, show_total_discount=?8, show_item_discount=?9, show_shop_pan=?10, show_support_info=?11, show_rate_column=?12, show_hsn_column=?13, show_invoice_barcode=?14, show_gst_breakdown=?15, show_shop_signature=?16, show_bank_details=?17, show_upi_id=?18, showqrcode=?19, show_product_gst=?20, enable_decimal_place=COALESCE(?21, enable_decimal_place, TRUE) where username=?6", nativeQuery = true)

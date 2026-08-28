@@ -19,6 +19,7 @@ public class BillingSettings {
     private Boolean showRemarksOnSummarySide;
     private Boolean showAnonymousCustomerOption;
     private Boolean showBillToGstinOption;
+    private Boolean usePaymentQrCode;
 
 
 }

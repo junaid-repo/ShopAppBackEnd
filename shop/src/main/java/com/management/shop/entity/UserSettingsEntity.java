@@ -41,6 +41,8 @@ public class UserSettingsEntity {
     private Boolean showRemarksOptions;
     private Boolean showAnonymousCustomerOption;
     private Boolean showBillToGstinOption;
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean usePaymentQrCode;
 
     private Boolean addDueDate;
     private Boolean combineAddresses;

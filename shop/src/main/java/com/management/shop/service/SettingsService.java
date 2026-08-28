@@ -175,6 +175,7 @@ public class SettingsService {
                         .showAnonymousCustomerOption(userSettings != null && userSettings.getShowAnonymousCustomerOption() != null ? userSettings.getShowAnonymousCustomerOption() : false)
                         .serialNumberPattern(userSettings != null && userSettings.getSerialNumberPattern() != null ? userSettings.getSerialNumberPattern() : "")
                         .showBillToGstinOption(userSettings != null && userSettings.getShowBillToGstinOption() != null ? userSettings.getShowBillToGstinOption() : false)
+                        .usePaymentQrCode(userSettings != null && Boolean.TRUE.equals(userSettings.getUsePaymentQrCode()))
                         .build())
                 .invoice(InvoiceSettings.builder()
                         .addDueDate(userSettings != null && userSettings.getAddDueDate() != null ? userSettings.getAddDueDate() : false)
@@ -246,6 +247,7 @@ public class SettingsService {
                 .enableDecimalPlace(Boolean.TRUE)
                 .showSupportInfo(Boolean.FALSE)
                 .showBillToGstinOption(Boolean.FALSE)
+                .usePaymentQrCode(Boolean.FALSE)
                 .username(username)
                 .updatedBy(username)
                 .updatedDate(LocalDateTime.now())
@@ -265,9 +267,10 @@ public class SettingsService {
         Boolean showRemarksOption = (Boolean) request.get("showRemarksOnSummarySide");
         Boolean showAnonymousCustomer = (Boolean) request.get("showAnonymousCustomerOption");
         Boolean showBillToGstinOption = (Boolean) request.get("showBillToGstinOption");
+        Boolean usePaymentQrCode = (Boolean) request.get("usePaymentQrCode");
 
 
-        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts, serialNumberPattern, extractUsername(), LocalDateTime.now(), doPartialBilling, showRemarksOption, showAnonymousCustomer, showBillToGstinOption);
+        settingsRepo.updateBillingSettings(autoSendInvoice, allowNoStockBilling, hideNoStockProducts, serialNumberPattern, extractUsername(), LocalDateTime.now(), doPartialBilling, showRemarksOption, showAnonymousCustomer, showBillToGstinOption, usePaymentQrCode);
 
 
         return "saved";
