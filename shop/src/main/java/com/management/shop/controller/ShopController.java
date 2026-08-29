@@ -251,6 +251,41 @@ public class ShopController {
 
     }
 
+    @PutMapping(value = "api/shop/product/{productId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    ResponseEntity<?> updateProductImage(
+            @PathVariable Integer productId,
+            @RequestPart("image") MultipartFile image) {
+        try {
+            ProductImageEntity savedImage = serv.saveProductImage(productId, image);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "size", savedImage.getImageData().length,
+                    "contentType", savedImage.getContentType()
+            ));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", exception.getMessage()));
+        } catch (IOException exception) {
+            return ResponseEntity.internalServerError().body(Map.of("success", false, "message", "Unable to save product image"));
+        }
+    }
+
+    @GetMapping("api/shop/product/{productId}/image")
+    ResponseEntity<byte[]> getProductImage(@PathVariable Integer productId) {
+        return serv.getProductImage(productId)
+                .map(productImage -> ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(productImage.getContentType()))
+                        .contentLength(productImage.getImageData().length)
+                        .header(HttpHeaders.CACHE_CONTROL, "private, max-age=300")
+                        .body(productImage.getImageData()))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("api/shop/product/{productId}/image")
+    ResponseEntity<Void> deleteProductImage(@PathVariable Integer productId) {
+        serv.deleteProductImage(productId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("api/shop/get/productsList")
     ResponseEntity<List<ProductEntity>> getProductsList() {
 

@@ -33,6 +33,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.*;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -69,6 +70,9 @@ public class ShopService {
 
     @Autowired
     private ProductRepository prodRepo;
+
+    @Autowired
+    private ProductImageRepository productImageRepo;
 
     @Autowired
     private BillingRepository billRepo;
@@ -457,6 +461,8 @@ public class ShopService {
         ProductEntity ent = prodRepo.save(productEntity);
         if (ent.getId() != null) {
 
+            request.setSelectedProductId(ent.getId());
+
             try {
                 salesCacheService.evictUserProducts(extractUsername());
 
@@ -648,6 +654,42 @@ public class ShopService {
     public List<ProductEntity> getAllProducts() {
 
         return prodRepo.findAllActiveProducts(Boolean.TRUE, extractUsername());
+    }
+
+    public ProductImageEntity saveProductImage(Integer productId, MultipartFile image) throws IOException {
+        final long maxProductImageBytes = 5L * 1024L;
+        String username = extractUsername();
+        ProductEntity product = prodRepo.findByIdAndUserId(productId, username);
+
+        if (product == null || !Boolean.TRUE.equals(product.getActive())) {
+            throw new IllegalArgumentException("Product not found");
+        }
+        if (image == null || image.isEmpty()) {
+            throw new IllegalArgumentException("Choose a product image");
+        }
+        if (image.getSize() > maxProductImageBytes) {
+            throw new IllegalArgumentException("Product image must be 5 KB or smaller");
+        }
+
+        String contentType = Optional.ofNullable(image.getContentType()).orElse("").toLowerCase(Locale.ROOT);
+        if (!Set.of(MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE, "image/webp").contains(contentType)) {
+            throw new IllegalArgumentException("Only JPEG, PNG or WebP product images are supported");
+        }
+
+        ProductImageEntity productImage = productImageRepo.findByProductIdAndUserId(productId, username)
+                .orElseGet(() -> ProductImageEntity.builder().productId(productId).userId(username).build());
+        productImage.setContentType(contentType);
+        productImage.setImageData(image.getBytes());
+        return productImageRepo.save(productImage);
+    }
+
+    public Optional<ProductImageEntity> getProductImage(Integer productId) {
+        return productImageRepo.findByProductIdAndUserId(productId, extractUsername());
+    }
+
+    @Transactional
+    public void deleteProductImage(Integer productId) {
+        productImageRepo.deleteByProductIdAndUserId(productId, extractUsername());
     }
 
     public byte[] exportAllProductAsCSV() {
@@ -2306,6 +2348,7 @@ public class ShopService {
         log.info("endtered deleteProduct with productId " + id);
 
         prodRepo.deActivateProduct(id, Boolean.FALSE, extractUsername());
+        productImageRepo.deleteByProductIdAndUserId(id, extractUsername());
 
         try {
             salesCacheService.evictUserProducts(extractUsername());
