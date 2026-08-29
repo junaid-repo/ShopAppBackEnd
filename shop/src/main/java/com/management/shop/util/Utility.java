@@ -29,6 +29,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 @Slf4j
@@ -96,6 +97,14 @@ public class Utility {
         return value == null ? "" : value;
     }
 
+    private double toZero(Double value) {
+        return value == null ? 0d : value;
+    }
+
+    private boolean valueOrDefault(Boolean value, boolean defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
     public String extractUsername(String orderReferenceNumber) {
         String username = "";
         try {
@@ -119,34 +128,45 @@ public class Utility {
 
     public InvoiceData getFullInvoiceDetails(String username, String orderId) {
         log.info("Entered getFullInvoiceDetails with username: " + username + " and orderId: " + orderId);
-        UpdateUserDTO userProfile = getUserProfile(username);
-        InvoiceDetails order = getOrderDetails(orderId);
+        String safeUsername = toEmpty(username);
+        UpdateUserDTO userProfile = safeUsername.isBlank() ? null : getUserProfile(safeUsername);
+        if (userProfile == null) {
+            userProfile = UpdateUserDTO.builder().build();
+        }
+
+        InvoiceDetails order = orderId == null || orderId.isBlank() ? null : getOrderDetails(orderId);
+        if (order == null) {
+            order = InvoiceDetails.builder().items(Collections.emptyList()).build();
+        }
 
         // Safely parse the date, defaulting to now() if invalid/null
         LocalDate orderedDate = LocalDate.now();
-        if (order.getOrderedDate() != null && !order.getOrderedDate().isEmpty()) {
+        if (order.getOrderedDate() != null && !order.getOrderedDate().isBlank()) {
             try {
                 orderedDate = LocalDate.parse(order.getOrderedDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             } catch (Exception e) {
-                // Log error if needed, but proceed with default date
+                log.warn("Invalid ordered date '{}' for order '{}'; using the current date",
+                        order.getOrderedDate(), orderId);
             }
         }
         String formattedDate = orderedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
 
         byte[] shopLogoBytes = null;
-        try {
-            shopLogoBytes = getShopLogoOracle(username);
-        } catch (Exception e) {
-            log.info(e.getMessage());
-            shopLogoBytes = null;
+        if (!safeUsername.isBlank()) {
+            try {
+                shopLogoBytes = getShopLogoOracle(safeUsername);
+            } catch (Exception e) {
+                log.warn("Unable to fetch the shop logo for user '{}': {}", safeUsername, e.getMessage());
+            }
         }
 
         byte[] shopSignBytes = null;
-        try {
-            shopSignBytes = getShopSignature(username);
-        } catch (Exception e) {
-            log.info(e.getMessage());
-            shopSignBytes = null;
+        if (!safeUsername.isBlank()) {
+            try {
+                shopSignBytes = getShopSignature(safeUsername);
+            } catch (Exception e) {
+                log.warn("Unable to fetch the shop signature for user '{}': {}", safeUsername, e.getMessage());
+            }
         }
 
         List<String> terms = new ArrayList<>();
@@ -173,19 +193,19 @@ public class Utility {
 
                 OrderItemInvoice line = OrderItemInvoice.builder()
                         .productName(toEmpty(it.getProductName()))
-                        .hsnCode(it.getHsn()) // Assuming HSN is not available
+                        .hsnCode(toEmpty(it.getHsn()))
                         .quantity(qty)
                         .rate(rateBeforeTaxPerUnit)
                         .taxAmount(it.getCgst() + it.getIgst() + it.getSgst())
                         .cgst(it.getCgst())
                         .igst(it.getIgst())
                         .sgst(it.getSgst())
-                        .cgstPercentage(it.getCgstPercentage())
-                        .igstPercentage(it.getIgstPercentage())
-                        .sgstPercentage(it.getSgstPercentage())
+                        .cgstPercentage(toZero(it.getCgstPercentage()))
+                        .igstPercentage(toZero(it.getIgstPercentage()))
+                        .sgstPercentage(toZero(it.getSgstPercentage()))
                         .taxPercentage(taxPercentage)
-                        .discountPercentage(it.getDiscount())
-                        .description(it.getDetails())
+                        .discountPercentage(toZero(it.getDiscount()))
+                        .description(toEmpty(it.getDetails()))
                         .totalAmount(totalForLine)
                         .build();
                 products.add(line);
@@ -193,14 +213,17 @@ public class Utility {
         }
 
         List<Map<String, Object>> gstSummary = new ArrayList<>();
-        List<BillingGstEntity> billGstList = billGstRepo.findByUserIdAndOrderId(username, orderId);
+        List<BillingGstEntity> billGstList = Collections.emptyList();
+        if (!safeUsername.isBlank() && orderId != null && !orderId.isBlank()) {
+            billGstList = billGstRepo.findByUserIdAndOrderId(safeUsername, orderId);
+        }
         if (billGstList != null) {
             billGstList.forEach(gstEntry -> {
                 if (gstEntry != null) {
                     Map<String, Object> map = new HashMap<>();
                     map.put("type", toEmpty(gstEntry.getGstType()));
-                    map.put("percentage", gstEntry.getGstPercentage());
-                    map.put("amount", gstEntry.getGstAmount());
+                    map.put("percentage", toZero(gstEntry.getGstPercentage()));
+                    map.put("amount", toZero(gstEntry.getGstAmount()));
                     gstSummary.add(map);
                 }
             });
@@ -236,65 +259,70 @@ public class Utility {
         Boolean showProductGst=false;
         Boolean enableDecimalPlace=true;
 
-        try {
-            UserSettingsEntity userSettingsEntity= userSettingsRepo.findByUsername(extractUsername(orderId));
-            printDueAmount=   userSettingsEntity.getShowPaymentStatus();
-            printCustomerGst=   userSettingsEntity.getShowCustomerGstin();
-            printShopPan=userSettingsEntity.getShowShopPan();
-            combineCustomerAddresses=userSettingsEntity.getCombineAddresses(); //
-            itemDiscount=userSettingsEntity.getShowItemDiscount();
-            showHsnColumn=userSettingsEntity.getShowHsnColumn();
-            showRateColumn=userSettingsEntity.getShowRateColumn();
-            showTotalDiscount=userSettingsEntity.getShowTotalDiscount();
-            addDueDate=userSettingsEntity.getAddDueDate();
-            showSupportInfo=userSettingsEntity.getShowSupportInfo();
-            removeTerms=userSettingsEntity.getRemoveTerms();
-            showInvoiceBarcode=userSettingsEntity.getShowInvoiceBarcode();
-            showGstBreakdown=userSettingsEntity.getShowGstBreakdown();
-            showShopSignature=userSettingsEntity.getShowShopSignature();
-            showBankDetails=userSettingsEntity.getShowBankDetails();
-            showUpiId=userSettingsEntity.getShowUpiId();
-            showQRCode=userSettingsEntity.getShowQRCode();
-            showProductGst=userSettingsEntity.getShowProductGst();
-            enableDecimalPlace=!Boolean.FALSE.equals(userSettingsEntity.getEnableDecimalPlace());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        UserSettingsEntity userSettingsEntity = safeUsername.isBlank()
+                ? null
+                : userSettingsRepo.findByUsername(safeUsername);
+        if (userSettingsEntity != null) {
+            printDueAmount = valueOrDefault(userSettingsEntity.getShowPaymentStatus(), printDueAmount);
+            printCustomerGst = valueOrDefault(userSettingsEntity.getShowCustomerGstin(), printCustomerGst);
+            printShopPan = valueOrDefault(userSettingsEntity.getShowShopPan(), printShopPan);
+            combineCustomerAddresses = valueOrDefault(userSettingsEntity.getCombineAddresses(), combineCustomerAddresses);
+            itemDiscount = valueOrDefault(userSettingsEntity.getShowItemDiscount(), itemDiscount);
+            showHsnColumn = valueOrDefault(userSettingsEntity.getShowHsnColumn(), showHsnColumn);
+            showRateColumn = valueOrDefault(userSettingsEntity.getShowRateColumn(), showRateColumn);
+            showTotalDiscount = valueOrDefault(userSettingsEntity.getShowTotalDiscount(), showTotalDiscount);
+            addDueDate = valueOrDefault(userSettingsEntity.getAddDueDate(), addDueDate);
+            showSupportInfo = valueOrDefault(userSettingsEntity.getShowSupportInfo(), showSupportInfo);
+            removeTerms = valueOrDefault(userSettingsEntity.getRemoveTerms(), removeTerms);
+            showInvoiceBarcode = valueOrDefault(userSettingsEntity.getShowInvoiceBarcode(), showInvoiceBarcode);
+            showGstBreakdown = valueOrDefault(userSettingsEntity.getShowGstBreakdown(), showGstBreakdown);
+            showShopSignature = valueOrDefault(userSettingsEntity.getShowShopSignature(), showShopSignature);
+            showBankDetails = valueOrDefault(userSettingsEntity.getShowBankDetails(), showBankDetails);
+            showUpiId = valueOrDefault(userSettingsEntity.getShowUpiId(), showUpiId);
+            showQRCode = valueOrDefault(userSettingsEntity.getShowQRCode(), showQRCode);
+            showProductGst = valueOrDefault(userSettingsEntity.getShowProductGst(), showProductGst);
+            enableDecimalPlace = valueOrDefault(userSettingsEntity.getEnableDecimalPlace(), enableDecimalPlace);
         }
 
+        CustomerEntity custEntity = null;
+        if (order.getCustomerId() != null && !safeUsername.isBlank()) {
+            custEntity = custRepo.findByIdAndUserId(order.getCustomerId(), safeUsername);
+        }
+        String customerCity = custEntity == null ? "" : toEmpty(custEntity.getCity()).trim();
+        String customerState = custEntity == null ? "" : toEmpty(custEntity.getState()).trim();
+        String customerAddress = Stream.of(customerCity, customerState)
+                .filter(value -> !value.isEmpty())
+                .collect(Collectors.joining(", "));
 
+        String shopName = toEmpty(userProfile.getShopName()).trim();
+        String shopLogoText = Arrays.stream(shopName.split("\\s+"))
+                .filter(value -> !value.isEmpty())
+                .map(value -> value.substring(0, 1).toUpperCase())
+                .collect(Collectors.joining());
 
-
-        CustomerEntity custEntity = custRepo.findByIdAndUserId(order.getCustomerId(), username);
-
-        // Using optional to avoid NullPointerException if userProfile is null
         return InvoiceData.builder()
-                .shopName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
-                .shopSlogan(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopSlogan())).orElse(""))
+                .shopName(shopName)
+                .shopSlogan(toEmpty(userProfile.getShopSlogan()))
                 // Assuming not implemented
-                .shopLogoText(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopName())).orElse(""))
-                .shopAddress(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopLocation())).orElse(""))
-                .shopEmail(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopEmail())).orElse(""))
-                .shopPhone(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getShopPhone())).orElse(""))
-                .gstNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getGstin())).orElse(""))
-                .panNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getPan())).orElse(""))
+                .shopAddress(toEmpty(userProfile.getShopLocation()))
+                .shopEmail(toEmpty(userProfile.getShopEmail()))
+                .shopPhone(toEmpty(userProfile.getShopPhone()))
+                .gstNumber(toEmpty(userProfile.getGstin()))
+                .panNumber(toEmpty(userProfile.getPan()))
                 .shopLogoBytes(shopLogoBytes)
                 .shopSignatureBytes(shopSignBytes)
-                .shopLogoText(userProfile.getShopName() == null ? "" :
-                        Arrays.stream(userProfile.getShopName().trim().split("\\s+"))
-                                .filter(s -> !s.isEmpty())
-                                .map(s -> s.substring(0, 1).toUpperCase())
-                                .collect(Collectors.joining()))
+                .shopLogoText(shopLogoText)
                 .invoiceId(toEmpty(order.getInvoiceId()))
                 .orderedDate(formattedDate)
                 .dueDate(formattedDate)
 
                 .customerName(toEmpty(order.getCustomerName()))
 
-                .customerBillingAddress(custEntity.getCity() + ", " + custEntity.getState())
-                .customerShippingAddress(custEntity.getCity() + ", " + custEntity.getState())
+                .customerBillingAddress(customerAddress)
+                .customerShippingAddress(customerAddress)
                 .customerPhone(toEmpty(order.getCustomerPhone()))
                 .customerGst(toEmpty(order.getCustomerGstNumber()))
-                .customerState(custEntity.getCity() + ", " + custEntity.getState())
+                .customerState(customerAddress)
                 .products(products)
 
                 .receivedAmount(order.isPaid() ? order.getTotalAmount() : 0d)
@@ -306,11 +334,11 @@ public class Utility {
                 .discountAmount(order.getDiscountAmount())
                 .gstSummary(gstSummary)
 
-                .bankAccountName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankHolder())).orElse(""))
-                .bankAccountNumber(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankAccount())).orElse(""))
-                .bankIfscCode(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankIfsc())).orElse(""))
-                .bankName(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getBankName())).orElse(""))
-                .upiId(Optional.ofNullable(userProfile).map(p -> toEmpty(p.getUpi())).orElse(""))
+                .bankAccountName(toEmpty(userProfile.getBankHolder()))
+                .bankAccountNumber(toEmpty(userProfile.getBankAccount()))
+                .bankIfscCode(toEmpty(userProfile.getBankIfsc()))
+                .bankName(toEmpty(userProfile.getBankName()))
+                .upiId(toEmpty(userProfile.getUpi()))
 
                 .termsAndConditions(terms)
 
