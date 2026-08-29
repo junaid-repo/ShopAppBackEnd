@@ -64,6 +64,9 @@ public class ShopController {
     @Value("${razorpay.key.id}")
     private String keyId;
 
+    @Value("${auth.cookie.name:jwt}")
+    private String authCookieName;
+
 
     @PostMapping("api/shop/user/updatepassword")
     public String addUpdatePassword(@RequestBody UserInfo userInfo) {
@@ -680,7 +683,7 @@ public class ShopController {
 
         Map<String, Object> responseMap = new HashMap<>();
 
-        if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {// 1. Determine the correct domain dynamically based on the request Origin or Host
+        if (isHostedEnvironment()) {// 1. Determine the correct domain dynamically based on the request Origin or Host
             String origin = request.getHeader("Origin");
             String host = request.getHeader("Host");
             String targetDomain = ".clearbills.info"; // Default fallback
@@ -692,15 +695,20 @@ public class ShopController {
 
 
             httpResponse.addHeader("Set-Cookie",
-                    "jwt=; Path=/; Domain=" + targetDomain + "; HttpOnly; Secure; SameSite=None; Max-Age=0");} else {
+                    authCookieName + "=; Path=/; Domain=" + targetDomain + "; HttpOnly; Secure; SameSite=None; Max-Age=0");} else {
 
 
-            String cookieHeader = "jwt=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
+            String cookieHeader = authCookieName + "=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
             httpResponse.addHeader("Set-Cookie", cookieHeader);
         }
 
         responseMap.put("status", Boolean.TRUE);
         return ResponseEntity.ok(responseMap);
+    }
+
+    private boolean isHostedEnvironment() {
+        List<String> activeProfiles = Arrays.asList(environment.getActiveProfiles());
+        return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
     }
 
     @GetMapping("api/shop/notifications/unseen")

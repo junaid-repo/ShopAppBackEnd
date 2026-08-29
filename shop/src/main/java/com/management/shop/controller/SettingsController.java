@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,9 @@ public class SettingsController {
     SettingsService serv;
     @Autowired
     private Environment environment;
+
+    @Value("${auth.cookie.name:jwt}")
+    private String authCookieName;
 
     @PutMapping("api/shop/settings/user/save/ui")
     ResponseEntity<Map<String, String>> saveUserUISettings(@RequestBody UiSettings request) {
@@ -143,7 +147,7 @@ public class SettingsController {
 
             Map<String, Object> responseMap = new HashMap<>();
 
-            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {// 1. Determine the correct domain dynamically based on the request Origin or Host
+            if (isHostedEnvironment()) {// 1. Determine the correct domain dynamically based on the request Origin or Host
                 String origin = httpRequest.getHeader("Origin");
                 String host = httpRequest.getHeader("Host");
                 String targetDomain = ".clearbills.info"; // Default fallback
@@ -155,16 +159,21 @@ public class SettingsController {
 
 
                 httpResponse.addHeader("Set-Cookie",
-                        "jwt=; Path=/; Domain=" + targetDomain + "; HttpOnly; Secure; SameSite=None; Max-Age=0");} else {
+                        authCookieName + "=; Path=/; Domain=" + targetDomain + "; HttpOnly; Secure; SameSite=None; Max-Age=0");} else {
 
 
-                String cookieHeader = "jwt=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
+                String cookieHeader = authCookieName + "=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax";
                 httpResponse.addHeader("Set-Cookie", cookieHeader);
             }
 
         }
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    private boolean isHostedEnvironment() {
+        return Arrays.stream(environment.getActiveProfiles())
+                .anyMatch(profile -> profile.equals("prod") || profile.equals("preprod"));
     }
 
 }

@@ -6,9 +6,11 @@ import com.management.shop.service.ShopService;
 import com.razorpay.Invoice;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("!preprod")
 public class SQSListner {
 
     @Autowired

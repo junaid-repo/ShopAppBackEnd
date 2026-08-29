@@ -9,6 +9,7 @@ import com.management.shop.entity.FirebaseTokenEntity;
 import com.management.shop.repository.FirebaseTokenRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,8 @@ public class FCMService {
 
     @Autowired
     private FirebaseTokenRepository firebaseRepo;
-    private static final String FRONTEND_BASE_URL = "https://clearbills.info";
+    @Value("${app.frontend.base-url:https://clearbills.info}")
+    private String frontendBaseUrl;
 
     @PostConstruct
     public void initializeFirebase() {
@@ -81,7 +83,7 @@ public class FCMService {
             MulticastMessage message = MulticastMessage.builder()
                     .addAllTokens(allToken) // 🟢 Pass the entire list of tokens here
                     .setNotification(notification)
-                    .putData("url", "https://clearbills.info/notifications")
+                    .putData("url", frontendBaseUrl + "/notifications")
                     .build();
 
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);

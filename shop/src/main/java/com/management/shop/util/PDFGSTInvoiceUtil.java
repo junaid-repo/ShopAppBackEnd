@@ -224,7 +224,7 @@ public class PDFGSTInvoiceUtil {
 
         // --- ADDED: Configure Playwright options based on environment ---
         Playwright.CreateOptions createOptions = new Playwright.CreateOptions();
-       if (!(Arrays.asList(environment.getActiveProfiles()).contains("prod"))) {
+       if (!isHostedEnvironment()) {
 
                  Map<String, String> env = new HashMap<>(System.getenv());
                  String userHome = System.getProperty("user.home");
@@ -326,7 +326,7 @@ public class PDFGSTInvoiceUtil {
 
         // --- 6. Playwright Image Generation ---
         Playwright.CreateOptions createOptions = new Playwright.CreateOptions();
-        if (!(Arrays.asList(environment.getActiveProfiles()).contains("prod"))) {
+        if (!isHostedEnvironment()) {
             Map<String, String> env = new HashMap<>(System.getenv());
             String userHome = System.getProperty("user.home");
             env.put("PLAYWRIGHT_BROWSERS_PATH", userHome + "/.cache/ms-playwright");
@@ -365,6 +365,11 @@ public class PDFGSTInvoiceUtil {
         } catch (Exception e) {
             throw new RuntimeException("Error generating Reminder Image", e);
         }
+    }
+
+    private boolean isHostedEnvironment() {
+        List<String> activeProfiles = Arrays.asList(environment.getActiveProfiles());
+        return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
     }
 
     public byte[] getPaymentQrCodeImage(InvoiceData data) {
