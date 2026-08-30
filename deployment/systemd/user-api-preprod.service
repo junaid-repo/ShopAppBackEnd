@@ -1,0 +1,20 @@
+[Unit]
+Description=ClearBills User API (Preprod)
+After=network-online.target mysql.service redis-server.service shop-api-preprod.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/clearbills-preprod
+EnvironmentFile=/etc/clearbills/preprod/user.env
+ExecStart=/usr/bin/java -jar /home/ubuntu/clearbills-preprod/user-api.jar --spring.profiles.active=preprod
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
