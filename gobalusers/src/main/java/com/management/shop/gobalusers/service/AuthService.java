@@ -459,15 +459,7 @@ public class AuthService {
             String token = jwtService.generateToken(authRequest.getUsername());
             log.info("Inside authAndsetCookiesGoogle with token --> " + token);
             if (isHostedEnvironment()) {
-                // Determine target domain dynamically
-                String origin = request.getHeader("Origin");
-                String host = request.getHeader("Host");
-                String targetDomain = ".clearbills.info"; // Fallback default
-
-                if ((origin != null && origin.contains("clearbill.store")) ||
-                        (host != null && host.contains("clearbill.store"))) {
-                    targetDomain = ".clearbill.store";
-                }
+                String targetDomain = resolveHostedCookieDomain(request);
                 log.info("Inside authAndsetCookiesGoogle with targetDomain --> " + targetDomain);
                 response.addHeader("Set-Cookie",
                         authCookieName + "=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
@@ -511,15 +503,7 @@ public class AuthService {
                 String token = jwtService.generateToken(authRequest.getUsername());
 
                 if (isHostedEnvironment()) {
-                    // Determine target domain dynamically
-                    String origin = request.getHeader("Origin");
-                    String host = request.getHeader("Host");
-                    String targetDomain = ".clearbills.info"; // Fallback default
-
-                    if ((origin != null && origin.contains("clearbill.store")) ||
-                            (host != null && host.contains("clearbill.store"))) {
-                        targetDomain = ".clearbill.store";
-                    }
+                    String targetDomain = resolveHostedCookieDomain(request);
 
                     // 🟢 FIXED: Domain parameter properly added here as well, and SameSite set to None
                     response.addHeader("Set-Cookie",
@@ -543,6 +527,27 @@ public class AuthService {
     private boolean isHostedEnvironment() {
         List<String> activeProfiles = Arrays.asList(environment.getActiveProfiles());
         return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
+    }
+
+    private String resolveHostedCookieDomain(HttpServletRequest request) {
+        String host = Optional.ofNullable(request.getServerName())
+                .orElse("")
+                .toLowerCase(Locale.ROOT);
+
+        if (isHostWithinDomain(host, "instabill.in")) {
+            return ".instabill.in";
+        }
+        if (isHostWithinDomain(host, "clearbill.store")) {
+            return ".clearbill.store";
+        }
+        if (isHostWithinDomain(host, "clearbills.store")) {
+            return ".clearbills.store";
+        }
+        return ".clearbills.info";
+    }
+
+    private boolean isHostWithinDomain(String host, String domain) {
+        return host.equals(domain) || host.endsWith("." + domain);
     }
 
     private String randomPassword(Integer length) {

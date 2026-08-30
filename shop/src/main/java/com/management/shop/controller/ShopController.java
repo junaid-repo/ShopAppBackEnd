@@ -683,15 +683,8 @@ public class ShopController {
 
         Map<String, Object> responseMap = new HashMap<>();
 
-        if (isHostedEnvironment()) {// 1. Determine the correct domain dynamically based on the request Origin or Host
-            String origin = request.getHeader("Origin");
-            String host = request.getHeader("Host");
-            String targetDomain = ".clearbills.info"; // Default fallback
-
-            if ((origin != null && origin.contains("clearbill.store")) ||
-                    (host != null && host.contains("clearbill.store"))) {
-                targetDomain = ".clearbill.store";
-            }
+        if (isHostedEnvironment()) {
+            String targetDomain = resolveHostedCookieDomain(request);
 
 
             httpResponse.addHeader("Set-Cookie",
@@ -709,6 +702,27 @@ public class ShopController {
     private boolean isHostedEnvironment() {
         List<String> activeProfiles = Arrays.asList(environment.getActiveProfiles());
         return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
+    }
+
+    private String resolveHostedCookieDomain(HttpServletRequest request) {
+        String host = Optional.ofNullable(request.getServerName())
+                .orElse("")
+                .toLowerCase(Locale.ROOT);
+
+        if (isHostWithinDomain(host, "instabill.in")) {
+            return ".instabill.in";
+        }
+        if (isHostWithinDomain(host, "clearbill.store")) {
+            return ".clearbill.store";
+        }
+        if (isHostWithinDomain(host, "clearbills.store")) {
+            return ".clearbills.store";
+        }
+        return ".clearbills.info";
+    }
+
+    private boolean isHostWithinDomain(String host, String domain) {
+        return host.equals(domain) || host.endsWith("." + domain);
     }
 
     @GetMapping("api/shop/notifications/unseen")
