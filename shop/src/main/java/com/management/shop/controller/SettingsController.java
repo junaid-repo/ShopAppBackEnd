@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @Slf4j
@@ -147,15 +149,8 @@ public class SettingsController {
 
             Map<String, Object> responseMap = new HashMap<>();
 
-            if (isHostedEnvironment()) {// 1. Determine the correct domain dynamically based on the request Origin or Host
-                String origin = httpRequest.getHeader("Origin");
-                String host = httpRequest.getHeader("Host");
-                String targetDomain = ".clearbills.info"; // Default fallback
-
-                if ((origin != null && origin.contains("clearbill.store")) ||
-                        (host != null && host.contains("clearbill.store"))) {
-                    targetDomain = ".clearbill.store";
-                }
+            if (isHostedEnvironment()) {
+                String targetDomain = resolveHostedCookieDomain(httpRequest);
 
 
                 httpResponse.addHeader("Set-Cookie",
@@ -174,6 +169,27 @@ public class SettingsController {
     private boolean isHostedEnvironment() {
         return Arrays.stream(environment.getActiveProfiles())
                 .anyMatch(profile -> profile.equals("prod") || profile.equals("preprod"));
+    }
+
+    private String resolveHostedCookieDomain(HttpServletRequest request) {
+        String host = Optional.ofNullable(request.getServerName())
+                .orElse("")
+                .toLowerCase(Locale.ROOT);
+
+        if (isHostWithinDomain(host, "instabill.in")) {
+            return ".instabill.in";
+        }
+        if (isHostWithinDomain(host, "clearbill.store")) {
+            return ".clearbill.store";
+        }
+        if (isHostWithinDomain(host, "clearbills.store")) {
+            return ".clearbills.store";
+        }
+        return ".clearbills.info";
+    }
+
+    private boolean isHostWithinDomain(String host, String domain) {
+        return host.equals(domain) || host.endsWith("." + domain);
     }
 
 }
