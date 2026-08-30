@@ -3,7 +3,7 @@ name: Deploy User API
 on:
   push:
     branches:
-      - main
+      - master
       - preprod
     paths:
       - 'gobalusers/**'
@@ -19,14 +19,14 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.ref_name == 'main' || github.ref_name == 'preprod'
+    if: github.ref_name == 'master' || github.ref_name == 'preprod'
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref_name == 'main' && 'production' || 'preprod' }}
+      name: ${{ github.ref_name == 'master' && 'production' || 'preprod' }}
     env:
-      DEPLOY_DIR: ${{ github.ref_name == 'main' && '/home/ubuntu/clearbills' || '/home/ubuntu/clearbills-preprod' }}
-      SERVICE_NAME: ${{ github.ref_name == 'main' && 'user-api' || 'user-api-preprod' }}
-      HEALTH_URL: ${{ github.ref_name == 'main' && 'http://127.0.0.1:7082/actuator/health' || 'http://127.0.0.1:7182/actuator/health' }}
+      DEPLOY_DIR: ${{ github.ref_name == 'master' && '/home/ubuntu/clearbills' || '/home/ubuntu/clearbills-preprod' }}
+      SERVICE_NAME: ${{ github.ref_name == 'master' && 'user-api' || 'user-api-preprod' }}
+      HEALTH_URL: ${{ github.ref_name == 'master' && 'http://127.0.0.1:7082/actuator/health' || 'http://127.0.0.1:7182/actuator/health' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

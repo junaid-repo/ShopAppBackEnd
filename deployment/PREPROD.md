@@ -2,7 +2,7 @@
 
 The repository deploys only two branches:
 
-- `main` uses the GitHub `production` environment and the existing `shop-api` and `user-api` services.
+- `master` uses the GitHub `production` environment and the existing `shop-api` and `user-api` services.
 - `preprod` uses the GitHub `preprod` environment and the isolated `shop-api-preprod` and `user-api-preprod` services.
 
 All other branches can build in pull-request checks, but cannot deploy through these workflows.
@@ -67,4 +67,4 @@ Install `deployment/nginx/clearbills-preprod.conf`, validate Nginx, reload it, a
 
 After the server preparation is complete, push or merge a backend change into `preprod`. Both workflows deploy to `/home/ubuntu/clearbills-preprod`, restart only the preprod services, and verify their private actuator health endpoints.
 
-Merging `preprod` into `main` deploys production. No environment property files or databases are copied during promotion; only application code is promoted.
+Merging `preprod` into `master` deploys production. No environment property files or databases are copied during promotion; only application code is promoted.
