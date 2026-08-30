@@ -91,7 +91,7 @@ public class AuthPhoneService {
 
                 }
                 String smsResponse="";
-                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                if (isHostedEnvironment()) {
                     try {
                         smsResponse = otpSender.sendOtpWithPhoneForReg(regRequest.getPhone(), String.valueOf(number), "30");
                     } catch (IOException e) {
@@ -142,7 +142,7 @@ public class AuthPhoneService {
                     otpRepo.updateOldOTP(res.getId(), "stale");
                 }
                 String smsResponse="";
-                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                if (isHostedEnvironment()) {
                     try {
                         smsResponse = otpSender.sendOtpWithPhoneForReg(regRequest.getPhone(), String.valueOf(number), "30");
                     } catch (IOException e) {
@@ -309,7 +309,7 @@ public class AuthPhoneService {
                 res2.stream().forEach(i->{otpRepo.updateOldOTPWithPhone(forgotPassRequest.getPhone(), "stale", EventConstants.PASSWORD_RESET_REQUESTED.getEventName(), "sms");});
 
             }
-            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+            if (isHostedEnvironment()) {
                 String smsResponse = "";
 
                 try {
@@ -330,6 +330,11 @@ public class AuthPhoneService {
         }
         return ValidateContactResponse.builder().status(false).message("No user found with provided details").build();
 
+    }
+
+    private boolean isHostedEnvironment() {
+        List<String> activeProfiles = Arrays.asList(environment.getActiveProfiles());
+        return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
     }
 
     public ValidateContactResponse confirmOtpAndUpdatePasswordPhone(UpdatePasswordRequest updatePassRequest) {

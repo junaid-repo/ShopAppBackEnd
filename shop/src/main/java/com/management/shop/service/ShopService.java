@@ -171,7 +171,7 @@ public class ShopService {
     GlobalSearchIndexRepository globalSearchRepo;
 
     @Autowired
-    SQSUtil sqsUtil;
+    private Optional<SQSUtil> sqsUtil;
 
     @Autowired
     CSVUtil csvutil;
@@ -3377,7 +3377,8 @@ public class ShopService {
             Map<String, Object> body = new HashMap<>();
             body.put("invoice_number", invoiceNumber);
 
-            sqsUtil.sendOrderDetailsJustAfterOrderCompletion("send-invoice-email-queue", "SQS", body);
+            sqsUtil.ifPresent(util ->
+                    util.sendOrderDetailsJustAfterOrderCompletion("send-invoice-email-queue", "SQS", body));
 
             // }
 

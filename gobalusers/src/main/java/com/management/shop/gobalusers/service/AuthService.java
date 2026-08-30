@@ -79,6 +79,9 @@ public class AuthService {
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
+    @Value("${auth.cookie.name:jwt}")
+    private String authCookieName;
+
     @Autowired
     InvoiceSequenceRepository invoiceSeqRepo;
 
@@ -455,7 +458,7 @@ public class AuthService {
 
             String token = jwtService.generateToken(authRequest.getUsername());
             log.info("Inside authAndsetCookiesGoogle with token --> " + token);
-            if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+            if (isHostedEnvironment()) {
                 // Determine target domain dynamically
                 String origin = request.getHeader("Origin");
                 String host = request.getHeader("Host");
@@ -467,9 +470,9 @@ public class AuthService {
                 }
                 log.info("Inside authAndsetCookiesGoogle with targetDomain --> " + targetDomain);
                 response.addHeader("Set-Cookie",
-                        "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
+                        authCookieName + "=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
             } else {
-                Cookie cookie = new Cookie("jwt", token);
+                Cookie cookie = new Cookie(authCookieName, token);
                 cookie.setHttpOnly(true);
                 cookie.setSecure(false);
                 cookie.setPath("/");
@@ -507,7 +510,7 @@ public class AuthService {
             if (authentication.isAuthenticated() && isUserActive) {
                 String token = jwtService.generateToken(authRequest.getUsername());
 
-                if (Arrays.asList(environment.getActiveProfiles()).contains("prod")) {
+                if (isHostedEnvironment()) {
                     // Determine target domain dynamically
                     String origin = request.getHeader("Origin");
                     String host = request.getHeader("Host");
@@ -520,11 +523,11 @@ public class AuthService {
 
                     // 🟢 FIXED: Domain parameter properly added here as well, and SameSite set to None
                     response.addHeader("Set-Cookie",
-                            "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
+                            authCookieName + "=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
                 } else {
                     String cookieHeader = String.format(
-                            "jwt=%s; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax",
-                            token
+                            "%s=%s; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax",
+                            authCookieName, token
                     );
                     response.addHeader("Set-Cookie", cookieHeader);
                 }
@@ -535,6 +538,11 @@ public class AuthService {
             throw new UsernameNotFoundException("invalid user request !");
         }
         return null;
+    }
+
+    private boolean isHostedEnvironment() {
+        List<String> activeProfiles = Arrays.asList(environment.getActiveProfiles());
+        return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
     }
 
     private String randomPassword(Integer length) {
