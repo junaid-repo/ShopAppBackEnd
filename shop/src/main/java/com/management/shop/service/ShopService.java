@@ -3751,7 +3751,7 @@ public class ShopService {
                 try {
                     futureResult = email.sendEmailReportWithAttachment(emailObj,
                             subject, file.getOriginalFilename(),
-                            fileBytes, template, "Clear Bill");
+                            fileBytes, template, "Instabill");
                 } catch (MailjetException e) {
                     throw new RuntimeException(e);
                 } catch (MailjetSocketTimeoutException e) {

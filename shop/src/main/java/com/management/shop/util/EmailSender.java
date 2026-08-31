@@ -32,7 +32,7 @@ public class EmailSender {
 		request = new MailjetRequest(Emailv31.resource).property(Emailv31.MESSAGES,
 				new JSONArray().put(new JSONObject()
 						.put(Emailv31.Message.FROM, new JSONObject().put("Email", "tahanasim3001@gmail.com")
-								.put("Name", "Clear Bill"))
+								.put("Name", "Instabill"))
 						.put(Emailv31.Message.TO,
 								new JSONArray().put(
 										new JSONObject().put("Email", emailId).put("JPC Waqf Board", "Hello")))
@@ -310,7 +310,7 @@ public class EmailSender {
                                         new JSONArray().put(
                                                 new JSONObject().put("Email", emailId).put(shopName, "Hello")))
                                 .put(Emailv31.Message.SUBJECT, "Order has been confirmed with Order Number "+orderId)
-                                .put(Emailv31.Message.TEXTPART, "Dear Mr."+name+" Welcome to Clear Bill")
+                                .put(Emailv31.Message.TEXTPART, "Dear Mr."+name+" Welcome to Instabill")
                                 .put(Emailv31.Message.HTMLPART, htmlContent
                                         + "\n"
                                         + "\n"

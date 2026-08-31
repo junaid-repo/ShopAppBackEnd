@@ -265,7 +265,7 @@ public class AuthPhoneService {
          String htmlContent = emailTemplateUtil.registerUserSucess(userInfo.getName(), userInfo.getUsername());
 
          try {
-             otpSender.sendEmail(userInfo.getEmail(), "support@clearbill.store", userInfo.getName(), "Clear Bill",
+             otpSender.sendEmail(userInfo.getEmail(), "support@instabill.in", userInfo.getName(), "Instabill",
                      "Account Creation Success", htmlContent);
          } catch (MailjetException | MailjetSocketTimeoutException e) {
              // TODO Auto-generated catch block

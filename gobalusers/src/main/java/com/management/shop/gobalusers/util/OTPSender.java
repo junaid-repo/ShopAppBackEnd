@@ -64,8 +64,8 @@ public class OTPSender {
 		client = new MailjetClient("3e292e1e3e850abe850793dbb22554b9", "2fa15000afb8c7ad2cd676c9828bcd5e",
 				new ClientOptions("v3.1"));
 		request = new MailjetRequest(Emailv31.resource).property(Emailv31.MESSAGES, new JSONArray().put(new JSONObject()
-				.put(Emailv31.Message.FROM, new JSONObject().put("Email", "support@clearbill.store")
-                        .put("Name", "Clear Bill"))
+				.put(Emailv31.Message.FROM, new JSONObject().put("Email", "support@instabill.in")
+                        .put("Name", "Instabill"))
 				.put(Emailv31.Message.TO,
 						new JSONArray().put(new JSONObject().put("Email", toEmailId).put(receiptName, "Hello")))
 				.put(Emailv31.Message.SUBJECT, subject).put(Emailv31.Message.TEXTPART, subject)
@@ -113,9 +113,9 @@ public class OTPSender {
 
         HttpClient client = HttpClient.newHttpClient();
         String msgBody = "Dear User,\n\n" +
-                "Please use " + otp + " to reset your password in ClearBills. This OTP is valid for " + timing + " minutes. Please don't share this OTP.\n\n" +
+                "Please use " + otp + " to reset your password in Instabill. This OTP is valid for " + timing + " minutes. Please don't share this OTP.\n\n" +
                 "Regards,\n" +
-                "ClearBills from Lumenapps";
+                "Instabill from Lumenapps";
 
 // ✅ Encode message
         String encodedMessage =

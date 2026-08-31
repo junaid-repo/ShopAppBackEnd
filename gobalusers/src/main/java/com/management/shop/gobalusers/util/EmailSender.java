@@ -31,7 +31,7 @@ public class EmailSender {
 		request = new MailjetRequest(Emailv31.resource).property(Emailv31.MESSAGES,
 				new JSONArray().put(new JSONObject()
 						.put(Emailv31.Message.FROM, new JSONObject().put("Email", "tahanasim3001@gmail.com")
-								.put("Name", "Clear Bill"))
+								.put("Name", "Instabill"))
 						.put(Emailv31.Message.TO,
 								new JSONArray().put(
 										new JSONObject().put("Email", emailId).put("JPC Waqf Board", "Hello")))
@@ -78,12 +78,12 @@ public class EmailSender {
 	                .property(Emailv31.MESSAGES, new JSONArray()
 	                        .put(new JSONObject()
 	            					.put(Emailv31.Message.FROM, new JSONObject().put("Email", "help@friendsmobile.store")
-	        								.put("Name", "Clear Bill"))
+									.put("Name", "Instabill"))
 	        						.put(Emailv31.Message.TO,
 	        								new JSONArray().put(
-	        										new JSONObject().put("Email", emailId).put("Clear Bill", "Hello")))
+											new JSONObject().put("Email", emailId).put("Instabill", "Hello")))
 	        						.put(Emailv31.Message.SUBJECT, "Order has been confirmed with Order Number "+orderId)
-	                                .put(Emailv31.Message.TEXTPART, "Dear Mr."+name+" Welcome to Clear Bill")
+	                                .put(Emailv31.Message.TEXTPART, "Dear Mr."+name+" Welcome to Instabill")
 	                                .put(Emailv31.Message.HTMLPART, "<h3>We are happy to inform to inform you that we received your payment and your order is confirmed. Please find below the order details attached as pdf document.\n"
 	                                		+ "Really happy to serve you.\n"
 	                                		+ "\n"

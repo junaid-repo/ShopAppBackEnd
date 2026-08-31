@@ -360,11 +360,11 @@ public class SubscribtionsService {
 
         SubscriptionReceiptData data = new SubscriptionReceiptData();
         if(userSub!=null) {
-            data.setAppName("Clear Bill");
+            data.setAppName("Instabill");
             data.setAppAddress("123 Business Avenue, Kolkata, WB 700102");
             data.setAppGstin("20ABCDE1234F1Z5");
             data.setAppPhone("+91 98765 43210");
-            data.setAppEmail("support@clearbill.store");
+            data.setAppEmail("support@instabill.in");
             data.setInvoiceId(userSub.getSubscriptionId());
             data.setInvoiceDate(LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
 
@@ -408,7 +408,7 @@ public class SubscribtionsService {
                 if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                     CompletableFuture<String> futureResult = email.sendEmail(subBill.getEmail(),
                             userSub.getSubscriptionId(),subBill.getName(),
-                            generateGSTInvoicePdf.generateSubscriptionReceipt(data), emailContent, "Clear Bill");
+                            generateGSTInvoicePdf.generateSubscriptionReceipt(data), emailContent, "Instabill");
                     System.out.println(futureResult);
                 }
 

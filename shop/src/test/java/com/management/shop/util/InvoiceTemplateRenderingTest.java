@@ -107,7 +107,7 @@ class InvoiceTemplateRenderingTest {
         context.setVariable("totalAmount", new BigDecimal("12.35"));
         context.setVariable("totalGstAmount", new BigDecimal("2.35"));
         context.setVariable("amountInWords", "Twelve Rupees Only");
-        context.setVariable("appName", "Clear Bills");
+        context.setVariable("appName", "Instabill");
         context.setVariable("invoiceDate", "24-08-2026");
         context.setVariable("planName", "Basic");
         context.setVariable("userName", "Customer");

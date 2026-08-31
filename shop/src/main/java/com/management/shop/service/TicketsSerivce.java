@@ -106,7 +106,7 @@ public class TicketsSerivce {
            // if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                 CompletableFuture<String> futureResult = email.sendEmailForTicketIntimation("nadanasim3001@gmail.com",
                         request.getTicketNumber(), "Support",
-                        emailContent, "ClearBill");
+                        emailContent, "Instabill");
                 System.out.println(futureResult);
            // }
 
@@ -267,7 +267,7 @@ public class TicketsSerivce {
            // if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                 CompletableFuture<String> futureResult = email.sendSupportEmail("nadanasim3001@gmail.com",
                         subject, extractUsername(),
-                        mailAttachemnt, emailContent, "Clear Bill");
+                        mailAttachemnt, emailContent, "Instabill");
                 System.out.println(futureResult);
            // }
 

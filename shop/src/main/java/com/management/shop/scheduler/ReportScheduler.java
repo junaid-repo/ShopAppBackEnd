@@ -165,7 +165,7 @@ public class ReportScheduler {
                                 fileNames,
                                 fileStreams,
                                 template,
-                                "ClearBills"
+                                "Instabill"
                         );
 
                         reportRecordsRepo.updateReportRecordAfterSending(username, "SYSTEM", LocalDateTime.now(), Boolean.TRUE);

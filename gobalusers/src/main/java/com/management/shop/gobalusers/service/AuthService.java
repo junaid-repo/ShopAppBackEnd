@@ -131,7 +131,7 @@ public class AuthService {
                 String htmlContent = emailTemplateUtil.registerUserOTP(regRequest.getFullName(), String.valueOf(number), String.valueOf(20));
 
                 try {
-                    mailResponse = otpSender.sendEmail(regRequest.getEmail(), "support@clearbill.store", regRequest.getFullName(), "Clear Bill",
+                    mailResponse = otpSender.sendEmail(regRequest.getEmail(), "support@instabill.in", regRequest.getFullName(), "Instabill",
                             "OTP for Register of new account", htmlContent);
                 } catch (MailjetException | MailjetSocketTimeoutException e) {
                     e.printStackTrace();
@@ -176,7 +176,7 @@ public class AuthService {
                 String htmlContent = emailTemplateUtil.registerUserOTP(regRequest.getFullName(), String.valueOf(number), String.valueOf(20));
 
                 try {
-                    mailResponse = otpSender.sendEmail(regRequest.getEmail(), "support@clearbill.store", regRequest.getFullName(), "Clear Bill",
+                    mailResponse = otpSender.sendEmail(regRequest.getEmail(), "support@instabill.in", regRequest.getFullName(), "Instabill",
                             "OTP for Register of new account", htmlContent);
                 } catch (MailjetException | MailjetSocketTimeoutException e) {
                     e.printStackTrace();
@@ -222,7 +222,7 @@ public class AuthService {
             String htmlContent = emailTemplateUtil.generateForgetPasswordHtml(res.get(0).getUsername(), res.get(0).getName(), String.valueOf(otp), String.valueOf(20));
 
             try {
-                otpSender.sendEmail(res.get(0).getEmail(), "support@clearbill.store", res.get(0).getName(), "Clear Bill",
+                otpSender.sendEmail(res.get(0).getEmail(), "support@instabill.in", res.get(0).getName(), "Instabill",
                         "OTP for resetting you password", htmlContent);
             } catch (MailjetException | MailjetSocketTimeoutException e) {
                 e.printStackTrace();
@@ -249,7 +249,7 @@ public class AuthService {
             int number = 100000 + random.nextInt(900000);
 
             try {
-                otpSender.sendEmail(userInfo.getEmail(), "help@clearbill.store", userInfo.getName(), "Clear Bill",
+                otpSender.sendEmail(userInfo.getEmail(), "help@instabill.in", userInfo.getName(), "Instabill",
                         "OPT Verification For Account", "Please enter OTP " + number + " to verify you account ");
             } catch (MailjetException | MailjetSocketTimeoutException e) {
                 e.printStackTrace();
@@ -294,7 +294,7 @@ public class AuthService {
             String htmlContent = emailTemplateUtil.registerUserSucess(userInfo.getName(), userInfo.getUsername());
 
             try {
-                otpSender.sendEmail(userInfo.getEmail(), "support@clearbill.store", userInfo.getName(), "Clear Bill",
+                otpSender.sendEmail(userInfo.getEmail(), "support@instabill.in", userInfo.getName(), "Instabill",
                         "Account Creation Success", htmlContent);
             } catch (MailjetException | MailjetSocketTimeoutException e) {
                 e.printStackTrace();
