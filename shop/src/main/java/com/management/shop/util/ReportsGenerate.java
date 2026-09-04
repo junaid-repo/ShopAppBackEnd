@@ -552,7 +552,7 @@ public class ReportsGenerate {
         // Table
         sb.append("<table>");
 
-        // Table Header (Dynamic)
+        // Table Header (Dynamic)h
         sb.append("<thead><tr>");
         for (String header : data.headers) {
             sb.append("<th>").append(header).append("</th>");

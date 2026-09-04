@@ -3775,43 +3775,56 @@ public class ShopService {
 
     // @Async("geminiAsync")
     public String extractTextFromImage(MultipartFile file) throws IOException {
+        log.info("Entered extractTextFromImage with fileName={}, contentType={}, size={}",
+                file.getOriginalFilename(), file.getContentType(), file.getSize());
 
         LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
         List<GeminiTextExtract> apiLogs = apiSaveRepo.findCreatedWithinLast24Hours(last24Hours, extractUsername(), "Gemini Text Extraction API");
         Integer count = apiLogs.size();
+        log.info("Found {} Gemini text extraction API log entries in the last 24 hours for user={}", count, extractUsername());
 
         if ("USER".equals(extractRole())) {
             if (count > 2) {
+                log.warn("Free usage limit exceeded for text extraction, user={}", extractUsername());
                 return "Sorry, you have exceeded the free usage limit for text extraction. Please upgrade to Premium for unlimited access.";
             }
         }
         if (count > 10) {
+            log.warn("Daily usage limit exceeded for text extraction, user={}", extractUsername());
             return "Sorry, you have exceeded the usage limit for text extraction for the day. Please retry tomorrow.";
         }
 
         // Pre-scale and compress image to a max dimension of 1024px
+        log.info("Optimizing uploaded image before Gemini request");
         byte[] optimizedImageBytes = resizeAndCompressImage(file.getBytes(), 1024);
+        log.info("Image optimization completed, optimizedSizeBytes={}", optimizedImageBytes.length);
         String base64Image = Base64.getEncoder().encodeToString(optimizedImageBytes);
         String mimeType = "image/jpeg"; // Resized image is always output as JPEG
 
+        log.info("Calling Gemini API for text extraction");
         String response = geminiCalls.geminiApiCall(base64Image, mimeType);
 
-        log.info("The response of textExtraction is " + response);
+        log.info("Received Gemini text extraction response, responseLength={}",
+                response != null ? response.length() : 0);
 
         return response;
     }
     private byte[] resizeAndCompressImage(byte[] originalImageBytes, int maxDimension) {
         try {
+            log.info("Starting image resize/compress operation, originalSizeBytes={}, maxDimension={}",
+                    originalImageBytes.length, maxDimension);
             ByteArrayInputStream bais = new ByteArrayInputStream(originalImageBytes);
             BufferedImage originalImage = ImageIO.read(bais);
 
             if (originalImage == null) {
                 // If ImageIO cannot parse the format, return original bytes as fallback
+                log.warn("ImageIO could not parse the uploaded image, returning original bytes");
                 return originalImageBytes;
             }
 
             int originalWidth = originalImage.getWidth();
             int originalHeight = originalImage.getHeight();
+            log.info("Original image dimensions width={} height={}", originalWidth, originalHeight);
 
             // If the image is already smaller than the max dimension, keep original size but convert to JPEG
             if (originalWidth <= maxDimension && originalHeight <= maxDimension) {
@@ -3844,10 +3857,12 @@ public class ShopService {
 
             g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
             g2d.dispose();
+            log.info("Image resize completed, targetWidth={} targetHeight={}", targetWidth, targetHeight);
 
             // Write out compressed JPEG bytes
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(resizedImage, "jpg", baos);
+            log.info("Image compression completed, outputSizeBytes={}", baos.size());
             return baos.toByteArray();
 
         } catch (IOException e) {

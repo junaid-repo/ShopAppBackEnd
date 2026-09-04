@@ -137,7 +137,7 @@ public class EmailSender {
         request = new MailjetRequest(Emailv31.resource)
                 .property(Emailv31.MESSAGES, new JSONArray()
                         .put(new JSONObject()
-                                .put(Emailv31.Message.FROM, new JSONObject().put("Email", "email@clearbill.store")
+                                .put(Emailv31.Message.FROM, new JSONObject().put("Email", "email@instabill.in")
                                         .put("Name", shopName))
                                 .put(Emailv31.Message.TO,
                                         new JSONArray().put(
