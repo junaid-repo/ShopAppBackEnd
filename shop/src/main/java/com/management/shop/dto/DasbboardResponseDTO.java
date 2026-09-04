@@ -20,5 +20,6 @@ public class DasbboardResponseDTO {
     private Integer countOfSales;
     private String heatmapGranularity;
     private List<SalesHeatmapPointDTO> salesHeatmap;
+    private List<String> availableFinancialYears;
 
 }
