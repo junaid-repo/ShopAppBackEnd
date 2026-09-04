@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -16,5 +18,7 @@ public class DasbboardResponseDTO {
     private Integer totalUnitsSold;
     private Integer outOfStockCount;
     private Integer countOfSales;
+    private String heatmapGranularity;
+    private List<SalesHeatmapPointDTO> salesHeatmap;
 
 }

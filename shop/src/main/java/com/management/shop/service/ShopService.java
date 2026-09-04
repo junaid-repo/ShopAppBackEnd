@@ -1586,7 +1586,63 @@ public class ShopService {
         ;
 
         return DasbboardResponseDTO.builder().monthlyRevenue(monthlyRevenue).outOfStockCount(outOfStockCount)
-                .taxCollected(taxCollected).totalUnitsSold(totalUnitsSold).countOfSales(countOfOrders).build();
+                .taxCollected(taxCollected).totalUnitsSold(totalUnitsSold).countOfSales(countOfOrders)
+                .heatmapGranularity(range.equals("today") ? "hour" : "day")
+                .salesHeatmap(buildSalesHeatmap(billList, range))
+                .build();
+    }
+
+    private List<SalesHeatmapPointDTO> buildSalesHeatmap(List<BillingEntity> bills, String range) {
+        LocalDate today = LocalDate.now();
+        Map<String, Double> amountByBucket = new HashMap<>();
+        Map<String, Integer> salesByBucket = new HashMap<>();
+
+        for (BillingEntity bill : bills) {
+            if (bill.getCreatedDate() == null) continue;
+
+            String key = range.equals("today")
+                    ? String.format("%02d", bill.getCreatedDate().getHour())
+                    : bill.getCreatedDate().toLocalDate().toString();
+
+            amountByBucket.merge(key, Optional.ofNullable(bill.getTotalAmount()).orElse(0d), Double::sum);
+            salesByBucket.merge(key, 1, Integer::sum);
+        }
+
+        List<SalesHeatmapPointDTO> response = new ArrayList<>();
+        if (range.equals("today")) {
+            DateTimeFormatter hourLabel = DateTimeFormatter.ofPattern("h a");
+            for (int hour = 0; hour < 24; hour++) {
+                String key = String.format("%02d", hour);
+                response.add(SalesHeatmapPointDTO.builder()
+                        .key(key)
+                        .label(LocalTime.of(hour, 0).format(hourLabel))
+                        .amount(amountByBucket.getOrDefault(key, 0d))
+                        .salesCount(salesByBucket.getOrDefault(key, 0))
+                        .build());
+            }
+            return response;
+        }
+
+        int numberOfDays = switch (range) {
+            case "lastWeek" -> 7;
+            case "lastMonth" -> 30;
+            case "lastYear" -> 365;
+            default -> 7;
+        };
+        LocalDate firstDay = today.minusDays(numberOfDays - 1L);
+        DateTimeFormatter dayLabel = DateTimeFormatter.ofPattern("dd MMM");
+
+        for (int offset = 0; offset < numberOfDays; offset++) {
+            LocalDate bucketDate = firstDay.plusDays(offset);
+            String key = bucketDate.toString();
+            response.add(SalesHeatmapPointDTO.builder()
+                    .key(key)
+                    .label(bucketDate.format(dayLabel))
+                    .amount(amountByBucket.getOrDefault(key, 0d))
+                    .salesCount(salesByBucket.getOrDefault(key, 0))
+                    .build());
+        }
+        return response;
     }
 
     @Cacheable(value = "payments", keyGenerator = "userScopedKeyGenerator")
