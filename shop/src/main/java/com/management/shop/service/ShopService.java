@@ -1741,8 +1741,12 @@ public class ShopService {
                 List<ProductRequest> prodList = util.validateDataFromImage(file);
                 log.info(prodList.toString());
                 prodList.stream().forEach(obj -> {
-                    ProductSuccessDTO prodsaveResponse = saveProductFromImage(obj);
-                    log.info(String.valueOf(prodsaveResponse));
+                    try {
+                        ProductSuccessDTO prodsaveResponse = saveProductFromImage(obj);
+                        log.info(String.valueOf(prodsaveResponse));
+                    } catch (Exception e) {
+                       e.printStackTrace();
+                    }
                 });
 
                 try {
@@ -1799,6 +1803,8 @@ public class ShopService {
             customerEntity.setName("Walk-In");
             customerEntity.setEmail("na@na.com");
             customerEntity.setPhone("0000000000");
+            customerEntity.setTotalOrders(0);
+            customerEntity.setTotalSpent(0d);
         } else {
             customerEntity = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), username);
         }
