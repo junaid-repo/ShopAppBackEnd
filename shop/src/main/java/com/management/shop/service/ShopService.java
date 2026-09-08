@@ -1275,7 +1275,7 @@ public class ShopService {
     private void handleInvoiceEmail(BillingRequest request, BillingEntity billResponse, UserSettingsEntity userSettings) {
         boolean sendInvoice = userSettings != null && userSettings.getAutoSendInvoice() != null ? userSettings.getAutoSendInvoice() : true;
 
-        if (sendInvoice && !("Anonymous".equals(request.getSelectedCustomer().getName()))) {
+        if (sendInvoice && !("Walk-In".equals(request.getSelectedCustomer().getName()))) {
             try {
                 sendInvoiceOverEmail(billResponse);
             } catch (Exception e) {
