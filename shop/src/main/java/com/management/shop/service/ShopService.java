@@ -1275,7 +1275,7 @@ public class ShopService {
     private void handleInvoiceEmail(BillingRequest request, BillingEntity billResponse, UserSettingsEntity userSettings) {
         boolean sendInvoice = userSettings != null && userSettings.getAutoSendInvoice() != null ? userSettings.getAutoSendInvoice() : true;
 
-        if (sendInvoice && !("Anonymous".equals(request.getSelectedCustomer().getName()))) {
+        if (sendInvoice && !("Walk-In".equals(request.getSelectedCustomer().getName()))) {
             try {
                 sendInvoiceOverEmail(billResponse);
             } catch (Exception e) {
@@ -1357,7 +1357,7 @@ public class ShopService {
 
     private void checkAnonymousCustomer(BillingRequest request) {
 
-        if ("Anonymous".equals(request.getSelectedCustomer().getName())) {
+        if ("Walk-In".equals(request.getSelectedCustomer().getName())) {
             CustomerEntity existingCustomer = shopRepo.findByNameAndId(extractUsername(), request.getSelectedCustomer().getName());
 
             if (existingCustomer == null) {
@@ -1436,7 +1436,9 @@ public class ShopService {
                          else
                             paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
                     } catch (Exception e) {
-                        throw new RuntimeException(e);
+                        customerName = "Walk-In";
+                        customerEmail="na";
+                        paymentStatus = "Unknown";
                     }
 
                     return SalesResponseDTO.builder()
@@ -1794,7 +1796,7 @@ public class ShopService {
         CustomerEntity customerEntity = new CustomerEntity();
         if (billDetails.getCustomerId() == 0) {
             customerEntity.setId(billDetails.getCustomerId());
-            customerEntity.setName("Anonymous");
+            customerEntity.setName("Walk-In");
             customerEntity.setEmail("na@na.com");
             customerEntity.setPhone("0000000000");
         } else {
