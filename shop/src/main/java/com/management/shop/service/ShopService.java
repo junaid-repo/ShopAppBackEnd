@@ -1538,34 +1538,41 @@ public class ShopService {
 
     @Cacheable(value = "dashboard", keyGenerator = "userScopedKeyGenerator")
     public DasbboardResponseDTO getDashBoardDetails(String range) {
-        log.info("selected day range" + range);
-        List<BillingEntity> billList = new ArrayList<>();
-        List<ProductEntity> prodList = new ArrayList<>();
+        log.info("selected dashboard range {}", range);
+        DashboardDateRange.Range dateRange = DashboardDateRange.resolve(range);
+        String username = extractUsername();
+        List<BillingEntity> billList;
+        List<String> availableFinancialYears = new ArrayList<>();
+        if (dateRange.financialYear()) {
+            LocalDate today = LocalDate.now();
+            int currentFinancialYearStart = today.getMonthValue() >= 4 ? today.getYear() : today.getYear() - 1;
+            LocalDate availabilityStart = LocalDate.of(currentFinancialYearStart - 2, 4, 1);
+            LocalDate availabilityEnd = LocalDate.of(currentFinancialYearStart + 1, 4, 1);
+            List<BillingEntity> availableBills = billRepo.findSalesNDays(
+                    username, availabilityStart.atStartOfDay(), availabilityEnd.atStartOfDay());
+            availableFinancialYears = availableBills.stream()
+                    .filter(bill -> bill.getCreatedDate() != null)
+                    .map(bill -> {
+                        LocalDate date = bill.getCreatedDate().toLocalDate();
+                        int startYear = date.getMonthValue() >= 4 ? date.getYear() : date.getYear() - 1;
+                        return "fy-" + startYear + "-" + String.format("%02d", (startYear + 1) % 100);
+                    })
+                    .distinct()
+                    .toList();
+            billList = availableBills.stream()
+                    .filter(bill -> bill.getCreatedDate() != null
+                            && !bill.getCreatedDate().isBefore(dateRange.startInclusive())
+                            && bill.getCreatedDate().isBefore(dateRange.endExclusive()))
+                    .toList();
+        } else {
+            billList = billRepo.findSalesNDays(
+                    username, dateRange.startInclusive(), dateRange.endExclusive());
+        }
+        List<ProductEntity> prodList;
 
         List<String> roles = extractRoles();
         log.info("The user roles" + roles);
-        Integer days = 0;
-
-        if (!range.equals("today")) {
-            if (range.equals("lastYear")) {
-                days = 365;
-            }
-            if (range.equals("lastMonth")) {
-                days = 30;
-            }
-            if (range.equals("lastWeek")) {
-                days = 7;
-            }
-            billList = billRepo.findAllByDayRange(LocalDateTime.now().minusDays(days), extractUsername());
-
-        } else if (range.equals("today")) {
-            LocalDateTime startOfDay = LocalDate.now().atStartOfDay(); // today 00:00
-            LocalDateTime endOfDay = startOfDay.plusDays(1); // tomorrow 00:00
-            billList = billRepo.findAllCreatedToday(startOfDay, endOfDay, extractUsername());
-            // prodList = prodRepo.findAllCreatedToday(startOfDay, endOfDay);
-
-        }
-        prodList = prodRepo.findAllByStatus(Boolean.TRUE, extractUsername());
+        prodList = prodRepo.findAllByStatus(Boolean.TRUE, username);
         Integer monthlyRevenue = 0;
         Integer taxCollected = 0;
         Integer totalUnitsSold = 0;
@@ -1586,7 +1593,60 @@ public class ShopService {
         ;
 
         return DasbboardResponseDTO.builder().monthlyRevenue(monthlyRevenue).outOfStockCount(outOfStockCount)
-                .taxCollected(taxCollected).totalUnitsSold(totalUnitsSold).countOfSales(countOfOrders).build();
+                .taxCollected(taxCollected).totalUnitsSold(totalUnitsSold).countOfSales(countOfOrders)
+                .heatmapGranularity(dateRange.hourly() ? "hour" : "day")
+                .salesHeatmap(buildSalesHeatmap(billList, dateRange))
+                .availableFinancialYears(availableFinancialYears)
+                .build();
+    }
+
+    private List<SalesHeatmapPointDTO> buildSalesHeatmap(
+            List<BillingEntity> bills, DashboardDateRange.Range dateRange) {
+        Map<String, Double> amountByBucket = new HashMap<>();
+        Map<String, Integer> salesByBucket = new HashMap<>();
+
+        for (BillingEntity bill : bills) {
+            if (bill.getCreatedDate() == null) continue;
+
+            String key = dateRange.hourly()
+                    ? String.format("%02d", bill.getCreatedDate().getHour())
+                    : bill.getCreatedDate().toLocalDate().toString();
+
+            amountByBucket.merge(key, Optional.ofNullable(bill.getTotalAmount()).orElse(0d), Double::sum);
+            salesByBucket.merge(key, 1, Integer::sum);
+        }
+
+        List<SalesHeatmapPointDTO> response = new ArrayList<>();
+        if (dateRange.hourly()) {
+            DateTimeFormatter hourLabel = DateTimeFormatter.ofPattern("h a");
+            for (int hour = 0; hour < 24; hour++) {
+                String key = String.format("%02d", hour);
+                response.add(SalesHeatmapPointDTO.builder()
+                        .key(key)
+                        .label(LocalTime.of(hour, 0).format(hourLabel))
+                        .amount(amountByBucket.getOrDefault(key, 0d))
+                        .salesCount(salesByBucket.getOrDefault(key, 0))
+                        .build());
+            }
+            return response;
+        }
+
+        LocalDate firstDay = dateRange.startInclusive().toLocalDate();
+        long numberOfDays = java.time.temporal.ChronoUnit.DAYS.between(
+                firstDay, dateRange.endExclusive().toLocalDate());
+        DateTimeFormatter dayLabel = DateTimeFormatter.ofPattern("dd MMM");
+
+        for (long offset = 0; offset < numberOfDays; offset++) {
+            LocalDate bucketDate = firstDay.plusDays(offset);
+            String key = bucketDate.toString();
+            response.add(SalesHeatmapPointDTO.builder()
+                    .key(key)
+                    .label(bucketDate.format(dayLabel))
+                    .amount(amountByBucket.getOrDefault(key, 0d))
+                    .salesCount(salesByBucket.getOrDefault(key, 0))
+                    .build());
+        }
+        return response;
     }
 
     @Cacheable(value = "payments", keyGenerator = "userScopedKeyGenerator")
@@ -2574,24 +2634,37 @@ public class ShopService {
 
     @Cacheable(value = "dashboard", keyGenerator = "userScopedKeyGenerator")
     public List<WeeklySales> getWeeklyAnalytics(String range) {
-
-
         String userId = extractUsername();
-
         List<WeeklySales> response = new ArrayList<>();
-
-        List<String> labels = new ArrayList<>();
-        List<Long> sales = new ArrayList<>();
-        List<Long> stocks = new ArrayList<>();
-        List<Integer> taxes = new ArrayList<>();
-        List<Integer> customers = new ArrayList<>();
-        List<Integer> onlinePaymentCounts = new ArrayList<>();
-        List<Long> profits = new ArrayList<>();
-        // Parse to LocalDate
-        LocalDateTime startDate = LocalDateTime.now().minusDays(7);
         List<Object[]> resultsSales = new ArrayList<>();
         LocalDateTime endDate = LocalDateTime.now();
 
+        DashboardDateRange.Range dateRange = DashboardDateRange.resolve(range);
+        if (dateRange.financialYear()) {
+            List<BillingEntity> bills = billRepo.findSalesNDays(
+                    userId, dateRange.startInclusive(), dateRange.endExclusive());
+            Map<YearMonth, Double> revenueByMonth = new HashMap<>();
+            Map<YearMonth, Integer> unitsByMonth = new HashMap<>();
+
+            bills.forEach(bill -> {
+                if (bill.getCreatedDate() == null) return;
+                YearMonth month = YearMonth.from(bill.getCreatedDate());
+                revenueByMonth.merge(month, Optional.ofNullable(bill.getTotalAmount()).orElse(0d), Double::sum);
+                unitsByMonth.merge(month, Optional.ofNullable(bill.getUnitsSold()).orElse(0), Integer::sum);
+            });
+
+            YearMonth firstMonth = YearMonth.from(dateRange.startInclusive());
+            DateTimeFormatter monthLabel = DateTimeFormatter.ofPattern("MMM");
+            for (int offset = 0; offset < 12; offset++) {
+                YearMonth month = firstMonth.plusMonths(offset);
+                response.add(WeeklySales.builder()
+                        .day(month.format(monthLabel))
+                        .totalSales(revenueByMonth.getOrDefault(month, 0d))
+                        .unitsSold(unitsByMonth.getOrDefault(month, 0))
+                        .build());
+            }
+            return response;
+        }
 
         try {
             if (range.equals("today")) {
@@ -2606,7 +2679,6 @@ public class ShopService {
                 resultsSales = billRepo.getSalesAndStocksMonthly(endDate, userId);
             }
             if (range.equals("lastYear")) {
-                startDate = LocalDateTime.now().minusDays(365);
                 resultsSales = billRepo.getSalesAndStocksYearly(endDate, userId);
             }
         } catch (Exception e) {
@@ -2617,10 +2689,8 @@ public class ShopService {
         for (Object[] row : resultsSales) {
             WeeklySales weeklysales = new WeeklySales();
             String day = (String) row[0];
-            labels.add(day);
             Long count = ((Number) row[1]).longValue();
             Integer stocksCount = ((Number) row[3]).intValue();
-            sales.add(count);
             weeklysales.setDay(day);
             weeklysales.setUnitsSold(stocksCount);
             weeklysales.setTotalSales(count);
@@ -2654,6 +2724,11 @@ public class ShopService {
             }
             if (range.equals("lastYear")) {
                 billingDetails = billRepo.findTopNSalesForLastYear(username, count);
+            }
+            DashboardDateRange.Range dateRange = DashboardDateRange.resolve(range);
+            if (dateRange.financialYear()) {
+                billingDetails = billRepo.findTopNSalesForGivenRange(
+                        username, dateRange.startInclusive(), dateRange.endInclusive(), count);
             }
 
             List<SalesResponseDTO> dtoList = billingDetails.stream()
@@ -2717,19 +2792,9 @@ public class ShopService {
         EstimatedGoalsEntity existingGoals = estimatedGoalsRepo.findByUserId(extractUsername());
         log.info("The existing goals are " + existingGoals);
         String username = extractUsername();
-        List<BillingEntity> billingDetails = new ArrayList<>();
-        if (range.equals("today")) {
-            billingDetails = billRepo.findSalesNDays(username, LocalDateTime.now().toLocalDate().atTime(LocalTime.MIN), LocalDateTime.now().toLocalDate().atTime(LocalTime.MAX));
-        }
-        if (range.equals("lastWeek")) {
-            billingDetails = billRepo.findSalesNDays(username, LocalDateTime.now().minusWeeks(1), LocalDateTime.now());
-        }
-        if (range.equals("lastMonth")) {
-            billingDetails = billRepo.findSalesNDays(username, LocalDateTime.now().minusMonths(1), LocalDateTime.now());
-        }
-        if (range.equals("lastYear")) {
-            billingDetails = billRepo.findSalesNDays(username, LocalDateTime.now().minusYears(1), LocalDateTime.now());
-        }
+        DashboardDateRange.Range dateRange = DashboardDateRange.resolve(range);
+        List<BillingEntity> billingDetails = billRepo.findSalesNDays(
+                username, dateRange.startInclusive(), dateRange.endExclusive());
         final Double[] actualSalesList = {0d};
         billingDetails.stream().forEach(obj -> {
 
@@ -2760,26 +2825,12 @@ public class ShopService {
 
     @Cacheable(value = "topSellings", keyGenerator = "userScopedKeyGenerator")
     public List<TopProductDto> getTopProducts(int count, String timeRange, String factor) {
-        LocalDateTime endDate = LocalDateTime.now();
-        LocalDateTime startDate = LocalDateTime.now();
+        DashboardDateRange.Range dateRange = DashboardDateRange.resolve(timeRange);
+        LocalDateTime startDate = dateRange.startInclusive();
+        LocalDateTime endDate = dateRange.endInclusive();
 
         List<ProductPerformanceProjection> topProducts = new ArrayList<>();
         List<TopProductDto> response = new ArrayList<>();
-        if (timeRange.equals("lastWeek")) {
-            startDate = LocalDateTime.now().minusDays(7);
-        }
-        if (timeRange.equals("lastMonth")) {
-            startDate = LocalDateTime.now().minusMonths(1);
-        }
-        if (timeRange.equals("lastYear")) {
-            startDate = LocalDateTime.now().minusYears(1);
-        }
-        if (timeRange.equals("today")) {
-            startDate = LocalDateTime.now().toLocalDate().atTime(LocalTime.MIN);
-            endDate = LocalDateTime.now().toLocalDate().atTime(LocalTime.MAX);
-
-        }
-
 
         if (factor.equals("mostSelling")) {
             topProducts = prodSalesRepo.findMostSellingProducts(extractUsername(), startDate, endDate, count);
@@ -2804,23 +2855,12 @@ public class ShopService {
 
     @Cacheable(value = "topOrders", keyGenerator = "userScopedKeyGenerator")
     public List<TopOrdersDto> getTopOrders(int count, String timeRange) {
-        LocalDateTime endDate = LocalDateTime.now();
-        LocalDateTime startDate = LocalDateTime.now();
+        DashboardDateRange.Range dateRange = DashboardDateRange.resolve(timeRange);
+        LocalDateTime startDate = dateRange.startInclusive();
+        LocalDateTime endDate = dateRange.endInclusive();
 
         List<ProductPerformanceProjection> topProducts = new ArrayList<>();
         List<TopOrdersDto> response = new ArrayList<>();
-        if (timeRange.equals("lastWeek")) {
-            startDate = LocalDateTime.now().minusDays(7);
-        }
-        if (timeRange.equals("lastMonth")) {
-            startDate = LocalDateTime.now().minusMonths(1);
-        }
-        if (timeRange.equals("lastYear")) {
-            startDate = LocalDateTime.now().minusYears(1);
-        }
-        if (timeRange.equals("today")) {
-            startDate = LocalDateTime.now().toLocalDate().atStartOfDay();
-        }
 
         List<BillingEntity> billList = billRepo.findTopNSalesForGivenRange(extractUsername(), startDate, endDate, count);
 
@@ -2845,23 +2885,9 @@ public class ShopService {
 
     @Cacheable(value = "paymentBreakdowns", keyGenerator = "userScopedKeyGenerator")
     public Map<String, Double> getPaymentBreakdown(String timeRange) {
-        LocalDateTime endDate = LocalDateTime.now();
-        LocalDateTime startDate = LocalDateTime.now();
-
-        List<ProductPerformanceProjection> topProducts = new ArrayList<>();
-        List<TopOrdersDto> response = new ArrayList<>();
-        if (timeRange.equals("lastWeek")) {
-            startDate = LocalDateTime.now().minusDays(7);
-        }
-        if (timeRange.equals("lastMonth")) {
-            startDate = LocalDateTime.now().minusMonths(1);
-        }
-        if (timeRange.equals("lastYear")) {
-            startDate = LocalDateTime.now().minusYears(1);
-        }
-        if (timeRange.equals("today")) {
-            startDate = LocalDateTime.now().toLocalDate().atStartOfDay();
-        }
+        DashboardDateRange.Range dateRange = DashboardDateRange.resolve(timeRange);
+        LocalDateTime startDate = dateRange.startInclusive();
+        LocalDateTime endDate = dateRange.endInclusive();
         List<Map<String, Object>> rawData = salesPaymentRepo.getPaymentBreakdown(extractUsername(), startDate, endDate);
 
 
@@ -2879,23 +2905,9 @@ public class ShopService {
 
     @Cacheable(value = "paymentBreakdowns", keyGenerator = "userScopedKeyGenerator")
     public Map<String, Double> getPaymentStatusBreakdown(String timeRange) {
-        LocalDateTime endDate = LocalDateTime.now();
-        LocalDateTime startDate = LocalDateTime.now();
-
-        List<ProductPerformanceProjection> topProducts = new ArrayList<>();
-        List<TopOrdersDto> response = new ArrayList<>();
-        if (timeRange.equals("lastWeek")) {
-            startDate = LocalDateTime.now().minusDays(7);
-        }
-        if (timeRange.equals("lastMonth")) {
-            startDate = LocalDateTime.now().minusMonths(1);
-        }
-        if (timeRange.equals("lastYear")) {
-            startDate = LocalDateTime.now().minusYears(1);
-        }
-        if (timeRange.equals("today")) {
-            startDate = LocalDateTime.now().toLocalDate().atStartOfDay();
-        }
+        DashboardDateRange.Range dateRange = DashboardDateRange.resolve(timeRange);
+        LocalDateTime startDate = dateRange.startInclusive();
+        LocalDateTime endDate = dateRange.endInclusive();
         List<Map<String, Object>> rawData = salesPaymentRepo.getPaymentStatusBreakdown(extractUsername(), startDate, endDate);
 
         log.info("The raw payment status breakdown data is " + rawData);
@@ -3751,7 +3763,7 @@ public class ShopService {
                 try {
                     futureResult = email.sendEmailReportWithAttachment(emailObj,
                             subject, file.getOriginalFilename(),
-                            fileBytes, template, "Clear Bill");
+                            fileBytes, template, "Instabill");
                 } catch (MailjetException e) {
                     throw new RuntimeException(e);
                 } catch (MailjetSocketTimeoutException e) {
@@ -3775,43 +3787,56 @@ public class ShopService {
 
     // @Async("geminiAsync")
     public String extractTextFromImage(MultipartFile file) throws IOException {
+        log.info("Entered extractTextFromImage with fileName={}, contentType={}, size={}",
+                file.getOriginalFilename(), file.getContentType(), file.getSize());
 
         LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
         List<GeminiTextExtract> apiLogs = apiSaveRepo.findCreatedWithinLast24Hours(last24Hours, extractUsername(), "Gemini Text Extraction API");
         Integer count = apiLogs.size();
+        log.info("Found {} Gemini text extraction API log entries in the last 24 hours for user={}", count, extractUsername());
 
         if ("USER".equals(extractRole())) {
             if (count > 2) {
+                log.warn("Free usage limit exceeded for text extraction, user={}", extractUsername());
                 return "Sorry, you have exceeded the free usage limit for text extraction. Please upgrade to Premium for unlimited access.";
             }
         }
         if (count > 10) {
+            log.warn("Daily usage limit exceeded for text extraction, user={}", extractUsername());
             return "Sorry, you have exceeded the usage limit for text extraction for the day. Please retry tomorrow.";
         }
 
         // Pre-scale and compress image to a max dimension of 1024px
+        log.info("Optimizing uploaded image before Gemini request");
         byte[] optimizedImageBytes = resizeAndCompressImage(file.getBytes(), 1024);
+        log.info("Image optimization completed, optimizedSizeBytes={}", optimizedImageBytes.length);
         String base64Image = Base64.getEncoder().encodeToString(optimizedImageBytes);
         String mimeType = "image/jpeg"; // Resized image is always output as JPEG
 
+        log.info("Calling Gemini API for text extraction");
         String response = geminiCalls.geminiApiCall(base64Image, mimeType);
 
-        log.info("The response of textExtraction is " + response);
+        log.info("Received Gemini text extraction response, responseLength={}",
+                response != null ? response.length() : 0);
 
         return response;
     }
     private byte[] resizeAndCompressImage(byte[] originalImageBytes, int maxDimension) {
         try {
+            log.info("Starting image resize/compress operation, originalSizeBytes={}, maxDimension={}",
+                    originalImageBytes.length, maxDimension);
             ByteArrayInputStream bais = new ByteArrayInputStream(originalImageBytes);
             BufferedImage originalImage = ImageIO.read(bais);
 
             if (originalImage == null) {
                 // If ImageIO cannot parse the format, return original bytes as fallback
+                log.warn("ImageIO could not parse the uploaded image, returning original bytes");
                 return originalImageBytes;
             }
 
             int originalWidth = originalImage.getWidth();
             int originalHeight = originalImage.getHeight();
+            log.info("Original image dimensions width={} height={}", originalWidth, originalHeight);
 
             // If the image is already smaller than the max dimension, keep original size but convert to JPEG
             if (originalWidth <= maxDimension && originalHeight <= maxDimension) {
@@ -3844,10 +3869,12 @@ public class ShopService {
 
             g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
             g2d.dispose();
+            log.info("Image resize completed, targetWidth={} targetHeight={}", targetWidth, targetHeight);
 
             // Write out compressed JPEG bytes
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(resizedImage, "jpg", baos);
+            log.info("Image compression completed, outputSizeBytes={}", baos.size());
             return baos.toByteArray();
 
         } catch (IOException e) {

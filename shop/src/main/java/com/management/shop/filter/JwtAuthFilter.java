@@ -53,7 +53,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
             }
         }
-        System.out.println("JwtAuthFilter: Checking for JWT token in request..."+token);
+       // System.out.println("JwtAuthFilter: Checking for JWT token in request..."+token);
 
 
        /* if(token ==null){

@@ -102,7 +102,7 @@ public class AccountEmailTemplate {
                 "\n" +
                 "    <!-- Footer -->\n" +
                 "    <div class=\"email-footer\">\n" +
-                "      © {{year}} Clear Bill. All rights reserved.\n" +
+                "      © {{year}} Instabill. All rights reserved.\n" +
                 "    </div>\n" +
                 "  </div>\n" +
                 "</body>\n" +
@@ -209,7 +209,7 @@ public class AccountEmailTemplate {
                 "\n" +
                 "    <!-- Footer -->\n" +
                 "    <div class=\"email-footer\">\n" +
-                "      © {{year}} Clear Bill. All rights reserved.\n" +
+                "      © {{year}} Instabill. All rights reserved.\n" +
                 "    </div>\n" +
                 "  </div>\n" +
                 "</body>\n" +
@@ -305,7 +305,7 @@ public class AccountEmailTemplate {
             "\n" +
             "    <!-- Footer -->\n" +
             "    <div class=\"email-footer\">\n" +
-            "      © {{year}} Clear Bill. All rights reserved.\n" +
+            "      © {{year}} Instabill. All rights reserved.\n" +
             "    </div>\n" +
             "  </div>\n" +
             "</body>\n" +

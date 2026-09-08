@@ -1370,18 +1370,25 @@ public class ShopController {
 
     @PostMapping("api/shop/extract-text-from-image")
     public ResponseEntity<String> extractProductsFromImage(@RequestParam("file") MultipartFile file) {
+        log.info("Entered extractProductsFromImage with fileName={}, contentType={}, size={}",
+                file.getOriginalFilename(), file.getContentType(), file.getSize());
+
         if (file.isEmpty()) {
+            log.warn("extractProductsFromImage received an empty file");
             return ResponseEntity.badRequest().body("Error: File is empty.");
         }
 
         try {
-            // Pass the file to the service layer for processing
+            log.info("Delegating extract-text-from-image request to ShopService");
             String csvData = serv.extractTextFromImage(file);
+
+            log.info("Completed extract-text-from-image request successfully, responseLength={}",
+                    csvData != null ? csvData.length() : 0);
 
             return ResponseEntity.ok(csvData);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to extract text from image in extractProductsFromImage", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to extract data: " + e.getMessage());
         }

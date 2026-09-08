@@ -44,6 +44,8 @@ public class GeminiApiCalls {
 
 
     public String geminiApiCall(String base64Image, String mimeType) {
+        log.info("Entered geminiApiCall with mimeType={}, imagePayloadSize={}", mimeType,
+                base64Image != null ? base64Image.length() : 0);
 
     /*    String promptText = "Analyze this image and extract all products. " +
                 "Return ONLY a valid CSV format with the following exact headers on the first line: " +
@@ -96,9 +98,11 @@ public class GeminiApiCalls {
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         String url=geminiApiUrl+geminiApiKey;
+        log.info("Sending Gemini request to configured URL, partCount={}", ((List<?>) content.get("parts")).size());
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
-        System.out.println("Gemini API response: " + response.getBody());
+        log.info("Received Gemini response with status={} and bodyPresent={}",
+                response.getStatusCode(), response.getBody() != null);
 
         var apiLog = GeminiTextExtract.builder().createdDate(LocalDateTime.now())
                 .username(extractUsername())
@@ -106,21 +110,25 @@ public class GeminiApiCalls {
                 .name("Gemini Text Extraction API")
                 .url(geminiApiUrl)
                 .status(response.getStatusCode().toString())
-                .response("response size: "+response.getBody().toString().length())
+                .response("response size: " + (response.getBody() != null ? response.getBody().toString().length() : 0))
                 .build();
 
         try {
             apiLogSaveRepo.save(apiLog);
+            log.info("Saved Gemini API call log entry for user={}", extractUsername());
         } catch (Exception e) {
-            log.info("Error while saving logs for Gemini API call: " + e.getMessage());
+            log.error("Error while saving logs for Gemini API call", e);
         }
 
-
-        return extractGeminiResponse(response.getBody());
+        String extracted = extractGeminiResponse(response.getBody());
+        log.info("Gemini response parsed successfully, extractedTextLength={}",
+                extracted != null ? extracted.length() : 0);
+        return extracted;
     }
 
     private String extractGeminiResponse(Map responseBody) {
         try {
+            log.info("Parsing Gemini response body");
             List<Map<String, Object>> candidates = (List<Map<String, Object>>) responseBody.get("candidates");
             if (candidates != null && !candidates.isEmpty()) {
                 Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
@@ -128,12 +136,15 @@ public class GeminiApiCalls {
                 if (parts != null && !parts.isEmpty()) {
                     String extractedText = (String) parts.get(0).get("text");
                     // Clean up any potential markdown formatting the model might still try to add
+                    log.info("Gemini response contained extracted text, candidateCount={}, partCount={}",
+                            candidates.size(), parts.size());
                     return extractedText.replace("```csv\n", "").replace("```", "").trim();
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error parsing Gemini response: " + e.getMessage());
+            log.error("Error parsing Gemini response", e);
         }
+        log.warn("Failed to extract text from Gemini response body");
         throw new RuntimeException("Failed to extract text from Gemini response");
     }
 

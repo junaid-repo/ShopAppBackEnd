@@ -14,11 +14,11 @@ import java.util.Map;
 @NoArgsConstructor
 public class SubscriptionReceiptData {
 
-    private String appName = "Clear Bill";
+    private String appName = "Instabill";
     private String appAddress = "123 Business Avenue, Ranchi, JH 834001";
     private String appGstin = "20ABCDE1234F1Z5";
     private String appPhone = "+91 98765 43210";
-    private String appEmail = "support@clearbill.com";
+    private String appEmail = "support@instabill.in";
 
     // 2. Invoice Details
     private String invoiceId; // e.g., "SUB-20251104-0402"

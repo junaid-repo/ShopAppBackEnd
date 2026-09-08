@@ -544,7 +544,7 @@ public class ReportsGenerate {
 
         // Header (Dynamic)
         sb.append("<div class='header'>")
-                .append("<h1>Clear Bill</h1>") // Your App Name
+                .append("<h1>Instabill</h1>") // Your App Name
                 .append("<h2>").append(data.reportTitle).append("</h2>")
                 .append("<p>Duration: ").append(data.duration).append("</p>")
                 .append("</div>");
@@ -552,7 +552,7 @@ public class ReportsGenerate {
         // Table
         sb.append("<table>");
 
-        // Table Header (Dynamic)
+        // Table Header (Dynamic)h
         sb.append("<thead><tr>");
         for (String header : data.headers) {
             sb.append("<th>").append(header).append("</th>");

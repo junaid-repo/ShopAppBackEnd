@@ -613,7 +613,7 @@ public class OrderEmailTemplate {
                     </div>
                   </div>
                   <div class="footer">
-                    <p>Thank you for choosing ClearBill. We're here if you need help.</p>
+                    <p>Thank you for choosing Instabill. We're here if you need help.</p>
                   </div>
                 </div>
               </div>
@@ -701,7 +701,7 @@ public class OrderEmailTemplate {
               </div>
               <div class="footer">
                 <p>Thank you for using our service.</p>
-                <p>&copy; 2025 ClearBill. All rights reserved.</p>
+                <p>&copy; 2025 Instabill. All rights reserved.</p>
               </div>
             </div>
           </div>
@@ -719,4 +719,3 @@ public class OrderEmailTemplate {
         return finalHtml;
     }
 }
-
