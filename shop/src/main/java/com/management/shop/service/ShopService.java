@@ -1796,7 +1796,7 @@ public class ShopService {
         CustomerEntity customerEntity = new CustomerEntity();
         if (billDetails.getCustomerId() == 0) {
             customerEntity.setId(billDetails.getCustomerId());
-            customerEntity.setName("Anonymous");
+            customerEntity.setName("Walk-In");
             customerEntity.setEmail("na@na.com");
             customerEntity.setPhone("0000000000");
         } else {
