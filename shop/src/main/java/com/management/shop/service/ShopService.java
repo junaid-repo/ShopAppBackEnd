@@ -1357,7 +1357,7 @@ public class ShopService {
 
     private void checkAnonymousCustomer(BillingRequest request) {
 
-        if ("Anonymous".equals(request.getSelectedCustomer().getName())) {
+        if ("Walk-In".equals(request.getSelectedCustomer().getName())) {
             CustomerEntity existingCustomer = shopRepo.findByNameAndId(extractUsername(), request.getSelectedCustomer().getName());
 
             if (existingCustomer == null) {
@@ -1436,7 +1436,9 @@ public class ShopService {
                          else
                             paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
                     } catch (Exception e) {
-                        throw new RuntimeException(e);
+                        customerName = "Walk-In";
+                        customerEmail="na";
+                        paymentStatus = "Unknown";
                     }
 
                     return SalesResponseDTO.builder()
