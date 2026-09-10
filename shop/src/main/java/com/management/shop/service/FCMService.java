@@ -29,7 +29,7 @@ public class FCMService {
 
     @PostConstruct
     public void initializeFirebase() {
-        System.out.println("⏳ FCMService: Attempting to initialize Firebase...");
+        System.out.println("⏳ FCMService: Attempting to initialize Firebase....");
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
