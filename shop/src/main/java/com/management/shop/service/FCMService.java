@@ -4,7 +4,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.*;
-import com.management.shop.entity.BillingEntity;
 import com.management.shop.entity.FirebaseTokenEntity;
 import com.management.shop.repository.FirebaseTokenRepository;
 import jakarta.annotation.PostConstruct;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -31,7 +29,7 @@ public class FCMService {
 
     @PostConstruct
     public void initializeFirebase() {
-        System.out.println("⏳ FCMService: Attempting to initialize Firebase...");
+        System.out.println("⏳ FCMService: Attempting to initialize Firebase....");
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
