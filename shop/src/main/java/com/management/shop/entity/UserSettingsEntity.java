@@ -58,6 +58,8 @@ public class UserSettingsEntity {
     private Boolean showSupportInfo;
     private Boolean showInvoiceBarcode;
     private Boolean showGstBreakdown;
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean disableTaxBreakdownForWalkIn;
     private Boolean showShopSignature;
 
     private Boolean showBankDetails;

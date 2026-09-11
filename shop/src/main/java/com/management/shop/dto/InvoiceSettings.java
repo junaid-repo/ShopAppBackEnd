@@ -24,6 +24,7 @@ public class InvoiceSettings {
     Boolean showHsnColumn ;
     Boolean showInvoiceBarcode ;
     Boolean showGSTBreakdown;
+    Boolean disableTaxBreakdownForWalkIn;
     Boolean showShopSignature;
 
     Boolean showBankDetails;

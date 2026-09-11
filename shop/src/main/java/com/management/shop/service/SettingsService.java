@@ -192,6 +192,7 @@ public class SettingsService {
                         .showHsnColumn(userSettings != null && userSettings.getShowHsnColumn() != null ? userSettings.getShowHsnColumn() : false)
                         .showInvoiceBarcode(userSettings != null && userSettings.getShowInvoiceBarcode() != null ? userSettings.getShowInvoiceBarcode() : false)
                         .showGSTBreakdown(userSettings != null && userSettings.getShowGstBreakdown() != null ? userSettings.getShowGstBreakdown() : false)
+                        .disableTaxBreakdownForWalkIn(userSettings != null && Boolean.TRUE.equals(userSettings.getDisableTaxBreakdownForWalkIn()))
                         .showShopSignature(userSettings != null && userSettings.getShowShopSignature() != null ? userSettings.getShowShopSignature() : false)
                         .showBankDetails(userSettings != null && userSettings.getShowBankDetails() != null ? userSettings.getShowBankDetails() : false)
                         .showUpiId(userSettings != null && userSettings.getShowUpiId() != null ? userSettings.getShowUpiId() : false)
@@ -245,6 +246,7 @@ public class SettingsService {
                 .showRateColumn(Boolean.TRUE)
                 .showTotalDiscount(Boolean.FALSE)
                 .enableDecimalPlace(Boolean.TRUE)
+                .disableTaxBreakdownForWalkIn(Boolean.FALSE)
                 .showSupportInfo(Boolean.FALSE)
                 .showBillToGstinOption(Boolean.FALSE)
                 .usePaymentQrCode(Boolean.FALSE)
@@ -299,10 +301,11 @@ public class SettingsService {
         Boolean showQRCode= (Boolean) request.get("showQrCode");
         Boolean showProductGst= (Boolean) request.get("showProductGst");
         Boolean enableDecimalPlace = (Boolean) request.get("enableDecimalPlace");
+        Boolean disableTaxBreakdownForWalkIn = (Boolean) request.get("disableTaxBreakdownForWalkIn");
 
         settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms, showCustomerGstin, extractUsername(), LocalDateTime.now(),
                 showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown, showShopSignature
-        , showBankDetails, showUpiId, showQRCode, showProductGst, enableDecimalPlace);
+        , showBankDetails, showUpiId, showQRCode, showProductGst, enableDecimalPlace, disableTaxBreakdownForWalkIn);
 
 
         return "saved";

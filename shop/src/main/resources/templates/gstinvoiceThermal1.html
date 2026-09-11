@@ -312,7 +312,7 @@
     </table>
 
     <div class="totals-block">
-        <div class="t-row">
+        <div class="t-row" th:if="${!hideTaxBreakdownForWalkIn}">
             <span>SUBTOTAL</span>
             <span th:text="${amounts.grouped(taxableAmount)}"></span>
         </div>

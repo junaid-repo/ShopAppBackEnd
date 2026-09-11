@@ -576,7 +576,7 @@
         <div class="footer-right">
             <table class="totals-table">
                 <tbody>
-                <tr>
+                <tr th:if="${!hideTaxBreakdownForWalkIn}">
                     <td>Taxable Amount</td>
                     <td th:text="'₹' + ${amounts.grouped(taxableAmount)}"></td>
                 </tr>

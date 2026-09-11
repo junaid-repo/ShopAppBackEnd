@@ -257,6 +257,7 @@ public class Utility {
         Boolean showUpiId=false;
         Boolean showQRCode=false;
         Boolean showProductGst=false;
+        Boolean hideTaxBreakdownForWalkIn=false;
         Boolean enableDecimalPlace=true;
 
         UserSettingsEntity userSettingsEntity = safeUsername.isBlank()
@@ -282,6 +283,20 @@ public class Utility {
             showQRCode = valueOrDefault(userSettingsEntity.getShowQRCode(), showQRCode);
             showProductGst = valueOrDefault(userSettingsEntity.getShowProductGst(), showProductGst);
             enableDecimalPlace = valueOrDefault(userSettingsEntity.getEnableDecimalPlace(), enableDecimalPlace);
+
+            if (Boolean.TRUE.equals(userSettingsEntity.getDisableTaxBreakdownForWalkIn())
+                    && "Walk-In".equalsIgnoreCase(toEmpty(order.getCustomerName()).trim())) {
+                products.forEach(line -> {
+                    if (line.getQuantity() > 0) {
+                        // Walk-In invoices show the tax-inclusive product price as Rate.
+                        line.setRate(line.getTotalAmount() / line.getQuantity());
+                    }
+                });
+                showProductGst = false;
+                showGstBreakdown = false;
+                gstSummary.clear();
+                hideTaxBreakdownForWalkIn = true;
+            }
         }
 
         CustomerEntity custEntity = null;
@@ -361,6 +376,7 @@ public class Utility {
                 .showUpiId(showUpiId)
                 .showQrcode(showQRCode)
                 .showProductGst(showProductGst)
+                .hideTaxBreakdownForWalkIn(hideTaxBreakdownForWalkIn)
                 .enableDecimalPlace(enableDecimalPlace)
 
 

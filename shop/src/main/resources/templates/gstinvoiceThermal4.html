@@ -245,7 +245,7 @@
     <div class="double-bottom"></div>
 
     <div class="totals-area">
-        <div class="total-row">
+        <div class="total-row" th:if="${!hideTaxBreakdownForWalkIn}">
             <span>Subtotal:</span>
             <span th:text="${amounts.grouped(taxableAmount)}"></span>
         </div>

@@ -44,7 +44,9 @@ public class PDFGSTInvoiceUtil {
 
         BigDecimal taxableAmount = sumTaxableAmount(rawProducts);
         BigDecimal gstAmount = sumAmount(rawProducts, "getTaxAmount", "getTax");
-        BigDecimal grandTotal = MoneyUtils.amount(taxableAmount.add(gstAmount));
+        // Each line's totalAmount is already the final line value (including tax).
+        // Adding GST again double-counts tax, especially for Walk-In invoices.
+        BigDecimal grandTotal = MoneyUtils.amount(sumAmount(rawProducts, "getTotalAmount"));
         BigDecimal currentBalance = MoneyUtils.amount(grandTotal
                 .add(MoneyUtils.amount(data.getPreviousBalance()))
                 .subtract(MoneyUtils.amount(data.getReceivedAmount())));
@@ -214,6 +216,8 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("showUpiId", data.getShowUpiId() != null ? data.getShowUpiId() : false);
         context.setVariable("showQrCode", data.getShowQrcode() != null ? data.getShowQrcode() : false);
         context.setVariable("showProductGst", data.getShowProductGst() != null ? data.getShowProductGst() : false);
+        context.setVariable("hideTaxBreakdownForWalkIn", Boolean.TRUE.equals(data.getHideTaxBreakdownForWalkIn()));
+        context.setVariable("showProductAmount", !Boolean.TRUE.equals(data.getHideTaxBreakdownForWalkIn()));
 
 
 
@@ -221,6 +225,10 @@ public class PDFGSTInvoiceUtil {
 
         // --- Generate PDF ---
         String htmlContent = templateEngine.process(invoiceTemplate, context);
+        if (Boolean.TRUE.equals(data.getHideTaxBreakdownForWalkIn())) {
+            htmlContent = htmlContent.replaceFirst("(?i)<html(\\s|>)", "<html class=\"walk-in-tax-hidden\"$1")
+                    .replaceFirst("(?i)</head>", "<style>.walk-in-tax-hidden .col-tax,.walk-in-tax-hidden .tax-col,.walk-in-tax-hidden .col-amount,.walk-in-tax-hidden .amount-col,.walk-in-tax-hidden .col-amt{display:none!important}.walk-in-tax-hidden .items-table,.walk-in-tax-hidden .items{table-layout:auto!important}.walk-in-tax-hidden .items-table .item-col,.walk-in-tax-hidden .items-table .col-item{width:42%!important}.walk-in-tax-hidden .items-table .hsn-col,.walk-in-tax-hidden .items-table .col-hsn{width:13%!important}.walk-in-tax-hidden .items-table .qty-col,.walk-in-tax-hidden .items-table .col-qty{width:12%!important}.walk-in-tax-hidden .items-table .rate-col,.walk-in-tax-hidden .items-table .col-rate{width:17%!important}.walk-in-tax-hidden .items-table .total-col,.walk-in-tax-hidden .items-table .col-total{width:16%!important}.walk-in-tax-hidden .items .col-desc{width:48%!important}.walk-in-tax-hidden .items .col-qty{width:14%!important}.walk-in-tax-hidden .items .col-price{width:19%!important}.walk-in-tax-hidden .items .col-total{width:19%!important}</style></head>");
+        }
 
         // --- ADDED: Configure Playwright options based on environment ---
         Playwright.CreateOptions createOptions = new Playwright.CreateOptions();
