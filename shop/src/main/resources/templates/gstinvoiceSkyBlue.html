@@ -373,7 +373,7 @@
         <div class="right-column">
             <div class="totals-summary">
                 <!-- Your totals rows here (kept same as original) -->
-                <div class="summary-row">
+                <div class="summary-row" th:if="${!hideTaxBreakdownForWalkIn}">
                     <span class="label">Taxable Amount</span>
                     <span class="value" th:text="'₹ ' + ${amounts.grouped(taxableAmount)}"></span>
                 </div>

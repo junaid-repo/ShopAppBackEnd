@@ -12,6 +12,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -21,6 +25,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class FCMService {
+
+    private static final Logger log = LoggerFactory.getLogger(FCMService.class);
 
     @Autowired
     private FirebaseTokenRepository firebaseRepo;
@@ -51,7 +57,12 @@ public class FCMService {
     private final ReentrantLock reentrantLock = new ReentrantLock();
 
     public String extractUsername() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new IllegalStateException("Authenticated username is not available");
+        }
+        String username = authentication.getName();
         // For testing purposes, you might uncomment the line below
         // username="junaid1";
         return username;
@@ -106,20 +117,55 @@ public class FCMService {
     }
 
 
+    @Transactional
     public void saveFirebaseToken(Map<String, String> request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request body is required");
+        }
+
         String token = request.get("token");
         String deviceType = request.get("deviceType");
-        FirebaseTokenEntity existingToken = firebaseRepo.findByDeviceIdAndUsername(token, extractUsername(), deviceType);
-        if (existingToken != null){
-            if(!(existingToken.getFirebaseToken().equals(token))){
-                firebaseRepo.updateExistingToken(token,extractUsername(), LocalDateTime.now(), deviceType);
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("Firebase token is required");
+        }
+        if (deviceType == null || deviceType.isBlank()) {
+            throw new IllegalArgumentException("Device type is required");
+        }
+
+        String username = extractUsername();
+        String tokenFingerprint = Integer.toHexString(token.hashCode());
+        log.info("Saving Firebase token. username={}, deviceType={}, tokenFingerprint={}",
+                username, deviceType, tokenFingerprint);
+
+        try {
+            FirebaseTokenEntity tokenEntity = firebaseRepo.findByUsernameAndDeviceType(username, deviceType);
+            LocalDateTime now = LocalDateTime.now();
+
+            if (tokenEntity == null) {
+                tokenEntity = FirebaseTokenEntity.builder()
+                        .firebaseToken(token)
+                        .deviceType(deviceType)
+                        .username(username)
+                        .lastUpdatedBy(username)
+                        .lastUpdatedDate(now)
+                        .build();
+                log.debug("No Firebase token found; inserting a new token. username={}, deviceType={}",
+                        username, deviceType);
+            } else {
+                tokenEntity.setFirebaseToken(token);
+                tokenEntity.setLastUpdatedBy(username);
+                tokenEntity.setLastUpdatedDate(now);
+                log.debug("Existing Firebase token found; updating it. id={}, username={}, deviceType={}",
+                        tokenEntity.getId(), username, deviceType);
             }
 
-
-        }
-           else {
-            FirebaseTokenEntity fireBaseTokenEntity = FirebaseTokenEntity.builder().firebaseToken(token).deviceType(deviceType).username(extractUsername()).lastUpdatedBy(extractUsername()).lastUpdatedDate(LocalDateTime.now()).build();
-            FirebaseTokenEntity firebaseTokenEntity1 = firebaseRepo.save(fireBaseTokenEntity);
+            FirebaseTokenEntity savedEntity = firebaseRepo.save(tokenEntity);
+            log.info("Firebase token persisted successfully. id={}, username={}, deviceType={}, tokenFingerprint={}",
+                    savedEntity.getId(), username, deviceType, tokenFingerprint);
+        } catch (Exception e) {
+            log.error("Firebase token persistence failed. username={}, deviceType={}, tokenFingerprint={}",
+                    username, deviceType, tokenFingerprint, e);
+            throw new IllegalStateException("Failed to persist Firebase token", e);
         }
     }
 

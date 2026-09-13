@@ -266,7 +266,7 @@
     </table>
 
     <div class="totals-wrapper">
-        <div class="total-row">
+        <div class="total-row" th:if="${!hideTaxBreakdownForWalkIn}">
             <span style="color: #666;">Subtotal</span>
             <span th:text="${amounts.grouped(taxableAmount)}"></span>
         </div>

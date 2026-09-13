@@ -91,5 +91,6 @@ public class InvoiceData {
     Boolean showUpiId;
     Boolean showQrcode;
     Boolean showProductGst;
+    Boolean hideTaxBreakdownForWalkIn;
     Boolean enableDecimalPlace;
 }

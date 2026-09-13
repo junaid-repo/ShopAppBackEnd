@@ -363,7 +363,7 @@
 
         <div class="right-bottom">
             <div class="totals-box">
-                <div class="totals-row">
+                <div class="totals-row" th:if="${!hideTaxBreakdownForWalkIn}">
                     <span>Taxable Amount</span>
                     <span th:text="'₹ ' + ${amounts.grouped(taxableAmount)}"></span>
                 </div>

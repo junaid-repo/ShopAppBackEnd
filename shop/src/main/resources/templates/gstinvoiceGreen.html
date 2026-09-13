@@ -470,7 +470,7 @@
             <td>
                 <table class="inner-table bordered">
                     <tbody class="totals-summary">
-                    <tr>
+                    <tr th:if="${!hideTaxBreakdownForWalkIn}">
                         <td class="label">Taxable Amount</td>
                         <td class="text-right text-bold" th:text="${amounts.grouped(taxableAmount)}"></td>
                     </tr>

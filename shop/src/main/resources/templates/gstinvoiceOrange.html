@@ -635,7 +635,7 @@
                     <td>Discount</td>
                     <td th:text="'- ₹ ' + ${amounts.grouped(totalDiscountAmount)}"></td>
                 </tr>
-                <tr>
+                <tr th:if="${!hideTaxBreakdownForWalkIn}">
                     <td>Taxable Amount</td>
                     <td th:text="'₹ ' + ${amounts.grouped(taxableAmount)}">₹ 36,000</td>
                 </tr>
