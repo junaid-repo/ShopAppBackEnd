@@ -38,6 +38,14 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Inject Firebase Credentials
+        working-directory: ./shop
+        run: |
+          mkdir -p src/main/resources
+          cat << 'EOF' > src/main/resources/firebase-service-account.json
+          ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          EOF
+
       - name: Build Shop API
         working-directory: ./shop
         run: mvn -B clean package -DskipTests
