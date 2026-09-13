@@ -18,6 +18,11 @@ import jakarta.transaction.Transactional;
 
 public interface ProductRepository extends JpaRepository<ProductEntity, Integer> {
 
+	@Query(value = "SELECT EXISTS(SELECT 1 FROM shop_product " +
+			"WHERE user_id = :userId AND created_date >= :cutoff)", nativeQuery = true)
+	boolean existsProductCreatedSince(@Param("userId") String userId,
+									  @Param("cutoff") LocalDateTime cutoff);
+
 	@Modifying
 	@Transactional
 	@Query(value = "UPDATE shop_product SET stock = stock - ?2, updated_date=?4, updated_by=?3,  status = CASE    WHEN stock - ?2 <= 0 THEN 'Out of Stock' ELSE status END WHERE id = ?1 AND stock > 0 and user_id = ?3", nativeQuery = true)
@@ -142,5 +147,4 @@ AND p.updated_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)
             @Param("isActive") Boolean isActive
     );
 }
-
 
