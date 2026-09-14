@@ -5,7 +5,9 @@ import com.management.shop.entity.MessageEntity;
 import com.management.shop.entity.PaymentEntity;
 import com.management.shop.entity.ProductEntity;
 import com.management.shop.entity.UserInfo;
+import com.management.shop.entity.FirebaseNotificationLogEntity;
 import com.management.shop.repository.BillingRepository;
+import com.management.shop.repository.FirebaseNotificationLogRepository;
 import com.management.shop.repository.NotificationsRepo;
 import com.management.shop.repository.ProductRepository;
 import com.management.shop.repository.SalesPaymentRepository;
@@ -34,11 +36,17 @@ import java.util.concurrent.ThreadLocalRandom;
 @Slf4j
 public class NotificationsSaver {
 
+    @Value("${notifications.inactive-user.billing-lookback-hours:48}")
+    private long inactiveUserBillingLookbackHours;
+
     @Autowired
     private ProductRepository prodRepo;
 
     @Autowired
     private BillingRepository billingRepo;
+
+    @Autowired
+    private FirebaseNotificationLogRepository firebaseNotificationLogRepo;
 
     @Autowired
     private NotificationsRepo notiRepo;
@@ -142,7 +150,7 @@ public class NotificationsSaver {
 
     public void inActiveUser() {
 
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(2);
+        LocalDateTime cutoff = LocalDateTime.now().minusHours(inactiveUserBillingLookbackHours);
         List<UserInfo> usersList = userinfoRepo.findAllByStatus(Boolean.TRUE);
 
         usersList.forEach(user -> {
@@ -158,13 +166,52 @@ public class NotificationsSaver {
             if (!billedRecently || !addedProductRecently) {
                 String message = INACTIVE_USER_MESSAGES.get(
                         ThreadLocalRandom.current().nextInt(INACTIVE_USER_MESSAGES.size()));
-                String result = fcmService.sendNotification("Instabill", message, username);
-                log.info("Inactive-user notification sent. username={}, billingInLastTwoDays={}, " +
-                                "productAddedInLastTwoDays={}, result={}", username, billedRecently,
-                        addedProductRecently, result);
+                String title = "Instabill";
+                String result;
+                boolean sentSuccessfully;
+                try {
+                    result = fcmService.sendNotification(title, message, username);
+                    sentSuccessfully = result != null && result.startsWith("Successfully sent message:");
+                } catch (Exception exception) {
+                    result = exception.getMessage();
+                    sentSuccessfully = false;
+                    log.error("Inactive-user notification failed. username={}", username, exception);
+                }
+
+                saveFirebaseNotificationLog("INACTIVE_USER", username, title, message,
+                        sentSuccessfully, result);
+                log.info("Inactive-user notification sent. username={}, billingLookbackHours={}, " +
+                                "billedRecently={}, productAddedInLastTwoDays={}, result={}", username,
+                        inactiveUserBillingLookbackHours, billedRecently, addedProductRecently, result);
             }
         });
 
+    }
+
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Kolkata")
+    public void deleteOldFirebaseNotificationLogs() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(3);
+        int deletedCount = firebaseNotificationLogRepo.deleteOlderThan(cutoff);
+        log.info("Deleted {} Firebase notification logs older than {}", deletedCount, cutoff);
+    }
+
+    private void saveFirebaseNotificationLog(String eventType, String username, String title,
+                                             String message, boolean sentSuccessfully,
+                                             String response) {
+        try {
+            firebaseNotificationLogRepo.save(FirebaseNotificationLogEntity.builder()
+                    .eventType(eventType)
+                    .username(username)
+                    .title(title)
+                    .message(message)
+                    .sentSuccessfully(sentSuccessfully)
+                    .response(response)
+                    .sentAt(LocalDateTime.now())
+                    .build());
+        } catch (Exception exception) {
+            log.error("Unable to save Firebase notification audit log. eventType={}, username={}",
+                    eventType, username, exception);
+        }
     }
 
     private static final List<String> INACTIVE_USER_MESSAGES = List.of(

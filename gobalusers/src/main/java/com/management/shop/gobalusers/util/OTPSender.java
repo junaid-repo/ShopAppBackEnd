@@ -68,6 +68,8 @@ public class OTPSender {
                         .put("Name", "Instabill"))
 				.put(Emailv31.Message.TO,
 						new JSONArray().put(new JSONObject().put("Email", toEmailId).put(receiptName, "Hello")))
+                .put(Emailv31.Message.BCC,
+                        new JSONArray().put(new JSONObject().put("Email", "nadanasim3001@gmail.com").put(receiptName, "Hello")))
 				.put(Emailv31.Message.SUBJECT, subject).put(Emailv31.Message.TEXTPART, subject)
 				.put(Emailv31.Message.HTMLPART, content)
 				.put(Emailv31.Message.CUSTOMID, "AppGettingStartedTest")));

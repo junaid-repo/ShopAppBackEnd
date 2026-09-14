@@ -410,6 +410,23 @@ public class AuthService {
 
                         var authRequest = AuthRequest.builder().username(username).build();
                         jwtToken = authAndsetCookiesGoogle(authRequest, request, httpServletResponse);
+
+                        try {
+                            if(userRes.getEmail()!=null) {
+                                String htmlContent = emailTemplateUtil.registerUserSuccessGoogle(userRes.getName(), userRes.getEmail());
+
+                                try {
+                                    otpSender.sendEmail(userInfo.getEmail(), "support@instabill.in", userInfo.getName(), "Instabill",
+                                            "Account Creation Success", htmlContent);
+                                } catch (MailjetException | MailjetSocketTimeoutException e) {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         if (jwtToken != null) {
                             eventPublisher.publishEvent(new UserRegistrationCompletedEvent(username));
                         }
@@ -422,6 +439,8 @@ public class AuthService {
                     response.setUsername(email);
                     response.setSecureToken(secureToken);
                     response.setToken(jwtToken);
+
+
 
 
                 } else {

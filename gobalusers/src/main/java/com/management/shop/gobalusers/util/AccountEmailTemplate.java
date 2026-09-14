@@ -317,4 +317,120 @@ public class AccountEmailTemplate {
                 .replace("{{year}}", String.valueOf(Year.now().getValue()));
     }
 
+
+
+
+    public String registerUserSuccessGoogle(String name, String emailId) {
+        String htmlTemplate = "<!DOCTYPE html>\n" +
+                "<html lang=\"en\">\n" +
+                "<head>\n" +
+                "  <meta charset=\"UTF-8\" />\n" +
+                "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n" +
+                "  <title>Registration Successful</title>\n" +
+                "  <style>\n" +
+                "    body {\n" +
+                "      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n" +
+                "      background-color: #f4f6f8;\n" +
+                "      margin: 0;\n" +
+                "      padding: 0;\n" +
+                "    }\n" +
+                "    .email-container {\n" +
+                "      max-width: 600px;\n" +
+                "      margin: 2rem auto;\n" +
+                "      background: #ffffff;\n" +
+                "      border-radius: 12px;\n" +
+                "      overflow: hidden;\n" +
+                "      box-shadow: 0 4px 20px rgba(0,0,0,0.08);\n" +
+                "    }\n" +
+                "    .email-header {\n" +
+                "      background: linear-gradient(135deg, #28a745, #218838);\n" +
+                "      color: #ffffff;\n" +
+                "      padding: 1.5rem;\n" +
+                "      text-align: center;\n" +
+                "    }\n" +
+                "    .email-header h1 {\n" +
+                "      margin: 0;\n" +
+                "      font-size: 1.5rem;\n" +
+                "    }\n" +
+                "    .email-body {\n" +
+                "      padding: 2rem;\n" +
+                "      color: #333333;\n" +
+                "    }\n" +
+                "    .email-body h2 {\n" +
+                "      margin-top: 0;\n" +
+                "      font-size: 1.2rem;\n" +
+                "      color: #444444;\n" +
+                "      text-align: center;\n" +
+                "    }\n" +
+                "    .email-box {\n" +
+                "      background: #f9fafb;\n" +
+                "      border: 2px dashed #4285F4;\n" +
+                "      border-radius: 8px;\n" +
+                "      padding: 1rem;\n" +
+                "      text-align: center;\n" +
+                "      font-size: 1.2rem;\n" +
+                "      font-weight: bold;\n" +
+                "      color: #333;\n" +
+                "      letter-spacing: 1px;\n" +
+                "      margin: 1.5rem 0;\n" +
+                "    }\n" +
+                "    .email-footer {\n" +
+                "      text-align: center;\n" +
+                "      font-size: 0.8rem;\n" +
+                "      color: #777;\n" +
+                "      padding: 1rem;\n" +
+                "      background: #f9f9f9;\n" +
+                "    }\n" +
+                "    .btn-container {\n" +
+                "      text-align: center;\n" +
+                "      margin-top: 1.5rem;\n" +
+                "    }\n" +
+                "    .btn {\n" +
+                "      background-color: #4285F4;\n" +
+                "      color: #ffffff;\n" +
+                "      text-decoration: none;\n" +
+                "      padding: 10px 20px;\n" +
+                "      border-radius: 4px;\n" +
+                "      font-weight: bold;\n" +
+                "    }\n" +
+                "  </style>\n" +
+                "</head>\n" +
+                "<body>\n" +
+                "  <div class=\"email-container\">\n" +
+                "    <!-- Header -->\n" +
+                "    <div class=\"email-header\">\n" +
+                "      <h1>🎉 Registration Successful</h1>\n" +
+                "    </div>\n" +
+                "\n" +
+                "    <!-- Body -->\n" +
+                "    <div class=\"email-body\">\n" +
+                "      <p>Hi <strong>{{customerName}}</strong>,</p>\n" +
+                "      <p>Welcome to Instabill! Your account has been created successfully. You can now log in securely using your chosen Google account.</p>\n" +
+                "\n" +
+                "      <h2>Registered Google Account</h2>\n" +
+                "      <div class=\"email-box\">{{emailId}}</div>\n" +
+                "\n" +
+                "      <p>We’re excited to have you with us. Start managing your billing and invoicing seamlessly.</p>\n" +
+                "      \n" +
+                "      <div class=\"btn-container\">\n" +
+                "        <a href=\"https://instabill.in/login\" class=\"btn\">Log In with Google</a>\n" +
+                "      </div>\n" +
+                "      \n" +
+                "      <p style=\"margin-top: 2rem;\">Thanks,<br/>The Instabill Support Team</p>\n" +
+                "    </div>\n" +
+                "\n" +
+                "    <!-- Footer -->\n" +
+                "    <div class=\"email-footer\">\n" +
+                "      © {{year}} Instabill. All rights reserved.\n" +
+                "    </div>\n" +
+                "  </div>\n" +
+                "</body>\n" +
+                "</html>\n";
+
+        return htmlTemplate
+                .replace("{{customerName}}", name)
+                .replace("{{emailId}}", emailId)
+                .replace("{{year}}", String.valueOf(Year.now().getValue()));
+    }
+
 }
