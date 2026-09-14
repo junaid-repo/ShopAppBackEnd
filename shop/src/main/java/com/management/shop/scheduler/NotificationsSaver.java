@@ -5,6 +5,9 @@ import com.management.shop.entity.MessageEntity;
 import com.management.shop.entity.PaymentEntity;
 import com.management.shop.entity.ProductEntity;
 import com.management.shop.entity.UserInfo;
+import com.management.shop.entity.FirebaseNotificationLogEntity;
+import com.management.shop.repository.BillingRepository;
+import com.management.shop.repository.FirebaseNotificationLogRepository;
 import com.management.shop.repository.NotificationsRepo;
 import com.management.shop.repository.ProductRepository;
 import com.management.shop.repository.SalesPaymentRepository;
@@ -14,24 +17,36 @@ import com.management.shop.service.SettingsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 @Slf4j
 public class NotificationsSaver {
 
+    @Value("${notifications.inactive-user.billing-lookback-hours:48}")
+    private long inactiveUserBillingLookbackHours;
+
     @Autowired
     private ProductRepository prodRepo;
+
+    @Autowired
+    private BillingRepository billingRepo;
+
+    @Autowired
+    private FirebaseNotificationLogRepository firebaseNotificationLogRepo;
 
     @Autowired
     private NotificationsRepo notiRepo;
@@ -50,6 +65,9 @@ public class NotificationsSaver {
 
     @Autowired
     NotificationScheduler notificationScheduler;
+
+    @Autowired
+    private TaskScheduler taskScheduler;
 
 
 
@@ -120,6 +138,90 @@ public class NotificationsSaver {
 
     }
 
+    @Scheduled(cron = "0 0 11 * * *", zone = "Asia/Kolkata")
+    public void scheduleInactiveUserNotification() {
+        long randomDelayMillis = ThreadLocalRandom.current().nextLong(
+                Duration.ofHours(7).toMillis() + 1);
+        Instant scheduledTime = Instant.now().plusMillis(randomDelayMillis);
+
+        taskScheduler.schedule(this::inActiveUser, scheduledTime);
+        log.info("Inactive-user notification job scheduled for {}", scheduledTime);
+    }
+
+    public void inActiveUser() {
+
+        LocalDateTime cutoff = LocalDateTime.now().minusHours(inactiveUserBillingLookbackHours);
+        List<UserInfo> usersList = userinfoRepo.findAllByStatus(Boolean.TRUE);
+
+        usersList.forEach(user -> {
+            String username = user.getUsername();
+            if (username == null || username.isBlank()) {
+                return;
+            }
+
+            boolean billedRecently = billingRepo.existsActiveBillingSince(username, cutoff);
+            boolean addedProductRecently = prodRepo.existsProductCreatedSince(username, cutoff);
+
+            // A user is considered inactive when either expected activity is missing.
+            if (!billedRecently || !addedProductRecently) {
+                String message = INACTIVE_USER_MESSAGES.get(
+                        ThreadLocalRandom.current().nextInt(INACTIVE_USER_MESSAGES.size()));
+                String title = "Instabill";
+                String result;
+                boolean sentSuccessfully;
+                try {
+                    result = fcmService.sendNotification(title, message, username);
+                    sentSuccessfully = result != null && result.startsWith("Successfully sent message:");
+                } catch (Exception exception) {
+                    result = exception.getMessage();
+                    sentSuccessfully = false;
+                    log.error("Inactive-user notification failed. username={}", username, exception);
+                }
+
+                saveFirebaseNotificationLog("INACTIVE_USER", username, title, message,
+                        sentSuccessfully, result);
+                log.info("Inactive-user notification sent. username={}, billingLookbackHours={}, " +
+                                "billedRecently={}, productAddedInLastTwoDays={}, result={}", username,
+                        inactiveUserBillingLookbackHours, billedRecently, addedProductRecently, result);
+            }
+        });
+
+    }
+
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Kolkata")
+    public void deleteOldFirebaseNotificationLogs() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(3);
+        int deletedCount = firebaseNotificationLogRepo.deleteOlderThan(cutoff);
+        log.info("Deleted {} Firebase notification logs older than {}", deletedCount, cutoff);
+    }
+
+    private void saveFirebaseNotificationLog(String eventType, String username, String title,
+                                             String message, boolean sentSuccessfully,
+                                             String response) {
+        try {
+            firebaseNotificationLogRepo.save(FirebaseNotificationLogEntity.builder()
+                    .eventType(eventType)
+                    .username(username)
+                    .title(title)
+                    .message(message)
+                    .sentSuccessfully(sentSuccessfully)
+                    .response(response)
+                    .sentAt(LocalDateTime.now())
+                    .build());
+        } catch (Exception exception) {
+            log.error("Unable to save Firebase notification audit log. eventType={}, username={}",
+                    eventType, username, exception);
+        }
+    }
+
+    private static final List<String> INACTIVE_USER_MESSAGES = List.of(
+            "Bill now with ease",
+            "Create your next invoice in just 3 simple steps",
+            "Keep your business moving—make a bill today",
+            "Your next sale deserves a quick, professional invoice",
+            "Add products and bill faster with Instabill"
+    );
+
     @Scheduled(cron = "${scheduler.paymentReminder.cron}")
     public void paymentReminders() {
 
@@ -188,23 +290,14 @@ public class NotificationsSaver {
         return setServ.getNotificationSettings(username);
     }
 
-    private static String generanteRandomCornEx(){
-        Random random = new Random();
-
-        int second = random.nextInt(60);   // 0-59
-        int minute = random.nextInt(60);   // 0-59
-        int hour = random.nextInt(24);     // 0-23
-
-        return String.format("%d %d %d * * ?", second, minute, hour);
-    }
     private static String generateRandomCronWeekly() {
-        Random random = new Random();
-
-        int second = random.nextInt(60);   // 0-59
-        int minute = random.nextInt(60);   // 0-59
-        int hour = random.nextInt(24);     // 0-23
-        int dayOfWeek = random.nextInt(7) + 1; // 1-7 (SUN-SAT)
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        int second = random.nextInt(60);
+        int minute = random.nextInt(60);
+        int hour = random.nextInt(24);
+        int dayOfWeek = random.nextInt(1, 8);
 
         return String.format("%d %d %d ? * %d", second, minute, hour, dayOfWeek);
     }
+
 }
