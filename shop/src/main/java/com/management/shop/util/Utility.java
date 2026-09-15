@@ -134,7 +134,7 @@ public class Utility {
             userProfile = UpdateUserDTO.builder().build();
         }
 
-        InvoiceDetails order = orderId == null || orderId.isBlank() ? null : getOrderDetails(orderId);
+        InvoiceDetails order = orderId == null || orderId.isBlank() ? null : getOrderDetails(orderId, username);
         if (order == null) {
             order = InvoiceDetails.builder().items(Collections.emptyList()).build();
         }
@@ -509,6 +509,91 @@ public class Utility {
 
         // If the main billing record doesn't exist, return an empty object
         BillingEntity billDetails = billRepo.findOrderByReference(orderReferenceNumber, username);
+        if (billDetails == null) {
+            return InvoiceDetails.builder().items(Collections.emptyList()).build(); // Return empty details
+        }
+
+        // Use default empty objects if related entities are not found
+        PaymentEntity paymentEntity = salesPaymentRepo.findPaymentDetails(billDetails.getId(), username);
+        if (paymentEntity == null) paymentEntity = new PaymentEntity();
+
+        CustomerEntity customerEntity = shopRepo.findByIdAndUserId(billDetails.getCustomerId(), username);
+        if (customerEntity == null) customerEntity = new CustomerEntity();
+
+        // Check payment status safely
+        boolean paid = "Paid".equalsIgnoreCase(paymentEntity.getStatus());
+
+        List<ProductSalesEntity> prodSales = prodSalesRepo.findByOrderId(billDetails.getId(), username);
+        double totalGst = prodSales.stream()
+                .filter(Objects::nonNull)
+                .mapToDouble(ProductSalesEntity::getTax)
+                .sum();
+
+        List<OrderItem> items = prodSales.stream()
+                .filter(Objects::nonNull)
+                .map(obj -> {
+                    ProductEntity prodRes = prodRepo.findByIdAndUserId(obj.getProductId(), usernameArr[0]);
+                    String productName = (prodRes != null) ? toEmpty(prodRes.getName()) : "Unknown Product";
+
+                    return OrderItem.builder()
+                            .productName(productName)
+                            .unitPrice(obj.getTotal())
+                            .gst(obj.getTax())
+                            .sgst(obj.getSgst())
+                            .sgstPercentage(obj.getSgstPercentage())
+                            .cgst(obj.getCgst())
+                            .cgstPercentage(obj.getCgstPercentage())
+                            .igst(obj.getIgst())
+                            .igstPercentage(obj.getIgstPercentage())
+                            .details(toEmpty(obj.getProductDetails()))
+                            .discount(obj.getDiscountPercentage())
+                            .quantity(obj.getQuantity())
+                            .hsn(prodRes.getHsn())
+                            .build();
+                }).collect(Collectors.toList());
+
+        String createdDateStr = Optional.ofNullable(billDetails.getCreatedDate())
+                .map(String::valueOf)
+                .map(s -> s.length() >= 10 ? s.substring(0, 10) : "")
+                .orElse("");
+
+        return InvoiceDetails.builder()
+                .discountRate(billDetails.getDiscountPercent())
+                .discountAmount(MoneyUtils.asAmountDouble(billDetails.getDiscountAmount()))
+                .invoiceId(toEmpty(orderReferenceNumber))
+                .paymentReferenceNumber(toEmpty(paymentEntity.getPaymentReferenceNumber()))
+                .paidAmount(paymentEntity.getPaid())
+                .customerGstNumber(toEmpty(billDetails.getGstin()))
+                .dueAmount(paymentEntity.getToBePaid())
+                .items(items)
+                .gstRate(totalGst)
+                .customerPhone(toEmpty(customerEntity.getPhone()))
+                .customerEmail(toEmpty(customerEntity.getEmail()))
+                .customerId(billDetails.getCustomerId())
+                .orderedDate(createdDateStr)
+                .totalAmount(billDetails.getTotalAmount())
+                .customerName(toEmpty(customerEntity.getName()))
+                .paid(paid)
+                .build();
+    }
+
+    public InvoiceDetails getOrderDetails(String orderReferenceNumber, String username) {
+
+        String usernameArr[]={""};
+        BillingEntity billDetails = null;
+        if(orderReferenceNumber!=null){
+
+            try {
+                billDetails=   billRepo.findOrderByReference(orderReferenceNumber, username);
+            } catch (Exception e) {
+                billDetails=   billRepo.findOrderByReference(orderReferenceNumber, username);
+            }
+
+            usernameArr[0]=username;
+        }
+
+        // If the main billing record doesn't exist, return an empty object
+
         if (billDetails == null) {
             return InvoiceDetails.builder().items(Collections.emptyList()).build(); // Return empty details
         }
