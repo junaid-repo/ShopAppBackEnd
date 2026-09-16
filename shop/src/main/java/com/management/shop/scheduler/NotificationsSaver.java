@@ -138,7 +138,7 @@ public class NotificationsSaver {
 
     }
 
-    @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 0 */4 * * *", zone = "Asia/Kolkata")
     public void scheduleInactiveUserNotification() {
         long randomDelayMillis = ThreadLocalRandom.current().nextLong(
                 Duration.ofHours(7).toMillis() + 1);
@@ -159,11 +159,11 @@ public class NotificationsSaver {
                 return;
             }
 
-            boolean billedRecently = billingRepo.existsActiveBillingSince(username, cutoff);
-            boolean addedProductRecently = prodRepo.existsProductCreatedSince(username, cutoff);
+            Long billedRecently = billingRepo.existsActiveBillingSince(username, cutoff);
+            Long addedProductRecently = prodRepo.existsProductCreatedSince(username, cutoff);
 
             // A user is considered inactive when either expected activity is missing.
-            if (!billedRecently || !addedProductRecently) {
+            if (billedRecently==1 || addedProductRecently==1) {
                 String message = INACTIVE_USER_MESSAGES.get(
                         ThreadLocalRandom.current().nextInt(INACTIVE_USER_MESSAGES.size()));
                 String title = "Instabill";
