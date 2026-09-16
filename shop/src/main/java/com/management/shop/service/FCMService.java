@@ -92,7 +92,7 @@ public class FCMService {
             // Configure specific settings for Android devices
             AndroidConfig androidConfig = AndroidConfig.builder()
                     .setNotification(AndroidNotification.builder()
-                            .setIcon("instabill_icon_artwork") // The name of the icon file in your Android res/drawable folder (without the .png extension)
+                            .setIcon("ic_stat_name") // The name of the icon file in your Android res/drawable folder (without the .png extension)
                             .setColor("#4CAF50") // The background color of the circle (use your Instabill green hex code)
                             .build())
                     .build();
