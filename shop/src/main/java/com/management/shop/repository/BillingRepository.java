@@ -21,9 +21,9 @@ import com.management.shop.entity.BillingEntity;
 public interface BillingRepository extends JpaRepository<BillingEntity, Integer> {
 
     @Query(value = "SELECT EXISTS(SELECT 1 FROM billing_details " +
-            "WHERE user_id = :userId AND created_date >= :cutoff " +
+            "WHERE user_id = :userId AND created_date <= :cutoff " +
             "AND invoice_status = 'ACTIVE')", nativeQuery = true)
-    boolean existsActiveBillingSince(@Param("userId") String userId,
+    Long existsActiveBillingSince(@Param("userId") String userId,
                                      @Param("cutoff") LocalDateTime cutoff);
 
     // Keep this without ACTIVE check so users can still view details of cancelled orders

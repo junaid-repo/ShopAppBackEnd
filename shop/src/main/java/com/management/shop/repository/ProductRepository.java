@@ -19,8 +19,8 @@ import jakarta.transaction.Transactional;
 public interface ProductRepository extends JpaRepository<ProductEntity, Integer> {
 
 	@Query(value = "SELECT EXISTS(SELECT 1 FROM shop_product " +
-			"WHERE user_id = :userId AND created_date >= :cutoff)", nativeQuery = true)
-	boolean existsProductCreatedSince(@Param("userId") String userId,
+			"WHERE user_id = :userId AND created_date <= :cutoff)", nativeQuery = true)
+	Long existsProductCreatedSince(@Param("userId") String userId,
 									  @Param("cutoff") LocalDateTime cutoff);
 
 	@Modifying

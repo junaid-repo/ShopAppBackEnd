@@ -82,31 +82,37 @@ public class FCMService {
 
     public String sendNotification(String title, String body, String username) {
         try {
+            List<String> allToken = firebaseRepo.findAllTokenByUsername(username);
 
-            List<String> allToken= firebaseRepo.findAllTokenByUsername(username);
+            Notification notification = Notification.builder()
+                    .setTitle(title)
+                    .setBody(body)
+                    .build();
 
-            Notification notification = Notification.builder().setTitle(title).setBody(body).build();
-          //  Message message = Message.builder().setToken(getToken(username)).setNotification(notification).putData("url", "https://clearbills.info").build();
-
+            // Configure specific settings for Android devices
+            AndroidConfig androidConfig = AndroidConfig.builder()
+                    .setNotification(AndroidNotification.builder()
+                            .setIcon("ic_stat_name") // The name of the icon file in your Android res/drawable folder (without the .png extension)
+                            .setColor("#4CAF50") // The background color of the circle (use your Instabill green hex code)
+                            .build())
+                    .build();
 
             MulticastMessage message = MulticastMessage.builder()
-                    .addAllTokens(allToken) // 🟢 Pass the entire list of tokens here
+                    .addAllTokens(allToken)
                     .setNotification(notification)
+                    .setAndroidConfig(androidConfig) // 🟢 Add the Android config here
                     .putData("url", frontendBaseUrl + "/notifications")
                     .build();
 
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
-            System.out.println("⚠️ Token is dead/unregistered. Deleting: " + response.getResponses().toString());
 
             if (response.getFailureCount() > 0) {
                 List<SendResponse> responses = response.getResponses();
                 for (int i = 0; i < responses.size(); i++) {
                     if (!responses.get(i).isSuccessful()) {
-                        // If Firebase says the token is dead (Unregistered), delete it!
                         String deadToken = allToken.get(i);
                         System.out.println("⚠️ Token is dead/unregistered. Deleting: " + deadToken);
-
-                        //firebaseRepo.deleteByFirebaseToken(deadToken);
+                        // firebaseRepo.deleteByFirebaseToken(deadToken);
                     }
                 }
             }
