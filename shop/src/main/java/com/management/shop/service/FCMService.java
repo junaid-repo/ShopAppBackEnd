@@ -96,6 +96,7 @@ public class FCMService {
                     .build();
 
             BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+            System.out.println("⚠️ Token is dead/unregistered. Deleting: " + response.getResponses().toString());
 
             if (response.getFailureCount() > 0) {
                 List<SendResponse> responses = response.getResponses();
@@ -105,7 +106,7 @@ public class FCMService {
                         String deadToken = allToken.get(i);
                         System.out.println("⚠️ Token is dead/unregistered. Deleting: " + deadToken);
 
-                        firebaseRepo.deleteByFirebaseToken(deadToken);
+                        //firebaseRepo.deleteByFirebaseToken(deadToken);
                     }
                 }
             }
