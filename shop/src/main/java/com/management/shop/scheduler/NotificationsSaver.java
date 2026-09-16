@@ -138,13 +138,13 @@ public class NotificationsSaver {
 
     }
 
-    @Scheduled(cron = "0 0 11 * * *", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Kolkata")
     public void scheduleInactiveUserNotification() {
         long randomDelayMillis = ThreadLocalRandom.current().nextLong(
                 Duration.ofHours(7).toMillis() + 1);
         Instant scheduledTime = Instant.now().plusMillis(randomDelayMillis);
-
-        taskScheduler.schedule(this::inActiveUser, scheduledTime);
+        inActiveUser();
+        //taskScheduler.schedule(this::inActiveUser, scheduledTime);
         log.info("Inactive-user notification job scheduled for {}", scheduledTime);
     }
 
