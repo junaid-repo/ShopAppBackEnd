@@ -138,7 +138,7 @@ public class NotificationsSaver {
 
     }
 
-    @Scheduled(cron = "0 0 */4 * * *", zone = "Asia/Kolkata")
+    @Scheduled(cron = "0 0 11 * * *", zone = "Asia/Kolkata")
     public void scheduleInactiveUserNotification() {
         long randomDelayMillis = ThreadLocalRandom.current().nextLong(
                 Duration.ofHours(7).toMillis() + 1);
