@@ -421,6 +421,19 @@ public class ShopController {
 
     }
 
+    @GetMapping("api/shop/get/salesForCustomer")
+    ResponseEntity<Page<SalesResponseDTO>> getSalesListForCustomer(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
+                                                        @RequestParam(defaultValue = "createdAt") String sort,
+                                                        @RequestParam(defaultValue = "desc") String dir,
+                                                        @RequestParam String customer_id) {
+
+        log.info("the search param is -->" + customer_id);
+        Page<SalesResponseDTO> response = serv.getCustomerAllSales(page, size, sort, dir, customer_id);
+        log.info("the getSalesList response is -->" + response);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+
+    }
+
     @GetMapping("api/shop/get/count/sales")
     ResponseEntity<List<SalesResponseDTO>> getLastNSales(@RequestParam(defaultValue = "3") int count) {
 

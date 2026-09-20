@@ -1461,6 +1461,78 @@ public class ShopService {
     }
 
     @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
+    public Page<SalesResponseDTO> getCustomerAllSales(int page, int size, String sort, String dir, String customer_Id) {
+        String username = extractUsername();
+        boolean isGstPrioritySort = "gstBilling".equalsIgnoreCase(sort);
+        boolean isDuePrioritySort = "dueAmount".equalsIgnoreCase(sort);
+        Pageable pageable;
+        Page<BillingEntity> billingPage;
+
+
+            String sortField = sort;
+
+            // Map API field name to DB field
+            if ("date".equalsIgnoreCase(sortField)) sortField = "created_date";
+            if ("id".equalsIgnoreCase(sortField)) sortField = "invoice_number";
+            if ("total".equalsIgnoreCase(sortField)) sortField = "total_amount";
+            if ("customer".equalsIgnoreCase(sortField)) sortField = "customer_id";
+            if ("paid".equalsIgnoreCase(sortField)) sortField = "paying_amount";
+
+            Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+            Sort sortOrder = Sort.by(direction, sortField);
+
+            // Follow same paging convention as getAllProducts (1-based page param)
+            pageable = PageRequest.of(Math.max(0, page - 1), size, sortOrder);
+
+
+                billingPage = billRepo.findByUserIdAndCustomerAndSearchNativeWithCustomerId(username,  Integer.parseInt(customer_Id.trim()), pageable);
+
+
+
+        List<SalesResponseDTO> dtoList = billingPage.getContent().stream()
+                .map(obj -> {
+                    String customerName = null;
+                    String customerEmail=null;
+                    String paymentStatus = null;
+                    try {
+                        CustomerEntity custEntity=     shopRepo.findByIdAndUserId(obj.getCustomerId(), username);
+                        customerName = custEntity.getName();
+                        try {
+                            customerEmail=custEntity.getEmail();
+                        } catch (Exception e) {
+                            customerEmail="na";
+                        }
+
+                        if(obj.getInvoiceStatus().equals("CANCELLED"))
+                            paymentStatus ="CANCELLED";
+                        else
+                            paymentStatus = salesPaymentRepo.findPaymentDetails(obj.getId(), username).getStatus();
+                    } catch (Exception e) {
+                        customerName = "Walk-In";
+                        customerEmail="na";
+                        paymentStatus = "Unknown";
+                    }
+
+                    return SalesResponseDTO.builder()
+                            .customer(customerName)
+                            .remarks(obj.getRemarks())
+                            .date(obj.getCreatedDate().toString())
+                            .id(obj.getInvoiceNumber())
+                            .total(obj.getTotalAmount())
+                            .paid(obj.getPayingAmount())
+                            .status(paymentStatus)
+                            .count(obj.getUnitsSold())
+                            .gstin(obj.getGstin())
+                            .customerEmail(customerEmail)
+                            .reminderCount(obj.getDueReminderCount())
+                            .build();
+                })
+                .toList();
+
+        return new PageImpl<>(dtoList, pageable, billingPage.getTotalElements());
+    }
+
+    @Cacheable(value = "sales", keyGenerator = "userScopedKeyGenerator")
     public List<SalesResponseDTO> getLastNSales(int count) {
 
 

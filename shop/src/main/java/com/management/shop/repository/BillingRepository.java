@@ -93,6 +93,7 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
                     "  LOWER(b.invoice_number) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
                     "  OR LOWER(s.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
                     "  OR CAST(b.total_amount AS CHAR) LIKE CONCAT('%', :searchTerm, '%')" +
+                    "  OR CAST(b.customer_id AS CHAR) = :searchTerm" +
                     ")",
             countQuery = "SELECT COUNT(*) FROM billing_details b " +
                     "JOIN shop_customer s ON b.customer_id = s.id " +
@@ -101,12 +102,30 @@ public interface BillingRepository extends JpaRepository<BillingEntity, Integer>
                     "  LOWER(b.invoice_number) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
                     "  OR LOWER(s.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
                     "  OR CAST(b.total_amount AS CHAR) LIKE CONCAT('%', :searchTerm, '%')" +
+                    "  OR CAST(b.customer_id AS CHAR) = :searchTerm" +
                     ")",
             nativeQuery = true
     )
     Page<BillingEntity> findByUserIdAndSearchNative(
             @Param("userId") String userId,
             @Param("searchTerm") String searchTerm,
+            Pageable pageable
+    );
+
+    @Query(
+            value = "SELECT b.* FROM billing_details b " +
+                    "JOIN shop_customer s ON b.customer_id = s.id " +
+                    "WHERE b.user_id = :userId  " +
+                    "AND (:customerId IS NULL OR b.customer_id = :customerId)",
+            countQuery = "SELECT COUNT(*) FROM billing_details b " +
+                    "JOIN shop_customer s ON b.customer_id = s.id " +
+                    "WHERE b.user_id = :userId  " +
+                    "AND (:customerId IS NULL OR b.customer_id = :customerId)",
+            nativeQuery = true
+    )
+    Page<BillingEntity> findByUserIdAndCustomerAndSearchNativeWithCustomerId(
+            @Param("userId") String userId,
+            @Param("customerId") Integer customerId,
             Pageable pageable
     );
 
