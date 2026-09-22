@@ -44,22 +44,10 @@ public class GeminiApiCalls {
 
 
     public String geminiApiCall(String base64Image, String mimeType) {
-        log.info("Entered geminiApiCall with mimeType={}, imagePayloadSize={}", mimeType,
-                base64Image != null ? base64Image.length() : 0);
+        log.info("Entered geminiApiCall with mimeType={}, imagePayloadSize={}",
+                mimeType, base64Image != null ? base64Image.length() : 0);
 
-    /*    String promptText = "Analyze this image and extract all products. " +
-                "Return ONLY a valid CSV format with the following exact headers on the first line: " +
-                "name,hsn,category,costPrice,price,stock,tax,location. " +
-                "Rules: " +
-
-                "1. category should be 'Product' if not specified. " +
-                "2. costPrice should be same as price if not specified. " +
-                "3. tax should be 0 if not specified. " +
-                "4. stock should be 1 if not specified. " +
-                "5. location should be blank if not specified. " +
-                "Do not include markdown formatting like ```csv or any other text.";*/
-
-        String promptText ="Extract all products from this image as raw CSV.\n" +
+        String promptText = "Extract all products from this image as raw CSV.\n" +
                 "Headers: name,hsn,category,costPrice,price,stock,tax,location\n" +
                 "\n" +
                 "Rules for missing data:\n" +
@@ -76,7 +64,8 @@ public class GeminiApiCalls {
                 "\n" +
                 "Output ONLY raw CSV text. No markdown blocks, no formatting, no explanations.";
 
-        // 4. Build the JSON payload request body
+        log.info("Constructing JSON payload for Gemini API request");
+
         Map<String, Object> inlineData = new HashMap<>();
         inlineData.put("mimeType", mimeType);
         inlineData.put("data", base64Image);
@@ -97,14 +86,21 @@ public class GeminiApiCalls {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-        String url=geminiApiUrl+geminiApiKey;
+        String url = geminiApiUrl + geminiApiKey;
+        log.info("The constructed Gemini request geminiApiUrl: {}", geminiApiUrl);
+        log.info("The constructed Gemini request geminiApiKey: {}", geminiApiKey);
+
+        log.info("The constructed Gemini request url: {}", url);
+
         log.info("Sending Gemini request to configured URL, partCount={}", ((List<?>) content.get("parts")).size());
+
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
         log.info("Received Gemini response with status={} and bodyPresent={}",
                 response.getStatusCode(), response.getBody() != null);
 
-        var apiLog = GeminiTextExtract.builder().createdDate(LocalDateTime.now())
+        var apiLog = GeminiTextExtract.builder()
+                .createdDate(LocalDateTime.now())
                 .username(extractUsername())
                 .request("geminiPrompt")
                 .name("Gemini Text Extraction API")
@@ -114,15 +110,18 @@ public class GeminiApiCalls {
                 .build();
 
         try {
+            log.info("Attempting to save API call audit log for user={}", extractUsername());
             apiLogSaveRepo.save(apiLog);
-            log.info("Saved Gemini API call log entry for user={}", extractUsername());
+            log.info("Successfully saved Gemini API call log entry for user={}", extractUsername());
         } catch (Exception e) {
-            log.error("Error while saving logs for Gemini API call", e);
+            log.info("Failed to save logs for Gemini API call: {}", e.getMessage());
         }
 
         String extracted = extractGeminiResponse(response.getBody());
+
         log.info("Gemini response parsed successfully, extractedTextLength={}",
                 extracted != null ? extracted.length() : 0);
+
         return extracted;
     }
 
