@@ -99,4 +99,12 @@ public class SalesCacheService {
                     .removeIf(k -> k.toString().startsWith("reports::" + username + "::"));
         }
     }
+    public void evictsInvoiceCache(String username) {
+        org.springframework.cache.Cache springCache = cacheManager.getCache("invoice");
+        if (springCache != null) {
+            Cache<Object, Object> nativeCache = (Cache<Object, Object>) springCache.getNativeCache();
+            nativeCache.asMap().keySet()
+                    .removeIf(k -> k.toString().startsWith("invoice::" + username + "::"));
+        }
+    }
 }
