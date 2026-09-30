@@ -23,8 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
-import java.util.Map;
+import java.util.*;
 
 
 @RestController
@@ -178,23 +177,22 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        // 1. Try to read refresh token from cookies first
-        String refreshTokenStr = null;
+        // 1. Gather all candidate refresh tokens from cookies (in case of duplicate/stale path cookies)
+        List<String> candidates = new ArrayList<>();
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if (serv.getRefreshCookieName().equals(cookie.getName())) {
-                    refreshTokenStr = cookie.getValue();
-                    break;
+                if (serv.getRefreshCookieName().equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                    candidates.add(cookie.getValue().trim());
                 }
             }
         }
 
         // Fallback: check request body if cookie was not provided
-        if (refreshTokenStr == null && requestBody != null) {
-            refreshTokenStr = requestBody.getRefreshToken();
+        if (requestBody != null && requestBody.getRefreshToken() != null && !requestBody.getRefreshToken().isBlank()) {
+            candidates.add(requestBody.getRefreshToken().trim());
         }
 
-        if (refreshTokenStr == null || refreshTokenStr.isBlank()) {
+        if (candidates.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(RefreshTokenResponse.builder()
                             .success(false)
@@ -203,10 +201,22 @@ public class AuthController {
         }
 
         try {
-            // 2. Validate token from database
-            RefreshToken validToken = refreshTokenService.findByToken(refreshTokenStr)
-                    .map(refreshTokenService::verifyExpiration)
-                    .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+            // 2. Validate token: search candidates for an active, non-revoked token
+            RefreshToken validToken = null;
+            for (String candidate : candidates) {
+                Optional<RefreshToken> tokenOpt = refreshTokenService.findByToken(candidate);
+                if (tokenOpt.isPresent()) {
+                    RefreshToken t = tokenOpt.get();
+                    if (!t.isRevoked() && !t.getExpiryDate().isBefore(java.time.Instant.now())) {
+                        validToken = t;
+                        break;
+                    }
+                }
+            }
+
+            if (validToken == null) {
+                throw new RuntimeException("Invalid or revoked refresh token");
+            }
 
             String username = validToken.getUsername();
 

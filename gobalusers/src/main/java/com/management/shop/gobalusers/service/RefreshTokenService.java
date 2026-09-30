@@ -4,6 +4,7 @@ import com.management.shop.gobalusers.entity.RefreshToken;
 import com.management.shop.gobalusers.repository.RefreshTokenRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +25,13 @@ public class RefreshTokenService {
     private RefreshTokenRepository refreshTokenRepository;
 
     /**
-     * Create a brand new refresh token for a user
+     * Create a brand new refresh token for a user.
+     * Revokes all previous active tokens so only 1 valid token exists per user.
      */
+    @Transactional
     public RefreshToken createRefreshToken(String username) {
+        refreshTokenRepository.revokeAllByUsername(username);
+
         RefreshToken refreshToken = RefreshToken.builder()
                 .username(username)
                 .token(UUID.randomUUID().toString())
@@ -75,5 +80,21 @@ public class RefreshTokenService {
     @Transactional
     public void revokeAllUserTokens(String username) {
         refreshTokenRepository.revokeAllByUsername(username);
+    }
+
+    /**
+     * Runs every day at 12:00 AM (midnight) IST to permanently delete
+     * all revoked and expired refresh tokens from the database.
+     */
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Kolkata")
+    @Transactional
+    public void purgeRevokedAndExpiredTokens() {
+        log.info("Starting scheduled cleanup of revoked and expired refresh tokens...");
+        try {
+            int deletedCount = refreshTokenRepository.deleteRevokedAndExpiredTokens(Instant.now());
+            log.info("Refresh token cleanup completed. Deleted {} stale/revoked records.", deletedCount);
+        } catch (Exception e) {
+            log.error("Failed to purge revoked refresh tokens: {}", e.getMessage(), e);
+        }
     }
 }

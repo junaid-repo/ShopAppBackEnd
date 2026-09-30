@@ -602,11 +602,16 @@ public class AuthService {
 
         if (isHostedEnvironment()) {
             String targetDomain = resolveHostedCookieDomain(request);
+            // Invalidate any legacy cookie set with Path=/auth
+            response.addHeader("Set-Cookie",
+                    refreshCookieName + "=; Path=/auth; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=0");
             response.addHeader("Set-Cookie",
                     refreshCookieName + "=" + refreshTokenValue +
                             "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain +
                             "; Max-Age=" + maxAgeSeconds);
         } else {
+            // Invalidate any legacy cookie set with Path=/auth
+            response.addHeader("Set-Cookie", refreshCookieName + "=; Path=/auth; HttpOnly; Max-Age=0; SameSite=Lax");
             String cookieHeader = String.format(
                     "%s=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
                     refreshCookieName, refreshTokenValue, maxAgeSeconds
@@ -638,9 +643,11 @@ public class AuthService {
         if (isHostedEnvironment()) {
             String targetDomain = resolveHostedCookieDomain(request);
             response.addHeader("Set-Cookie", authCookieName + "=; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=0");
+            response.addHeader("Set-Cookie", refreshCookieName + "=; Path=/auth; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=0");
             response.addHeader("Set-Cookie", refreshCookieName + "=; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=0");
         } else {
             response.addHeader("Set-Cookie", authCookieName + "=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax");
+            response.addHeader("Set-Cookie", refreshCookieName + "=; Path=/auth; HttpOnly; Max-Age=0; SameSite=Lax");
             response.addHeader("Set-Cookie", refreshCookieName + "=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax");
         }
     }
