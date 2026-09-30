@@ -7,6 +7,7 @@ import com.management.shop.dto.OrderItemInvoice;
 import com.management.shop.dto.UpdateUserDTO;
 import com.management.shop.entity.*;
 import com.management.shop.repository.*;
+import com.management.shop.service.SalesCacheService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,6 +97,8 @@ public class Utility {
     private String toEmpty(String value) {
         return value == null ? "" : value;
     }
+    @Autowired
+    SalesCacheService salesCacheService;
 
     private double toZero(Double value) {
         return value == null ? 0d : value;
@@ -835,6 +838,12 @@ public class Utility {
 
         }
 
+
+        try {
+            salesCacheService.evictsInvoiceCache(extractUsername());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
 
         return response;

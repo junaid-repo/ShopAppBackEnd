@@ -88,6 +88,12 @@ public class AuthService {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+
+    @Value("${auth.refresh-cookie.name:refreshToken}")
+    private String refreshCookieName;
+
     public AuthService(AuthenticationManager authenticationManager, JwtService jwtService) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
@@ -476,6 +482,8 @@ public class AuthService {
             log.info("Inside authAndsetCookiesGoogle with userSource --> " + userSource);
 
             String token = jwtService.generateToken(authRequest.getUsername());
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.getUsername());
+            setRefreshTokenCookie(refreshToken.getToken(), request, response);
             log.info("Inside authAndsetCookiesGoogle with token --> " + token);
             if (isHostedEnvironment()) {
                 String targetDomain = resolveHostedCookieDomain(request);
@@ -520,7 +528,8 @@ public class AuthService {
 
             if (authentication.isAuthenticated() && isUserActive) {
                 String token = jwtService.generateToken(authRequest.getUsername());
-
+                RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.getUsername());
+                setRefreshTokenCookie(refreshToken.getToken(), request, response);
                 if (isHostedEnvironment()) {
                     String targetDomain = resolveHostedCookieDomain(request);
 
@@ -543,12 +552,12 @@ public class AuthService {
         return null;
     }
 
-    private boolean isHostedEnvironment() {
+    public boolean isHostedEnvironment() {
         List<String> activeProfiles = Arrays.asList(environment.getActiveProfiles());
         return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
     }
 
-    private String resolveHostedCookieDomain(HttpServletRequest request) {
+    public String resolveHostedCookieDomain(HttpServletRequest request) {
         String host = Optional.ofNullable(request.getServerName())
                 .orElse("")
                 .toLowerCase(Locale.ROOT);
@@ -586,5 +595,53 @@ public class AuthService {
         log.info("Inside randomPassword --> " + password);
 
         return password.toString();
+    }
+
+    public void setRefreshTokenCookie(String refreshTokenValue, HttpServletRequest request, HttpServletResponse response) {
+        long maxAgeSeconds = 90L * 24 * 60 * 60; // 90 days
+
+        if (isHostedEnvironment()) {
+            String targetDomain = resolveHostedCookieDomain(request);
+            response.addHeader("Set-Cookie",
+                    refreshCookieName + "=" + refreshTokenValue +
+                            "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain +
+                            "; Max-Age=" + maxAgeSeconds);
+        } else {
+            String cookieHeader = String.format(
+                    "%s=%s; Path=/; HttpOnly; Max-Age=%d; SameSite=Lax",
+                    refreshCookieName, refreshTokenValue, maxAgeSeconds
+            );
+            response.addHeader("Set-Cookie", cookieHeader);
+        }
+    }
+
+    public void setAccessTokenCookie(String token, HttpServletRequest request, HttpServletResponse response) {
+        if (isHostedEnvironment()) {
+            String targetDomain = resolveHostedCookieDomain(request);
+            response.addHeader("Set-Cookie",
+                    authCookieName + "=" + token + "; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=36000");
+        } else {
+            String cookieHeader = String.format(
+                    "%s=%s; Path=/; HttpOnly; Max-Age=3600; SameSite=Lax",
+                    authCookieName, token
+            );
+            response.addHeader("Set-Cookie", cookieHeader);
+        }
+    }
+
+    public String getRefreshCookieName() {
+        return refreshCookieName;
+    }
+
+    // Helper to delete cookies upon logout
+    public void clearAuthCookies(HttpServletRequest request, HttpServletResponse response) {
+        if (isHostedEnvironment()) {
+            String targetDomain = resolveHostedCookieDomain(request);
+            response.addHeader("Set-Cookie", authCookieName + "=; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=0");
+            response.addHeader("Set-Cookie", refreshCookieName + "=; Path=/; HttpOnly; Secure; SameSite=None; Domain=" + targetDomain + "; Max-Age=0");
+        } else {
+            response.addHeader("Set-Cookie", authCookieName + "=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax");
+            response.addHeader("Set-Cookie", refreshCookieName + "=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax");
+        }
     }
 }
