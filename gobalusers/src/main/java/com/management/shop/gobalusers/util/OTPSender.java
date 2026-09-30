@@ -115,9 +115,9 @@ public class OTPSender {
 
         HttpClient client = HttpClient.newHttpClient();
         String msgBody = "Dear User,\n\n" +
-                "Please use " + otp + " to reset your password in Instabill. This OTP is valid for " + timing + " minutes. Please don't share this OTP.\n\n" +
+                "Please use " + otp + " to reset your password in ClearBills. This OTP is valid for " + timing + " minutes. Please don't share this OTP.\n\n" +
                 "Regards,\n" +
-                "Instabill from Lumenapps";
+                "ClearBills from Lumenapps";
 
 // ✅ Encode message
         String encodedMessage =
