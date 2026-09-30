@@ -89,7 +89,7 @@ public class RefreshTokenService {
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Kolkata")
     @Transactional
     public void purgeRevokedAndExpiredTokens() {
-        log.info("Starting scheduled cleanup of revoked and expired refresh tokens...");
+        log.info("Starting scheduled cleanup of revoked and expired refresh tokens....");
         try {
             int deletedCount = refreshTokenRepository.deleteRevokedAndExpiredTokens(Instant.now());
             log.info("Refresh token cleanup completed. Deleted {} stale/revoked records.", deletedCount);
