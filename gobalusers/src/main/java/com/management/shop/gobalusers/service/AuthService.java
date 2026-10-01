@@ -203,7 +203,13 @@ public class AuthService {
     }
 
     public ValidateContactResponse validateContact(ValidateContactRequest userInfo) {
-        List<UserInfo> res = userinfoRepo.validateContact(userInfo.getEmail(), userInfo.getPhone(), true);
+        List<UserInfo> res = null;
+        if (userInfo.getEmail().length() >0) {
+
+            res = userinfoRepo.validateContact(userInfo.getEmail(), userInfo.getPhone(), true);
+        } else {
+            res = userinfoRepo.validateContactOnlyPhone("na", userInfo.getPhone(), true);
+        }
 
         if (res.size() > 0) {
             return ValidateContactResponse.builder().userId(res.get(0).getId()).username(res.get(0).getUsername()).status(false).message("Email/Phone already registered").build();
@@ -282,13 +288,13 @@ public class AuthService {
 
             paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("SYSTEM").updatedBy("SYSTEM").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
 
-            var invoiceSequence= InvoiceSequence.builder().shopId(res.getUsername())
-                            .financialYear("2026")
-                                    .prefix("CB")
+            var invoiceSequence = InvoiceSequence.builder().shopId(res.getUsername())
+                    .financialYear("2026")
+                    .prefix("CB")
                     .updatedDate(LocalDateTime.now())
                     .username(res.getUsername())
-                                            .currentValue(0)
-                                                    .build();
+                    .currentValue(0)
+                    .build();
 
             try {
                 invoiceSeqRepo.save(invoiceSequence);
@@ -376,25 +382,26 @@ public class AuthService {
             List<UserInfo> res = userinfoRepo.validateUser(email, "na", true);
 
             try {
-                if (res.size() > 0){
-                UserInfoStatus userInfoStatus=userStatusRepo.validateUserStatus(res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getUsername());
+                if (res.size() > 0) {
+                    UserInfoStatus userInfoStatus = userStatusRepo.validateUserStatus(res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getUsername());
 
-                if(userInfoStatus.getStatus().equals("DELETEDBYUSER")){
-                    res=null;
-                }}
+                    if (userInfoStatus.getStatus().equals("DELETEDBYUSER")) {
+                        res = null;
+                    }
+                }
             } catch (Exception e) {
 
             }
-            String secureToken= null;
+            String secureToken = null;
 
             try {
                 if (res.size() > 0) {
                     var authRequest = AuthRequest.builder().username(res.stream().sorted(Comparator.comparing(UserInfo::getCreatedAt).reversed()).findFirst().get().getUsername()).build();
                     jwtToken = authAndsetCookiesGoogle(authRequest, request, httpServletResponse);
-                    secureToken= randomPassword(15);
+                    secureToken = randomPassword(15);
                     updatePassword(UserInfo.builder().username(res.get(0).getUsername()).password(secureToken).build());
                 } else {
-                    secureToken= randomPassword(15);
+                    secureToken = randomPassword(15);
 
                     var userInfo = UserInfo.builder().email(email).isActive(true).name(name)
                             .phoneNumber("0000000000")
@@ -418,7 +425,7 @@ public class AuthService {
                         jwtToken = authAndsetCookiesGoogle(authRequest, request, httpServletResponse);
 
                         try {
-                            if(userRes.getEmail()!=null) {
+                            if (userRes.getEmail() != null) {
                                 String htmlContent = emailTemplateUtil.registerUserSuccessGoogle(userRes.getName(), userRes.getEmail());
 
                                 try {
@@ -445,8 +452,7 @@ public class AuthService {
                     response.setUsername(email);
                     response.setSecureToken(secureToken);
                     response.setToken(jwtToken);
-
-
+                    response.setRefreshToken(httpServletResponse.getHeader("X-Refresh-Token"));
 
 
                 } else {
@@ -484,6 +490,7 @@ public class AuthService {
             String token = jwtService.generateToken(authRequest.getUsername());
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.getUsername());
             setRefreshTokenCookie(refreshToken.getToken(), request, response);
+            response.addHeader("X-Refresh-Token", refreshToken.getToken());
             log.info("Inside authAndsetCookiesGoogle with token --> " + token);
             if (isHostedEnvironment()) {
                 String targetDomain = resolveHostedCookieDomain(request);
@@ -520,7 +527,7 @@ public class AuthService {
         log.info("The userSource --> " + userSource);
         boolean isUserActive = checkUserStatus(authRequest.getUsername());
 
-        if (userSource.equals("phone") || userSource.equals("google") ) {
+        if (userSource.equals("phone") || userSource.equals("google")) {
             log.info("Inside authAndsetCookies with userSource --> " + userSource);
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword()));
@@ -530,6 +537,7 @@ public class AuthService {
                 String token = jwtService.generateToken(authRequest.getUsername());
                 RefreshToken refreshToken = refreshTokenService.createRefreshToken(authRequest.getUsername());
                 setRefreshTokenCookie(refreshToken.getToken(), request, response);
+                response.addHeader("X-Refresh-Token", refreshToken.getToken());
                 if (isHostedEnvironment()) {
                     String targetDomain = resolveHostedCookieDomain(request);
 
@@ -546,7 +554,7 @@ public class AuthService {
 
                 return token;
             }
-        }  else {
+        } else {
             throw new UsernameNotFoundException("invalid user request !");
         }
         return null;
@@ -579,13 +587,13 @@ public class AuthService {
     }
 
     private String randomPassword(Integer length) {
-           final String CHARACTERS =
+        final String CHARACTERS =
                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
                         "abcdefghijklmnopqrstuvwxyz" +
                         "0123456789" +
                         "!@#$%^&*()-_=+<>?";
 
-            final SecureRandom random = new SecureRandom();
+        final SecureRandom random = new SecureRandom();
         StringBuilder password = new StringBuilder(length);
 
         for (int i = 0; i < length; i++) {

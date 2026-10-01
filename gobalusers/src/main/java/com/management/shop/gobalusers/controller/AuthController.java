@@ -152,9 +152,9 @@ public class AuthController {
         return authPhoneService.reSendOtpPhone(userInfo);
     }
     @PostMapping("/auth/phone/verify-otp")
-    public OtpVerifyResponse verifyOTPPhone(@RequestBody OtpVerifyRequest userInfo) {
+    public OtpVerifyResponse verifyOTPPhone(@RequestBody OtpVerifyRequest userInfo, HttpServletRequest request, HttpServletResponse response) {
         log.info("Entered verifyOTP with payload  " + userInfo);
-        return authPhoneService.verifyOTP(userInfo);
+        return authPhoneService.verifyOTP(userInfo, request, response);
     }
 
 
@@ -223,6 +223,7 @@ public class AuthController {
             // 3. Token Rotation: Revoke old refresh token, generate a new one
             RefreshToken newRefreshToken = refreshTokenService.rotateRefreshToken(validToken);
             serv.setRefreshTokenCookie(newRefreshToken.getToken(), request, response);
+            response.addHeader("X-Refresh-Token", newRefreshToken.getToken());
 
             // 4. Generate fresh short-lived JWT Access Token
             String newAccessToken = jwtService.generateToken(username);
@@ -234,6 +235,7 @@ public class AuthController {
                     .success(true)
                     .message("Token refreshed successfully")
                     .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken.getToken())
                     .build());
 
         } catch (Exception e) {

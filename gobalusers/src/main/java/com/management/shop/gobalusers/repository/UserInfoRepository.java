@@ -22,6 +22,9 @@ public interface UserInfoRepository extends JpaRepository<UserInfo, Integer> {
     @Query("SELECT u FROM UserInfo u WHERE u.isActive = :isActive AND (u.email = :email OR u.phoneNumber = :phone) ORDER BY u.updatedAt DESC")
     List<UserInfo> validateContact(@Param("email") String email, @Param("phone") String phone, @Param("isActive") boolean isActive);
 
+    @Query("SELECT u FROM UserInfo u WHERE u.isActive = :isActive AND  u.phoneNumber = :phone ORDER BY u.updatedAt DESC")
+    List<UserInfo> validateContactOnlyPhone(@Param("email") String email, @Param("phone") String phone, @Param("isActive") boolean isActive);
+
     @Query(value = """
     SELECT u.* FROM user_info u
     INNER JOIN user_info_status uis ON u.username = uis.username

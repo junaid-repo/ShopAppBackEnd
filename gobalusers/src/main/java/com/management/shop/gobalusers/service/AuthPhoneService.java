@@ -14,9 +14,12 @@ import com.management.shop.gobalusers.repository.UserInfoRepository;
 import com.management.shop.gobalusers.repository.UserInfoStatusRepository;
 import com.management.shop.gobalusers.repository.UserOtpRepo;
 import com.management.shop.gobalusers.repository.UserPaymentModesRepo;
+import com.management.shop.gobalusers.entity.RefreshToken;
 import com.management.shop.gobalusers.util.AccountEmailTemplate;
 import com.management.shop.gobalusers.util.OTPSender;
- import jakarta.transaction.Transactional;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -67,6 +70,12 @@ public class AuthPhoneService {
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private RefreshTokenService refreshTokenService;
 
 
 
@@ -224,24 +233,33 @@ public class AuthPhoneService {
         int number = 100000 + random.nextInt(900000);
 
         List<RegisterUserOTPEntity> res2 = otpRepo.getByPhoneNumber(otpVerifyReq.getPhone());
+        String targetUsername = (otpVerifyReq.getUsername() != null && !otpVerifyReq.getUsername().isEmpty())
+                ? otpVerifyReq.getUsername()
+                : (res2 != null && !res2.isEmpty() && res2.get(0).getUsername() != null ? res2.get(0).getUsername() : otpVerifyReq.getPhone());
+
         if (res2 != null) {
             res2.stream().forEach(i->{otpRepo.updateOldOTPWithPhone(otpVerifyReq.getPhone(), "stale", EventConstants.USER_REG.getEventName(), "sms");});
         }
         String smsResponse="";
 
-        try {
-            smsResponse  =  otpSender.sendOtpWithPhoneForReg(otpVerifyReq.getPhone(), String.valueOf(number), "30");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        if (isHostedEnvironment()) {
+            try {
+                smsResponse  =  otpSender.sendOtpWithPhoneForReg(otpVerifyReq.getPhone(), String.valueOf(number), "30");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if (Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+            smsResponse = "success";
         }
 
         if (smsResponse.contains("success")) {
-            var regsiterUserTemp = RegisterUserOTPEntity.builder().username(otpVerifyReq.getUsername()).phoneNumber(otpVerifyReq.getPhone())
+            var regsiterUserTemp = RegisterUserOTPEntity.builder().username(targetUsername).phoneNumber(otpVerifyReq.getPhone())
                     .createdDate(LocalDateTime.now()).otp(String.valueOf(number)).status("fresh").event(EventConstants.USER_REG.getEventName()).source("SMS").retries(0).build();
             otpRepo.save(regsiterUserTemp);
-            return OtpVerifyResponse.builder().message("User created successfully. Please verify the OTP sent to your phone to activate your account.").success(true).username(otpVerifyReq.getUsername()).build();
+            return OtpVerifyResponse.builder().message("User created successfully. Please verify the OTP sent to your phone to activate your account.").success(true).username(targetUsername).build();
         } else {
 
             return OtpVerifyResponse.builder().message("Failed to send OTP sms. Please try again later.").success(false).build();
@@ -249,46 +267,58 @@ public class AuthPhoneService {
     }
 
     @Transactional
-    public OtpVerifyResponse verifyOTP(OtpVerifyRequest otpInfo) {
+    public OtpVerifyResponse verifyOTP(OtpVerifyRequest otpInfo, HttpServletRequest request, HttpServletResponse response) {
         RegisterUserOTPEntity res = otpRepo.getLatestByPhone(otpInfo.getPhone(), "fresh");
 
-        if (res.getOtp().equals(otpInfo.getOtp())) {
+        if (res != null && res.getOtp().equals(otpInfo.getOtp())) {
 
             userinfoRepo.updateUserStatus(res.getUsername());
             UserInfo userInfo = userinfoRepo.findByUsername(res.getUsername()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
             //paymentModesRepo.save(UserPaymentModes.builder().userId(userInfo.getUsername()).cash(true).card(false).upi(true).createdBy("junaid1").updatedBy("junaid1").createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build());
 
+            if (userInfo.getEmail() != null) {
+                String htmlContent = emailTemplateUtil.registerUserSucess(userInfo.getName(), userInfo.getUsername());
 
-
-     if(userInfo.getEmail()!=null) {
-         String htmlContent = emailTemplateUtil.registerUserSucess(userInfo.getName(), userInfo.getUsername());
-
-         try {
-             otpSender.sendEmail(userInfo.getEmail(), "support@instabill.in", userInfo.getName(), "Instabill",
-                     "Account Creation Success", htmlContent);
-         } catch (MailjetException | MailjetSocketTimeoutException e) {
-             // TODO Auto-generated catch block
-             e.printStackTrace();
-         }
-
-     }
+                try {
+                    otpSender.sendEmail(userInfo.getEmail(), "support@instabill.in", userInfo.getName(), "Instabill",
+                            "Account Creation Success", htmlContent);
+                } catch (MailjetException | MailjetSocketTimeoutException e) {
+                    e.printStackTrace();
+                }
+            }
 
             eventPublisher.publishEvent(new UserRegistrationCompletedEvent(userInfo.getUsername()));
 
-            var response = OtpVerifyResponse.builder().success(true)
-                    .username(otpInfo.getUsername())
-                    .message("Registration complete! Your username is "+otpInfo.getUsername()+" Please login with this username and password to use the system.")
+            // 🟢 Auto-Login: Generate JWT and Refresh Token immediately upon OTP verification
+            String accessToken = jwtService.generateToken(userInfo.getUsername());
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(userInfo.getUsername());
+
+            if (request != null && response != null) {
+                authService.setAccessTokenCookie(accessToken, request, response);
+                authService.setRefreshTokenCookie(refreshToken.getToken(), request, response);
+                response.addHeader("X-Refresh-Token", refreshToken.getToken());
+            }
+
+            var otpResponse = OtpVerifyResponse.builder().success(true)
+                    .username(userInfo.getUsername())
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken.getToken())
+                    .message("Registration complete! Welcome to the system.")
                     .build();
-            return response;
+            return otpResponse;
         }
-        var response = OtpVerifyResponse.builder().success(false)
+        var otpResponse = OtpVerifyResponse.builder().success(false)
                 .username(otpInfo.getOtp())
-                .message("Your entered OTP " + otpInfo.getOtp()+" is incorrect, please re-enter")
+                .message("Your entered OTP " + otpInfo.getOtp() + " is incorrect, please re-enter")
                 .build();
 
+        return otpResponse;
+    }
 
-        return response;
+    @Transactional
+    public OtpVerifyResponse verifyOTP(OtpVerifyRequest otpInfo) {
+        return verifyOTP(otpInfo, null, null);
     }
 
 
@@ -334,7 +364,7 @@ public class AuthPhoneService {
 
     private boolean isHostedEnvironment() {
         List<String> activeProfiles = Arrays.asList(environment.getActiveProfiles());
-        return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
+        return activeProfiles.contains("prod") || activeProfiles.contains("preprod2");
     }
 
     public ValidateContactResponse confirmOtpAndUpdatePasswordPhone(UpdatePasswordRequest updatePassRequest) {

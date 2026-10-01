@@ -13,4 +13,6 @@ public class OtpVerifyResponse {
 	 private boolean success;
 	    private String message;
 	    private String username;
+	    private String accessToken;
+	    private String refreshToken;
 }
