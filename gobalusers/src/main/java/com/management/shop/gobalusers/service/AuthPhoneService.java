@@ -109,7 +109,7 @@ public class AuthPhoneService {
                         throw new RuntimeException(e);
                     }
                 }
-                if(Arrays.asList(environment.getActiveProfiles()).contains("dev")){
+                if(Arrays.asList(environment.getActiveProfiles()).contains("dev")||Arrays.asList(environment.getActiveProfiles()).contains("preprod")){
                     smsResponse="success";
                 }
                 if (smsResponse.contains("success")) {
@@ -160,7 +160,7 @@ public class AuthPhoneService {
                         throw new RuntimeException(e);
                     }
                 }
-                if(Arrays.asList(environment.getActiveProfiles()).contains("dev")){
+                if(Arrays.asList(environment.getActiveProfiles()).contains("dev")||Arrays.asList(environment.getActiveProfiles()).contains("preprod")){
                     smsResponse="success";
                     System.out.println("The otp is "+number+" for user "+userInfo.getUsername());
                 }
