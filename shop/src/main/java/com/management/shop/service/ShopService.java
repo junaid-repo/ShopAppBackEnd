@@ -400,7 +400,7 @@ public class ShopService {
 
     }
 
-    @Cacheable(value = "customers", key = "#root.target.extractUsername()")
+    @Cacheable(value = "customers", key = "userScopedKeyGenerator")
     public List<CustomerEntity> getAllCustomer() {
         log.info("The extracted username is " + extractUsername());
 
@@ -2231,6 +2231,7 @@ public class ShopService {
         return response;
     }
 
+    @Cacheable(value = "invoice", keyGenerator = "userScopedKeyGenerator")
     public byte[] generateGSTInvoicePdf(String orderId) throws Exception {
         log.info("Generating invoice for orderNumber-->" + orderId);
 

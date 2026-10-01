@@ -1,10 +1,12 @@
 package com.management.shop.gobalusers.controller;
 
 import com.management.shop.gobalusers.dto.*;
+import com.management.shop.gobalusers.entity.RefreshToken;
 import com.management.shop.gobalusers.entity.UserInfo;
 import com.management.shop.gobalusers.service.AuthPhoneService;
 import com.management.shop.gobalusers.service.AuthService;
 import com.management.shop.gobalusers.service.JwtService;
+import com.management.shop.gobalusers.service.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -21,8 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
-import java.util.Map;
+import java.util.*;
 
 
 @RestController
@@ -31,7 +32,8 @@ public class AuthController {
 
     @Autowired
     private Environment environment;
-
+    @Autowired
+    private RefreshTokenService refreshTokenService;
     private final AuthenticationManager authenticationManager;
     private final AuthService serv;
     private final JwtService jwtService;
@@ -41,11 +43,13 @@ public class AuthController {
     public AuthController(AuthenticationManager authenticationManager,
                           AuthService serv,
                           JwtService jwtService,
-                          AuthPhoneService authPhoneService) {
+                          AuthPhoneService authPhoneService,
+                          RefreshTokenService refreshTokenService) {
         this.authenticationManager = authenticationManager;
         this.serv = serv;
         this.jwtService = jwtService;
-        this.authPhoneService=authPhoneService;
+        this.authPhoneService = authPhoneService;
+        this.refreshTokenService = refreshTokenService;
     }
 
 
@@ -148,9 +152,9 @@ public class AuthController {
         return authPhoneService.reSendOtpPhone(userInfo);
     }
     @PostMapping("/auth/phone/verify-otp")
-    public OtpVerifyResponse verifyOTPPhone(@RequestBody OtpVerifyRequest userInfo) {
+    public OtpVerifyResponse verifyOTPPhone(@RequestBody OtpVerifyRequest userInfo, HttpServletRequest request, HttpServletResponse response) {
         log.info("Entered verifyOTP with payload  " + userInfo);
-        return authPhoneService.verifyOTP(userInfo);
+        return authPhoneService.verifyOTP(userInfo, request, response);
     }
 
 
@@ -165,5 +169,110 @@ public class AuthController {
     public ValidateContactResponse confirmOtpAndUpdatePasswordPhone(@RequestBody UpdatePasswordRequest updatePassRequest) {
         log.info("Entered confirmOtpAndUpdatePassword with payload  " + updatePassRequest);
         return authPhoneService.confirmOtpAndUpdatePasswordPhone(updatePassRequest);
+    }
+
+    @PostMapping("/auth/refresh")
+    public ResponseEntity<RefreshTokenResponse> refreshAccessToken(
+            @RequestBody(required = false) RefreshTokenRequest requestBody,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        // 1. Gather all candidate refresh tokens from cookies (in case of duplicate/stale path cookies)
+        List<String> candidates = new ArrayList<>();
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (serv.getRefreshCookieName().equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                    candidates.add(cookie.getValue().trim());
+                }
+            }
+        }
+
+        // Fallback: check request body if cookie was not provided
+        if (requestBody != null && requestBody.getRefreshToken() != null && !requestBody.getRefreshToken().isBlank()) {
+            candidates.add(requestBody.getRefreshToken().trim());
+        }
+
+        if (candidates.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(RefreshTokenResponse.builder()
+                            .success(false)
+                            .message("Refresh token is missing")
+                            .build());
+        }
+
+        try {
+            // 2. Validate token: search candidates for an active, non-revoked token
+            RefreshToken validToken = null;
+            for (String candidate : candidates) {
+                Optional<RefreshToken> tokenOpt = refreshTokenService.findByToken(candidate);
+                if (tokenOpt.isPresent()) {
+                    RefreshToken t = tokenOpt.get();
+                    if (!t.isRevoked() && !t.getExpiryDate().isBefore(java.time.Instant.now())) {
+                        validToken = t;
+                        break;
+                    }
+                }
+            }
+
+            if (validToken == null) {
+                throw new RuntimeException("Invalid or revoked refresh token");
+            }
+
+            String username = validToken.getUsername();
+
+            // 3. Token Rotation: Revoke old refresh token, generate a new one
+            RefreshToken newRefreshToken = refreshTokenService.rotateRefreshToken(validToken);
+            serv.setRefreshTokenCookie(newRefreshToken.getToken(), request, response);
+            response.addHeader("X-Refresh-Token", newRefreshToken.getToken());
+
+            // 4. Generate fresh short-lived JWT Access Token
+            String newAccessToken = jwtService.generateToken(username);
+
+            // 5. Update the Access Token Cookie using environment-specific domain & name
+            serv.setAccessTokenCookie(newAccessToken, request, response);
+
+            return ResponseEntity.ok(RefreshTokenResponse.builder()
+                    .success(true)
+                    .message("Token refreshed successfully")
+                    .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken.getToken())
+                    .build());
+
+        } catch (Exception e) {
+            log.error("Failed to refresh token: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(RefreshTokenResponse.builder()
+                            .success(false)
+                            .message(e.getMessage())
+                            .build());
+        }
+    }
+
+    @PostMapping("/auth/logout")
+    public ResponseEntity<String> logout(
+            @RequestBody(required = false) RefreshTokenRequest requestBody,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        String refreshTokenStr = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (serv.getRefreshCookieName().equals(cookie.getName())) {
+                    refreshTokenStr = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (refreshTokenStr == null && requestBody != null) {
+            refreshTokenStr = requestBody.getRefreshToken();
+        }
+
+        if (refreshTokenStr != null) {
+            refreshTokenService.revokeToken(refreshTokenStr);
+        }
+
+        serv.clearAuthCookies(request, response);
+        return ResponseEntity.ok("Logged out successfully");
     }
 }
