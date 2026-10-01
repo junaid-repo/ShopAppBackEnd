@@ -13,6 +13,7 @@ public class GoogleAuthResponse {
     private String message;
     private String username;
     private String secureToken;
+    private String refreshToken;
 
     // Keep this custom constructor in case your older code still relies on it!
     public GoogleAuthResponse(boolean success, String token, String message) {

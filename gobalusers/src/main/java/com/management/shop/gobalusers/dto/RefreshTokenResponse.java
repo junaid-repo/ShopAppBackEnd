@@ -13,4 +13,5 @@ public class RefreshTokenResponse {
     private boolean success;
     private String message;
     private String accessToken;
+    private String refreshToken;
 }
