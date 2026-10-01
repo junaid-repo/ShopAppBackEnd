@@ -251,7 +251,7 @@ public class AuthPhoneService {
                 throw new RuntimeException(e);
             }
         }
-        if (Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+        if (Arrays.asList(environment.getActiveProfiles()).contains("dev")||Arrays.asList(environment.getActiveProfiles()).contains("preprod")) {
             smsResponse = "success";
         }
 
