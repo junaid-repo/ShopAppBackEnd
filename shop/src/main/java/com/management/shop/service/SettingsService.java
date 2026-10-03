@@ -420,7 +420,7 @@ public class SettingsService {
         if(request.get("reason")!=null){
             reason=request.get("reason");
         }else{
-            reason="User did not specify a reason";
+            reason="User did not specify a reason ";
         }
         UserInfoStatus userInfoStatus=userStatusRepo.findByUsername(extractUsername());
 
