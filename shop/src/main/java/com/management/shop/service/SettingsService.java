@@ -38,6 +38,9 @@ public class SettingsService {
     @Autowired
     private UserInfoStatusRepository userStatusRepo;
 
+    @Autowired
+    SalesCacheService salesCacheService;
+
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         SecurityContextHolder.getContext().getAuthentication().getAuthorities().forEach(auth -> {
@@ -309,7 +312,11 @@ public class SettingsService {
         settingsRepo.updateInvoiceSettings(addDueDate, combineAddresses, showPaymentStatus, removeTerms, showCustomerGstin, extractUsername(), LocalDateTime.now(),
                 showTotalDiscountPercentage, showIndividualDiscountPercentage, showShopPanOnInvoice, showSupportInfoOnInvoice, showRateColumn, showHsnColumn, showInvoiceBarcode, showGstinBreakdown, showShopSignature
         , showBankDetails, showUpiId, showQRCode, showProductGst, enableDecimalPlace, disableTaxBreakdownForWalkIn);
-
+        try {
+            salesCacheService.evictsInvoiceCache(extractUsername());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         return "saved";
     }

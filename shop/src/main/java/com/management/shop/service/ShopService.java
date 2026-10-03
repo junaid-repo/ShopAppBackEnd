@@ -1383,15 +1383,17 @@ public class ShopService {
         String username = extractUsername();
         boolean isGstPrioritySort = "gstBilling".equalsIgnoreCase(sort);
         boolean isDuePrioritySort = "dueAmount".equalsIgnoreCase(sort);
+        boolean isCancelledPrioritySort = "cancelled".equalsIgnoreCase(sort);
         Pageable pageable;
         Page<BillingEntity> billingPage;
 
-        if (isGstPrioritySort || isDuePrioritySort) {
+        if (isGstPrioritySort || isDuePrioritySort || isCancelledPrioritySort) {
             pageable = PageRequest.of(Math.max(0, page - 1), size);
+            String priority = isGstPrioritySort ? "gst" : (isDuePrioritySort ? "due" : "cancelled");
             billingPage = billRepo.findSalesWithPriority(
                     username,
                     searchTerm == null ? "" : searchTerm.trim(),
-                    isGstPrioritySort ? "gst" : "due",
+                    priority,
                     pageable
             );
         } else {
