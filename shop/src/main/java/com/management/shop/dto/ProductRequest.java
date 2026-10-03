@@ -21,4 +21,5 @@ public class ProductRequest {
     private String hsn;
     private String location;
     private String username;
+    private String status;
 }
