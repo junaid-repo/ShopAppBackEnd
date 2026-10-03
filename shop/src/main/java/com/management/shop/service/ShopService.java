@@ -411,8 +411,11 @@ public class ShopService {
     public ProductSuccessDTO saveProduct(ProductRequest request) {
         resolveExistingProductId(request);
         String status = "In Stock";
-        if (request.getStock() < 0)
+        if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
+            status = request.getStatus();
+        } else if (request.getStock() != null && request.getStock() <= 0) {
             status = "Out of Stock";
+        }
 
         log.info("The new request" + request.getTax());
 
