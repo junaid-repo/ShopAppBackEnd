@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Purchase Order</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 10mm 12mm 10mm 12mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            background: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        /* Top Header */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 18px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 12px;
+        }
+        .shop-col {
+            width: 58%;
+            vertical-align: top;
+        }
+        .meta-col {
+            width: 42%;
+            vertical-align: top;
+            text-align: right;
+        }
+        .shop-name {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 3px 0;
+            letter-spacing: -0.02em;
+        }
+        .shop-slogan {
+            font-size: 11px;
+            color: #64748b;
+            font-style: italic;
+            margin-bottom: 6px;
+        }
+        .shop-info-line {
+            font-size: 11px;
+            color: #475569;
+            margin: 2px 0;
+        }
+        .po-title {
+            font-size: 24px;
+            font-weight: 900;
+            color: #2563eb;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin: 0 0 8px 0;
+        }
+        .meta-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            border-radius: 9999px;
+            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+        }
+        .badge-ordered { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .badge-draft { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+        .badge-received { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+        .badge-cancelled { background: #ffe4e6; color: #be123c; border: 1px solid #fecdd3; }
+        .meta-line {
+            font-size: 11.5px;
+            color: #334155;
+            margin: 2px 0;
+        }
+        .meta-line strong {
+            color: #0f172a;
+        }
+
+        /* Two columns: Vendor & Shipping */
+        .info-cards-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 10px 0;
+            margin-bottom: 18px;
+        }
+        .info-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            vertical-align: top;
+            width: 50%;
+        }
+        .card-heading {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #2563eb;
+            margin: 0 0 6px 0;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4px;
+        }
+        .party-name {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 3px 0;
+        }
+        .card-text {
+            font-size: 11px;
+            color: #475569;
+            margin: 2px 0;
+        }
+
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+        .items-table th {
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 8px 10px;
+            text-align: left;
+            border: 1px solid #0f172a;
+        }
+        .items-table th.num { text-align: right; }
+        .items-table th.center { text-align: center; }
+        .items-table td {
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            font-size: 11.5px;
+            color: #334155;
+            vertical-align: middle;
+        }
+        .items-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .items-table td.center { text-align: center; }
+        .items-table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+        .product-name {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .product-barcode {
+            font-size: 10px;
+            color: #64748b;
+            font-family: monospace;
+        }
+
+        /* Summary / Footer Section */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .notes-col {
+            width: 55%;
+            vertical-align: top;
+            padding-right: 16px;
+        }
+        .totals-col {
+            width: 45%;
+            vertical-align: top;
+        }
+        .section-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        .section-box h4 {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+            margin: 0 0 4px 0;
+        }
+        .section-box p {
+            font-size: 11px;
+            color: #334155;
+            margin: 2px 0;
+            white-space: pre-wrap;
+        }
+
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .totals-table td {
+            padding: 6px 12px;
+            font-size: 11.5px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .totals-table td.label {
+            color: #64748b;
+            font-weight: 600;
+        }
+        .totals-table td.val {
+            text-align: right;
+            font-weight: 700;
+            color: #0f172a;
+            font-variant-numeric: tabular-nums;
+        }
+        .totals-table tr.grand-total td {
+            background: #2563eb;
+            color: #ffffff !important;
+            font-size: 13.5px;
+            font-weight: 900;
+            padding: 9px 12px;
+        }
+        .totals-table tr.grand-total td.label {
+            color: #ffffff !important;
+        }
+        .totals-table tr.due td.val {
+            color: #e11d48;
+        }
+
+        /* In words banner */
+        .words-banner {
+            background: #eff6ff;
+            border: 1px dashed #bfdbfe;
+            border-radius: 6px;
+            padding: 7px 12px;
+            font-size: 11px;
+            color: #1e40af;
+            margin: 12px 0;
+        }
+
+        /* Signatures block */
+        .sig-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+            padding-top: 14px;
+        }
+        .sig-col {
+            width: 50%;
+            vertical-align: bottom;
+        }
+        .sig-right {
+            text-align: right;
+        }
+        .sig-line {
+            display: inline-block;
+            width: 180px;
+            border-top: 1px solid #94a3b8;
+            padding-top: 4px;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 20px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ─── Header ─── -->
+    <table class="header-table">
+        <tr>
+            <td class="shop-col">
+                <h1 class="shop-name" th:text="${shopName}">My Shop</h1>
+                <div class="shop-slogan" th:if="${shopSlogan != null and !shopSlogan.isEmpty()}" th:text="${shopSlogan}">Best Goods Everyday</div>
+                <div class="shop-info-line" th:if="${shopAddress != null and !shopAddress.isEmpty()}" th:text="${shopAddress}">123 Main Market Street</div>
+                <div class="shop-info-line">
+                    <span th:if="${shopPhone != null and !shopPhone.isEmpty()}">Phone: <strong th:text="${shopPhone}">+91 9876543210</strong></span>
+                    <span th:if="${shopEmail != null and !shopEmail.isEmpty()}">&nbsp;|&nbsp;Email: <strong th:text="${shopEmail}">shop@example.com</strong></span>
+                </div>
+                <div class="shop-info-line" th:if="${shopGstin != null and !shopGstin.isEmpty()}">
+                    GSTIN: <strong th:text="${shopGstin}">22AAAAA0000A1Z5</strong>
+                    <span th:if="${shopPan != null and !shopPan.isEmpty()}">&nbsp;|&nbsp;PAN: <strong th:text="${shopPan}">AAAAA0000A</strong></span>
+                </div>
+            </td>
+            <td class="meta-col">
+                <div class="po-title">PURCHASE ORDER</div>
+                <div>
+                    <span th:if="${po.orderStatus.name() == 'ORDERED'}" class="meta-badge badge-ordered">ORDERED</span>
+                    <span th:if="${po.orderStatus.name() == 'DRAFT'}" class="meta-badge badge-draft">DRAFT</span>
+                    <span th:if="${po.orderStatus.name() == 'RECEIVED'}" class="meta-badge badge-received">RECEIVED</span>
+                    <span th:if="${po.orderStatus.name() == 'CANCELLED'}" class="meta-badge badge-cancelled">CANCELLED</span>
+                </div>
+                <div class="meta-line">PO Number: <strong th:text="${po.poNumber}">PO-0001</strong></div>
+                <div class="meta-line">PO Date: <strong th:text="${#temporals.format(po.orderDate, 'dd MMM yyyy')}">04 Oct 2026</strong></div>
+                <div class="meta-line" th:if="${po.expectedDeliveryDate != null}">
+                    Expected Delivery: <strong th:text="${#temporals.format(po.expectedDeliveryDate, 'dd MMM yyyy')}">07 Oct 2026</strong>
+                </div>
+                <div class="meta-line" th:if="${po.supplierInvoiceNumber != null and !po.supplierInvoiceNumber.isEmpty()}">
+                    Vendor Inv #: <strong th:text="${po.supplierInvoiceNumber}">INV-1234</strong>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ─── Vendor Info & Shipping Info Cards ─── -->
+    <table class="info-cards-table">
+        <tr>
+            <td class="info-card">
+                <div class="card-heading">VENDOR / SUPPLIER</div>
+                <div class="party-name" th:text="${supplier.name}">Supplier Name</div>
+                <div class="card-text" th:if="${supplier.companyName != null and !supplier.companyName.isEmpty()}" th:text="${supplier.companyName}">Company Ltd</div>
+                <div class="card-text" th:if="${supplier.address != null and !supplier.address.isEmpty()}" th:text="${supplier.address}">Supplier Address</div>
+                <div class="card-text" th:if="${supplier.phone != null and !supplier.phone.isEmpty()}">
+                    Phone: <strong th:text="${supplier.phone}">+91 9999999999</strong>
+                </div>
+                <div class="card-text" th:if="${supplier.email != null and !supplier.email.isEmpty()}">
+                    Email: <span th:text="${supplier.email}">vendor@example.com</span>
+                </div>
+                <div class="card-text" th:if="${supplier.gstin != null and !supplier.gstin.isEmpty()}">
+                    GSTIN: <strong th:text="${supplier.gstin}">27AAAAA0000A1Z5</strong>
+                </div>
+            </td>
+            <td class="info-card">
+                <div class="card-heading">SHIP TO / DELIVERY ADDRESS</div>
+                <div class="party-name" th:text="${shopName}">My Shop Delivery</div>
+                <div class="card-text" th:if="${po.billingAddress != null and !po.billingAddress.isEmpty()}" th:text="${po.billingAddress}">Delivery Location</div>
+                <div class="card-text" th:unless="${po.billingAddress != null and !po.billingAddress.isEmpty()}" th:text="${shopAddress}">Shop Address</div>
+                <div class="card-text" style="margin-top: 6px;">
+                    Payment Mode: <strong th:text="${po.paymentMode != null ? po.paymentMode : 'BANK_TRANSFER'}">BANK_TRANSFER</strong>
+                </div>
+                <div class="card-text" th:if="${po.expectedDeliveryDate != null}">
+                    Deliver Before: <strong th:text="${#temporals.format(po.expectedDeliveryDate, 'dd MMM yyyy')}">07 Oct 2026</strong>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ─── Products Table ─── -->
+    <table class="items-table">
+        <thead>
+        <tr>
+            <th class="center" style="width: 5%;">#</th>
+            <th style="width: 40%;">Item Description</th>
+            <th style="width: 15%;">Barcode/SKU</th>
+            <th class="center" style="width: 8%;">Qty</th>
+            <th class="num" style="width: 11%;">Rate (₹)</th>
+            <th class="center" style="width: 9%;">Tax %</th>
+            <th class="num" style="width: 12%;">Total (₹)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item, iterStat : ${items}">
+            <td class="center" th:text="${iterStat.count}">1</td>
+            <td>
+                <div class="product-name" th:text="${item.productName}">Product Name</div>
+            </td>
+            <td class="product-barcode" th:text="${item.productBarcode != null ? item.productBarcode : '-'}">-</td>
+            <td class="center" style="font-weight: 700;" th:text="${item.orderedQuantity}">1</td>
+            <td class="num" th:text="${#numbers.formatDecimal(item.unitPurchasePrice, 1, 2)}">100.00</td>
+            <td class="center" th:text="${item.taxRate != null ? item.taxRate + '%' : '0%'}">18%</td>
+            <td class="num" style="font-weight: 700;" th:text="${#numbers.formatDecimal(item.lineTotal, 1, 2)}">118.00</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- ─── Totals & Notes Section ─── -->
+    <table class="summary-table">
+        <tr>
+            <td class="notes-col">
+                <div class="section-box" th:if="${po.notes != null and !po.notes.isEmpty()}">
+                    <h4>ORDER NOTES / INSTRUCTIONS</h4>
+                    <p th:text="${po.notes}">Special handling instructions.</p>
+                </div>
+                <div class="section-box" th:if="${po.bankDetails != null and !po.bankDetails.isEmpty()}">
+                    <h4>BANK & PAYMENT DETAILS</h4>
+                    <p th:text="${po.bankDetails}">Account: 1234567890 | IFSC: ABCD0123456</p>
+                </div>
+                <div class="section-box" th:unless="${po.bankDetails != null and !po.bankDetails.isEmpty()}">
+                    <h4>TERMS & CONDITIONS</h4>
+                    <p>1. Please quote PO number in all correspondence and commercial invoices.<br/>
+                       2. Goods must be delivered in proper packing with valid invoice.<br/>
+                       3. Discrepancies in quantity or quality will be reported upon stock receipt.</p>
+                </div>
+            </td>
+            <td class="totals-col">
+                <table class="totals-table">
+                    <tr>
+                        <td class="label">Sub Total (Taxable)</td>
+                        <td class="val">₹<span th:text="${#numbers.formatDecimal(po.subTotal, 1, 2)}">0.00</span></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Tax Amount</td>
+                        <td class="val">₹<span th:text="${#numbers.formatDecimal(po.taxAmount, 1, 2)}">0.00</span></td>
+                    </tr>
+                    <tr class="grand-total">
+                        <td class="label">Grand Total</td>
+                        <td class="val">₹<span th:text="${#numbers.formatDecimal(po.totalAmount, 1, 2)}">0.00</span></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Paid Amount</td>
+                        <td class="val">₹<span th:text="${#numbers.formatDecimal(po.paidAmount, 1, 2)}">0.00</span></td>
+                    </tr>
+                    <tr class="due">
+                        <td class="label" style="font-weight: 800; color: #be123c;">Balance Due</td>
+                        <td class="val" style="font-weight: 800;">₹<span th:text="${#numbers.formatDecimal(po.dueAmount, 1, 2)}">0.00</span></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ─── Amount in words banner ─── -->
+    <div class="words-banner" th:if="${amountInWords != null and !amountInWords.isEmpty()}">
+        <strong>Amount in Words:</strong> <span th:text="${amountInWords}">Rupees Only</span>
+    </div>
+
+    <!-- ─── Signatures ─── -->
+    <table class="sig-table">
+        <tr>
+            <td class="sig-col">
+                <div style="font-size: 11px; color: #64748b;">
+                    Generated on: <span th:text="${#temporals.format(#temporals.createNow(), 'dd MMM yyyy, hh:mm a')}">04 Oct 2026, 11:30 AM</span>
+                </div>
+            </td>
+            <td class="sig-col sig-right">
+                <div th:if="${po.signatureUrl != null and !po.signatureUrl.isEmpty()}" style="margin-bottom: 6px;">
+                    <img th:src="${po.signatureUrl}" alt="Signature" style="max-height: 45px; max-width: 140px;" />
+                </div>
+                <div class="sig-line">
+                    Authorized Signatory<br/>
+                    <span style="font-size: 9px; color: #64748b; font-weight: normal;" th:text="${shopName}">For My Shop</span>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="footer-note">
+        This is a computer-generated Purchase Order and does not require a physical seal if signed electronically.
+    </div>
+
+</div>
+</body>
+</html>

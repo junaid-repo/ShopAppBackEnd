@@ -164,4 +164,23 @@ public class PurchaseOrderController {
         SupplierPaymentDTO result = purchaseOrderService.recordSupplierPayment(dto, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException e) {
+        log.error("Purchase order client error: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException e) {
+        log.error("Purchase order state error: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleGeneralException(Exception e) {
+        log.error("Purchase order unexpected error: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", e.getMessage() != null ? e.getMessage() : "An unexpected error occurred"));
+    }
 }
