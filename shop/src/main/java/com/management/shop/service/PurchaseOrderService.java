@@ -3,6 +3,7 @@ package com.management.shop.service;
 import com.management.shop.dto.*;
 import com.management.shop.entity.*;
 import com.management.shop.repository.*;
+import com.management.shop.util.PDFGSTInvoiceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -39,6 +40,15 @@ public class PurchaseOrderService {
 
     @Autowired
     private SalesCacheService salesCacheService;
+
+    @Autowired
+    private ShopBasicRepository shopBasicRepo;
+
+    @Autowired
+    private ShopFinanceRepository shopFinanceRepo;
+
+    @Autowired
+    private PDFGSTInvoiceUtil pdfgstutil;
 
     // ──────────────────────────────────────────────
     // SUPPLIER OPERATIONS
@@ -391,6 +401,152 @@ public class PurchaseOrderService {
                 .build();
 
         return createPurchaseOrder(req, userId);
+    }
+
+    @Transactional
+    public PurchaseOrderResponseDTO updatePurchaseOrder(Integer id, PurchaseOrderRequestDTO dto, String userId) {
+        PurchaseOrderEntity po = purchaseOrderRepo.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Purchase order not found with id: " + id));
+
+        if (po.getOrderStatus() != PurchaseOrderStatus.DRAFT) {
+            throw new IllegalStateException("Only draft purchase orders can be edited. Current status: " + po.getOrderStatus());
+        }
+
+        if (po.getPaidAmount() != null && po.getPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+            throw new IllegalStateException("Cannot edit purchase order with recorded payments. Recorded payment: ₹" + po.getPaidAmount());
+        }
+
+        SupplierEntity supplier = supplierRepo.findByIdAndUserId(dto.getSupplierId(), userId)
+                .orElseThrow(() -> new IllegalArgumentException("Supplier not found with id: " + dto.getSupplierId()));
+
+        PurchaseOrderStatus newStatus = PurchaseOrderStatus.DRAFT;
+        if ("ORDERED".equalsIgnoreCase(dto.getOrderStatus())) {
+            newStatus = PurchaseOrderStatus.ORDERED;
+        }
+
+        BigDecimal subTotal = dto.getSubTotal() != null ? dto.getSubTotal() : BigDecimal.ZERO;
+        BigDecimal taxAmount = dto.getTaxAmount() != null ? dto.getTaxAmount() : BigDecimal.ZERO;
+        BigDecimal totalAmount = dto.getTotalAmount() != null ? dto.getTotalAmount() : subTotal.add(taxAmount);
+        BigDecimal paidAmount = dto.getPaidAmount() != null ? dto.getPaidAmount() : BigDecimal.ZERO;
+        BigDecimal dueAmount = totalAmount.subtract(paidAmount).max(BigDecimal.ZERO);
+
+        PurchasePaymentStatus payStatus = PurchasePaymentStatus.UNPAID;
+        if (paidAmount.compareTo(BigDecimal.ZERO) > 0) {
+            payStatus = paidAmount.compareTo(totalAmount) >= 0 ? PurchasePaymentStatus.PAID : PurchasePaymentStatus.PARTIALLY_PAID;
+        }
+
+        po.setSupplier(supplier);
+        po.setOrderStatus(newStatus);
+        po.setPaymentStatus(payStatus);
+        po.setOrderDate(dto.getOrderDate() != null ? dto.getOrderDate() : po.getOrderDate());
+        po.setExpectedDeliveryDate(dto.getExpectedDeliveryDate());
+        po.setSubTotal(subTotal);
+        po.setTaxAmount(taxAmount);
+        po.setTotalAmount(totalAmount);
+        po.setPaidAmount(paidAmount);
+        po.setDueAmount(dueAmount);
+        po.setSupplierInvoiceNumber(dto.getSupplierInvoiceNumber());
+        po.setNotes(dto.getNotes());
+        po.setBillingAddress(dto.getBillingAddress());
+        po.setBankDetails(dto.getBankDetails());
+        po.setPaymentMode(dto.getPaymentMode());
+        po.setSignatureUrl(dto.getSignatureUrl());
+
+        // Replace items
+        po.getItems().clear();
+        if (dto.getItems() != null) {
+            for (PurchaseOrderItemDTO itemDto : dto.getItems()) {
+                ProductEntity product = null;
+                if (itemDto.getProductId() != null) {
+                    product = productRepo.findByIdAndUserId(itemDto.getProductId(), userId);
+                }
+                if (product == null && itemDto.getProductName() != null) {
+                    try {
+                        product = productRepo.findByNameAndUserId(itemDto.getProductName(), userId);
+                    } catch (Exception ignored) {}
+                }
+
+                PurchaseOrderItemEntity item = PurchaseOrderItemEntity.builder()
+                        .purchaseOrder(po)
+                        .product(product)
+                        .productName(itemDto.getProductName())
+                        .productBarcode(itemDto.getProductBarcode())
+                        .orderedQuantity(itemDto.getOrderedQuantity() != null ? itemDto.getOrderedQuantity() : 1)
+                        .receivedQuantity(0)
+                        .unitPurchasePrice(itemDto.getUnitPurchasePrice() != null ? itemDto.getUnitPurchasePrice() : BigDecimal.ZERO)
+                        .taxRate(itemDto.getTaxRate() != null ? itemDto.getTaxRate() : BigDecimal.ZERO)
+                        .lineTotal(itemDto.getLineTotal() != null ? itemDto.getLineTotal() : BigDecimal.ZERO)
+                        .build();
+
+                po.getItems().add(item);
+            }
+        }
+
+        // If newly transitioned to ORDERED, increment stock & update supplier balance due
+        if (newStatus == PurchaseOrderStatus.ORDERED) {
+            for (PurchaseOrderItemEntity item : po.getItems()) {
+                if (item.getProduct() != null) {
+                    ProductEntity product = item.getProduct();
+                    int currentStock = product.getStock() != null ? product.getStock() : 0;
+                    int addQty = item.getOrderedQuantity() != null ? item.getOrderedQuantity() : 0;
+                    product.setStock(currentStock + addQty);
+                    product.setStatus("In Stock");
+                    product.setActive(true);
+                    if (item.getUnitPurchasePrice() != null && item.getUnitPurchasePrice().compareTo(BigDecimal.ZERO) > 0) {
+                        product.setCostPrice(item.getUnitPurchasePrice().intValue());
+                    }
+                    product.setUpdatedDate(LocalDateTime.now());
+                    product.setUpdatedBy(userId);
+                    productRepo.save(product);
+                }
+            }
+            try {
+                salesCacheService.evictUserProducts(userId);
+            } catch (Exception ignored) {}
+
+            if (dueAmount.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal currentDue = supplier.getBalanceDue() != null ? supplier.getBalanceDue() : BigDecimal.ZERO;
+                supplier.setBalanceDue(currentDue.add(dueAmount));
+                supplierRepo.save(supplier);
+            }
+        }
+
+        PurchaseOrderEntity saved = purchaseOrderRepo.save(po);
+        return mapPOToResponseDTO(saved);
+    }
+
+    public byte[] generatePurchaseOrderPdf(Integer id, String userId) {
+        PurchaseOrderEntity po = purchaseOrderRepo.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Purchase order not found with id: " + id));
+
+        ShopBasicEntity shopBasic = shopBasicRepo.findByUserId(userId);
+        ShopFinanceEntity shopFinance = shopFinanceRepo.findByUserId(userId);
+
+        String shopName = shopBasic != null && shopBasic.getShopName() != null && !shopBasic.getShopName().isEmpty()
+                ? shopBasic.getShopName() : "My Shop";
+        String shopAddress = shopBasic != null ? shopBasic.getAddress() : "";
+        String shopPhone = shopBasic != null ? shopBasic.getShopPhone() : "";
+        String shopEmail = shopBasic != null ? shopBasic.getShopEmail() : "";
+        String shopSlogan = shopBasic != null ? shopBasic.getShopSlogan() : "";
+        String shopGstin = shopFinance != null ? shopFinance.getGstin() : "";
+        String shopPan = shopFinance != null ? shopFinance.getPanNumber() : "";
+
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("po", po);
+        vars.put("supplier", po.getSupplier());
+        vars.put("items", po.getItems() != null ? po.getItems() : Collections.emptyList());
+        vars.put("shopName", shopName);
+        vars.put("shopAddress", shopAddress);
+        vars.put("shopPhone", shopPhone);
+        vars.put("shopEmail", shopEmail);
+        vars.put("shopSlogan", shopSlogan);
+        vars.put("shopGstin", shopGstin);
+        vars.put("shopPan", shopPan);
+
+        BigDecimal grandTotal = po.getTotalAmount() != null ? po.getTotalAmount() : BigDecimal.ZERO;
+        vars.put("amountInWords", pdfgstutil.amountInWords(grandTotal, false));
+
+        return pdfgstutil.generatePurchaseOrderPdf(vars);
     }
 
     @Transactional
