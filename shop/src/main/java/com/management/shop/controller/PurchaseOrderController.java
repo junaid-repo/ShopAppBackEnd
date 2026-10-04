@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -48,11 +50,44 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> getPurchaseOrderPdf(@PathVariable Integer id) {
+        String userId = extractUsername();
+        byte[] pdfContents = purchaseOrderService.generatePurchaseOrderPdf(id, userId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"PurchaseOrder_" + id + ".pdf\"");
+        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfContents);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<PurchaseOrderResponseDTO> createPurchaseOrder(@RequestBody PurchaseOrderRequestDTO dto) {
         String userId = extractUsername();
         PurchaseOrderResponseDTO result = purchaseOrderService.createPurchaseOrder(dto, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PurchaseOrderResponseDTO> updatePurchaseOrder(
+            @PathVariable Integer id,
+            @RequestBody PurchaseOrderRequestDTO dto) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.updatePurchaseOrder(id, dto, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/update")
+    public ResponseEntity<PurchaseOrderResponseDTO> updatePurchaseOrderPost(
+            @PathVariable Integer id,
+            @RequestBody PurchaseOrderRequestDTO dto) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.updatePurchaseOrder(id, dto, userId);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{id}/convert-to-ordered")
