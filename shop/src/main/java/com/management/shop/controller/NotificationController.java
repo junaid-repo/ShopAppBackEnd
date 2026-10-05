@@ -65,7 +65,7 @@ public class NotificationController {
         return "Token saved successfully!";
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+
     @GetMapping("/users")
    public ResponseEntity<List<String>> getUsers(){
 

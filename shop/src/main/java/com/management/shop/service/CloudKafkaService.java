@@ -40,24 +40,23 @@ public class CloudKafkaService {
 
     public String broadcastPushNotification(BrodcastNotificationsRequest request) {
 
-        request.getUsernames().forEach(username -> {
-            var msgBody = BrodcastNotificationsRequest.builder().msg(request.getMsg()).title(request.getTitle()).username(
-                    username
-            ).build();
-            log.info("Sending broadcast notification to Kafka for user: {}", msgBody);
+
+
+
+            log.info("Sending broadcast notification to Kafka for user: {}", request);
            ObjectMapper objectMapper=new ObjectMapper();
             try {
-                String jsonPayload=objectMapper.writeValueAsString(msgBody);
+                String jsonPayload=objectMapper.writeValueAsString(request);
                 log.info("Sending broadcast with jsonPayload: {}", jsonPayload);
 
                kafkaTemplate.send("broadcast-admin-msg", jsonPayload);
-               consumeBroadcastAdminMsg( jsonPayload);
+               //consumeBroadcastAdminMsg( jsonPayload);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
 
 
-        });
+
 
 
         return "ok";
