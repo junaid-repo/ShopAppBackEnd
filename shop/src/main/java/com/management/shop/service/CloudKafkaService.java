@@ -49,7 +49,9 @@ public class CloudKafkaService {
             try {
                 String jsonPayload=objectMapper.writeValueAsString(msgBody);
                 log.info("Sending broadcast with jsonPayload: {}", jsonPayload);
-                consumeBroadcastAdminMsg( jsonPayload);
+
+               // kafkaTemplate.send("broadcast-admin-msg", jsonPayload);
+               consumeBroadcastAdminMsg( jsonPayload);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
@@ -64,10 +66,10 @@ public class CloudKafkaService {
     public void consumeBroadcastAdminMsg(String message) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         BrodcastNotificationsRequest msg = objectMapper.readValue(message, BrodcastNotificationsRequest.class);
-        log.info("Sending broadcast with jsonPayload: {}", message);
+        log.info("Sending broadcast with jsonPayload from consumeBroadcastAdminMsg: {}", message);
         try {
             String response=  fcmService.sendNotification(msg.getTitle(), msg.getMsg(), msg.getUsername());
-            log.info("Broadcast notification sent successfully! {}",response);
+            log.info("Broadcast notification sent successfully from consumeBroadcastAdminMsg! {}",response);
 
             var bmr = BroadcastedMessages.builder().createdDate(LocalDateTime.now()).topic(msg.getTitle()).message(msg.getMsg()).username(msg.getUsername()).status(response).eventCode("broadcast-admin-msg").build();
             bmrRepo.save(bmr);
