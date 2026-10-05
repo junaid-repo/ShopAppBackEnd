@@ -41,7 +41,7 @@ public class CloudKafkaListener {
         BrodcastNotificationsRequest msg = objectMapper.readValue(message, BrodcastNotificationsRequest.class);
         log.info("Sending broadcast with jsonPayload: {}", message);
         try {
-            log.info("just before sending notification to firebase {}",msg.getUsername());
+            log.info("just before sending notification to firebase for user {} with title {} and message {}",msg.getUsername(), msg.getTitle(), msg.getMsg());
             String response=  fcmService.sendNotification(msg.getTitle(), msg.getMsg(), msg.getUsername());
             log.info("Broadcast notification sent successfully! {}",response);
 

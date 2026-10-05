@@ -50,7 +50,7 @@ public class CloudKafkaService {
                 String jsonPayload=objectMapper.writeValueAsString(msgBody);
                 log.info("Sending broadcast with jsonPayload: {}", jsonPayload);
 
-               // kafkaTemplate.send("broadcast-admin-msg", jsonPayload);
+               kafkaTemplate.send("broadcast-admin-msg", jsonPayload);
                consumeBroadcastAdminMsg( jsonPayload);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
