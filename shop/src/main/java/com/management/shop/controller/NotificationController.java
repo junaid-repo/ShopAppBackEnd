@@ -1,11 +1,14 @@
 package com.management.shop.controller;
 
+import com.management.shop.dto.BrodcastNotificationsRequest;
 import com.management.shop.scheduler.NotificationsSaver;
+import com.management.shop.service.CloudKafkaService;
 import com.management.shop.service.FCMService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -22,6 +25,9 @@ public class NotificationController {
 
     @Autowired
     private NotificationsSaver notifications;
+
+    @Autowired
+    private CloudKafkaService cloudKafkaService;
 
     @PostMapping("/send")
     public String sendNotification(@RequestBody NotificationRequest request) {
@@ -54,6 +60,20 @@ public class NotificationController {
 
         return "Token saved successfully!";
     }
+
+
+    @PostMapping("/api/brodcast/pushnotification")
+    public ResponseEntity<String> broadcastPushNotification(@RequestBody BrodcastNotificationsRequest request) {
+       String response=null;
+        try {
+            response=  cloudKafkaService.broadcastPushNotification(request);
+            return ResponseEntity.ok("Broadcast notification sent successfully!");
+        } catch (Exception e) {
+            log.error("Error broadcasting push notification", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to send broadcast notification: " + e.getMessage());
+        }
+
 
 }
 
