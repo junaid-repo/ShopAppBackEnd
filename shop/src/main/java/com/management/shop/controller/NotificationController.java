@@ -64,7 +64,7 @@ public class NotificationController {
     }
 
 
-    @PostMapping("/api/brodcast/pushnotification")
+    @PostMapping("/broadcast/pushMessage")
     public ResponseEntity<String> broadcastPushNotification(@RequestBody BrodcastNotificationsRequest request) {
         String response = null;
         try {
