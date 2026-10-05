@@ -36,6 +36,7 @@ public class NotificationController {
                 request.getBody()
         );
     }
+
     @PostMapping("/save/firebase/permission/token")
     public String saveFirebasePermissionToken(@RequestBody Map<String, String> request) {
         try {
@@ -53,6 +54,7 @@ public class NotificationController {
                     e);
         }
     }
+
     @PostMapping("/demo/test/notification")
     public String dummyTestNotification() {
 
@@ -64,9 +66,9 @@ public class NotificationController {
 
     @PostMapping("/api/brodcast/pushnotification")
     public ResponseEntity<String> broadcastPushNotification(@RequestBody BrodcastNotificationsRequest request) {
-       String response=null;
+        String response = null;
         try {
-            response=  cloudKafkaService.broadcastPushNotification(request);
+            response = cloudKafkaService.broadcastPushNotification(request);
             return ResponseEntity.ok("Broadcast notification sent successfully!");
         } catch (Exception e) {
             log.error("Error broadcasting push notification", e);
@@ -75,23 +77,46 @@ public class NotificationController {
         }
 
 
-}
+    }
 
-// Simple DTO class
-class NotificationRequest {
-    private String token;
-    private String title;
-    private String body;
-   private String username;
+    // Simple DTO class
+    class NotificationRequest {
+        private String token;
+        private String title;
+        private String body;
+        private String username;
 
-    // Getters and Setters
-    public String getToken() { return token; }
-    public void setToken(String token) { this.token = token; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+        // Getters and Setters
+        public String getToken() {
+            return token;
+        }
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+        public void setToken(String token) {
+            this.token = token;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getBody() {
+            return body;
+        }
+
+        public void setBody(String body) {
+            this.body = body;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+    }
 }
