@@ -19,6 +19,7 @@ import org.springframework.security.core.Authentication;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -123,6 +124,25 @@ public class FCMService {
         }
     }
 
+    public String sendNotificationForBroadCast(String title, String body, String username) {
+        try {
+            List<String> allToken = firebaseRepo.findAllTokenByUsername(username);
+
+            Notification notification = Notification.builder()
+                    .setTitle(title)
+                    .setBody(body)
+                    .build();
+
+
+            Message message = Message.builder().setToken(getToken(username)).setNotification(notification).build();
+            String response = FirebaseMessaging.getInstance().send(message);
+            return "Successfully sent message: " + response;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error sending message: " + e.getMessage();
+        }
+    }
+
 
     @Transactional
     public void saveFirebaseToken(Map<String, String> request) {
@@ -185,7 +205,13 @@ public class FCMService {
 
     public List<String> getAllUsers() {
 
+        List<String> response = new ArrayList<>();
 
-        return  null;
+        firebaseRepo.findUniqueUsernames().forEach(username -> {
+            log.info("Found user with Firebase token: {}", username);
+            response.add(username);
+        });
+
+        return  response;
     }
 }
