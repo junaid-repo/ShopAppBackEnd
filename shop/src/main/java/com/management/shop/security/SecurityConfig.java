@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/internal/create/**").permitAll()
                         .requestMatchers("/api/public/invoices/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .requestMatchers("/ping").permitAll()
                         .requestMatchers("/ws/**").permitAll()

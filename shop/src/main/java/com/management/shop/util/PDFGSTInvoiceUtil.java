@@ -7,7 +7,9 @@ import com.google.zxing.common.BitMatrix;
 import com.management.shop.dto.InvoiceData;
 import com.management.shop.dto.OrderItemInvoice;
 import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.Margin;
 import com.microsoft.playwright.options.ScreenshotType;
+import org.xhtmlrenderer.pdf.ITextRenderer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value; // <-- ADDED IMPORT
 import org.springframework.core.env.Environment;
@@ -380,6 +382,61 @@ public class PDFGSTInvoiceUtil {
         return activeProfiles.contains("prod") || activeProfiles.contains("preprod");
     }
 
+    public byte[] generatePurchaseOrderPdf(Map<String, Object> templateVariables) {
+        Context context = new Context();
+        context.setVariable("amounts", AmountDisplayFormatter.INSTANCE);
+        if (templateVariables != null) {
+            templateVariables.forEach(context::setVariable);
+        }
+
+        String htmlContent = templateEngine.process("purchase-order", context);
+
+        Playwright.CreateOptions createOptions = new Playwright.CreateOptions();
+        if (!isHostedEnvironment()) {
+            Map<String, String> env = new HashMap<>(System.getenv());
+            String userHome = System.getProperty("user.home");
+            env.put("PLAYWRIGHT_BROWSERS_PATH", userHome + "/.cache/ms-playwright");
+            env.put("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1");
+            createOptions.setEnv(env);
+        }
+
+        try (Playwright playwright = Playwright.create(createOptions)) {
+            BrowserType.LaunchOptions launchOptions = new BrowserType.LaunchOptions()
+                    .setHeadless(true)
+                    .setArgs(Arrays.asList("--no-sandbox", "--disable-setuid-sandbox"));
+
+            try (Browser browser = playwright.chromium().launch(launchOptions)) {
+                Browser.NewContextOptions contextOptions = new Browser.NewContextOptions();
+                contextOptions.setViewportSize(1200, 1600);
+
+                try (BrowserContext browserContext = browser.newContext(contextOptions);
+                     Page page = browserContext.newPage()) {
+
+                    page.setContent(htmlContent);
+                    page.waitForTimeout(100);
+
+                    Page.PdfOptions pdfOptions = new Page.PdfOptions()
+                            .setFormat("A4")
+                            .setPrintBackground(true)
+                            .setMargin(new Margin().setTop("8mm").setRight("8mm").setBottom("8mm").setLeft("8mm"));
+
+                    return page.pdf(pdfOptions);
+                }
+            }
+        } catch (Exception e) {
+            // Fallback to Flying Saucer (ITextRenderer) if Playwright headless browser is unavailable
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                ITextRenderer renderer = new ITextRenderer();
+                renderer.setDocumentFromString(htmlContent);
+                renderer.layout();
+                renderer.createPDF(baos);
+                return baos.toByteArray();
+            } catch (Exception ex) {
+                throw new RuntimeException("Error generating Purchase Order PDF", ex);
+            }
+        }
+    }
+
     public byte[] getPaymentQrCodeImage(InvoiceData data) {
         String paidAmount = normalizeAmount(data.getPaidAmount()).toPlainString();
         String upiUrl = "upi://pay?pa=" + nullSafeString(data.getUpiId())
@@ -462,7 +519,7 @@ public class PDFGSTInvoiceUtil {
         return MoneyUtils.amount(total);
     }
 
-    private String amountInWords(BigDecimal amount, boolean enableDecimalPlace) {
+    public String amountInWords(BigDecimal amount, boolean enableDecimalPlace) {
         BigDecimal normalized = (enableDecimalPlace
                 ? MoneyUtils.amount(amount)
                 : amount.setScale(0, MoneyUtils.ROUNDING_MODE)).abs();

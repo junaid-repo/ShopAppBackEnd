@@ -1,0 +1,186 @@
+package com.management.shop.controller;
+
+import com.management.shop.dto.*;
+import com.management.shop.service.PurchaseOrderService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/shop/purchases")
+public class PurchaseOrderController {
+
+    @Autowired
+    private PurchaseOrderService purchaseOrderService;
+
+    private String extractUsername() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<PurchaseOrderResponseDTO>> getPurchaseOrders(
+            @RequestParam(required = false, defaultValue = "ALL") String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(required = false, defaultValue = "") String search,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        String userId = extractUsername();
+        Page<PurchaseOrderResponseDTO> result = purchaseOrderService.getPurchaseOrders(status, fromDate, toDate, search, page, size, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PurchaseOrderResponseDTO> getPurchaseOrderById(@PathVariable Integer id) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.getPurchaseOrderById(id, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> getPurchaseOrderPdf(@PathVariable Integer id) {
+        String userId = extractUsername();
+        byte[] pdfContents = purchaseOrderService.generatePurchaseOrderPdf(id, userId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"PurchaseOrder_" + id + ".pdf\"");
+        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfContents);
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<PurchaseOrderResponseDTO> createPurchaseOrder(@RequestBody PurchaseOrderRequestDTO dto) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.createPurchaseOrder(dto, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PurchaseOrderResponseDTO> updatePurchaseOrder(
+            @PathVariable Integer id,
+            @RequestBody PurchaseOrderRequestDTO dto) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.updatePurchaseOrder(id, dto, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/update")
+    public ResponseEntity<PurchaseOrderResponseDTO> updatePurchaseOrderPost(
+            @PathVariable Integer id,
+            @RequestBody PurchaseOrderRequestDTO dto) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.updatePurchaseOrder(id, dto, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/convert-to-ordered")
+    public ResponseEntity<PurchaseOrderResponseDTO> convertDraftToOrdered(@PathVariable Integer id) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.convertDraftToOrdered(id, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/receive")
+    public ResponseEntity<PurchaseOrderResponseDTO> receivePurchaseOrder(
+            @PathVariable Integer id,
+            @RequestBody(required = false) ReceivePurchaseOrderRequestDTO receiveDto) {
+
+        String userId = extractUsername();
+        if (receiveDto == null) {
+            receiveDto = new ReceivePurchaseOrderRequestDTO();
+        }
+        PurchaseOrderResponseDTO result = purchaseOrderService.receivePurchaseOrder(id, receiveDto, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<PurchaseOrderResponseDTO> cancelPurchaseOrder(@PathVariable Integer id) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.cancelPurchaseOrder(id, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<PurchaseOrderResponseDTO> duplicatePurchaseOrder(@PathVariable Integer id) {
+        String userId = extractUsername();
+        PurchaseOrderResponseDTO result = purchaseOrderService.duplicatePurchaseOrder(id, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<PurchaseSummaryDTO> getPurchaseSummary() {
+        String userId = extractUsername();
+        PurchaseSummaryDTO result = purchaseOrderService.getPurchaseSummary(userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/recent-products")
+    public ResponseEntity<List<Map<String, Object>>> getRecentProducts(
+            @RequestParam(required = false) Integer supplierId,
+            @RequestParam(defaultValue = "30") int limit) {
+        String userId = extractUsername();
+        List<Map<String, Object>> result = purchaseOrderService.getRecentProducts(supplierId, limit, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    // ──────────────────────────────────────────────
+    // SUPPLIER ENDPOINTS
+    // ──────────────────────────────────────────────
+
+    @GetMapping("/suppliers")
+    public ResponseEntity<List<SupplierDTO>> getSuppliers() {
+        String userId = extractUsername();
+        List<SupplierDTO> result = purchaseOrderService.getSuppliers(userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/suppliers/save")
+    public ResponseEntity<SupplierDTO> saveSupplier(@RequestBody SupplierDTO dto) {
+        String userId = extractUsername();
+        SupplierDTO result = purchaseOrderService.saveSupplier(dto, userId);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/suppliers/payment")
+    public ResponseEntity<SupplierPaymentDTO> recordSupplierPayment(@RequestBody SupplierPaymentDTO dto) {
+        String userId = extractUsername();
+        SupplierPaymentDTO result = purchaseOrderService.recordSupplierPayment(dto, userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException e) {
+        log.error("Purchase order client error: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException e) {
+        log.error("Purchase order state error: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleGeneralException(Exception e) {
+        log.error("Purchase order unexpected error: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", e.getMessage() != null ? e.getMessage() : "An unexpected error occurred"));
+    }
+}

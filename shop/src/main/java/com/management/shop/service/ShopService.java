@@ -411,8 +411,11 @@ public class ShopService {
     public ProductSuccessDTO saveProduct(ProductRequest request) {
         resolveExistingProductId(request);
         String status = "In Stock";
-        if (request.getStock() < 0)
+        if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
+            status = request.getStatus();
+        } else if (request.getStock() != null && request.getStock() <= 0) {
             status = "Out of Stock";
+        }
 
         log.info("The new request" + request.getTax());
 
@@ -1383,15 +1386,17 @@ public class ShopService {
         String username = extractUsername();
         boolean isGstPrioritySort = "gstBilling".equalsIgnoreCase(sort);
         boolean isDuePrioritySort = "dueAmount".equalsIgnoreCase(sort);
+        boolean isCancelledPrioritySort = "cancelled".equalsIgnoreCase(sort);
         Pageable pageable;
         Page<BillingEntity> billingPage;
 
-        if (isGstPrioritySort || isDuePrioritySort) {
+        if (isGstPrioritySort || isDuePrioritySort || isCancelledPrioritySort) {
             pageable = PageRequest.of(Math.max(0, page - 1), size);
+            String priority = isGstPrioritySort ? "gst" : (isDuePrioritySort ? "due" : "cancelled");
             billingPage = billRepo.findSalesWithPriority(
                     username,
                     searchTerm == null ? "" : searchTerm.trim(),
-                    isGstPrioritySort ? "gst" : "due",
+                    priority,
                     pageable
             );
         } else {
