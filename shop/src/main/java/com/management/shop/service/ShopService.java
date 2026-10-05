@@ -1314,7 +1314,7 @@ public class ShopService {
             String customerEmail = order.getCustomerEmail();
             String invoiceNumber = billResponse.getInvoiceNumber();
             String username = extractUsername();
-            CompletableFuture<String> emailResult = CompletableFuture.supplyAsync(() -> {
+             CompletableFuture.supplyAsync(() -> {
 
 
                 return email.sendEmail(customerEmail,
@@ -1322,7 +1322,7 @@ public class ShopService {
                         generateGSTInvoicePdf(invoiceNumber, username), (String) emailContent.get("htmlTemplate"), (String) emailContent.get("shopName"));
 
 
-            }).thenApply(futureResult -> {
+            }).thenAccept(futureResult -> {
 
                 EmailRecord emailRecord = null;
                 try {
@@ -1341,8 +1341,11 @@ public class ShopService {
 
                 EmailRecord emailRecordSave = emailRecordRepo.save(emailRecord);
 
-                return String.valueOf(futureResult);
 
+
+            }).exceptionally(ex -> {;
+                log.error("Failed to send email for invoice {}: {}", billResponse.getInvoiceNumber(), ex.getMessage());
+                return null;
             });
 
          /*           CompletableFuture<String> futureResult = email.sendEmail(order.getCustomerEmail(),
