@@ -9,9 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -63,7 +65,14 @@ public class NotificationController {
         return "Token saved successfully!";
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/users")
+   public ResponseEntity<List<String>> getUsers(){
 
+        List<String> users=fcmService.getAllUsers();
+        return ResponseEntity.ok(users);
+
+    }
     @PostMapping("/broadcast/pushMessage")
     public ResponseEntity<String> broadcastPushNotification(@RequestBody BrodcastNotificationsRequest request) {
         String response = null;
@@ -77,7 +86,11 @@ public class NotificationController {
         }
 
 
+
     }
+
+
+
 
     // Simple DTO class
     class NotificationRequest {

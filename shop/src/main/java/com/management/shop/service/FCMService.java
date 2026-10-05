@@ -182,4 +182,10 @@ public class FCMService {
             return tokenEntity.getFirebaseToken();
         return null;
     }
+
+    public List<String> getAllUsers() {
+
+
+        return  null;
+    }
 }
