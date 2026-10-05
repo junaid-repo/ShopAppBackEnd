@@ -32,7 +32,7 @@ public class CloudKafkaListener {
     public void consume(String message) {
         System.out.println("Received Kafka event: " + message);
 
-        fcmService.sendNotification("sampleMsg", message, "junaid1");
+        fcmService.sendNotification("sampleMsg", message, "butch35");
     }
 
     @KafkaListener(topics = "broadcast-admin-msg", groupId = "shop-backend-group")
