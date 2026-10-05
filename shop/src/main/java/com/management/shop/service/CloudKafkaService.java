@@ -11,6 +11,9 @@ public class CloudKafkaService {
     @Autowired
     KafkaTemplate kafkaTemplate;
 
+    @Autowired
+    private FCMService fcmService;
+
     public void sendOrderCreatedEvent(String msg, String eventPayload) {
         kafkaTemplate.send("order-events", msg);
     }
@@ -18,6 +21,8 @@ public class CloudKafkaService {
     @KafkaListener(topics = "order-events", groupId = "shop-backend-group")
     public void consume(String message) {
         System.out.println("Received Kafka event: " + message);
+
+        fcmService.sendNotification("sampleMsg", message, "junaid1");
     }
 
 
