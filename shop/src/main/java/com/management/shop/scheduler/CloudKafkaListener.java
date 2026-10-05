@@ -42,6 +42,7 @@ public class CloudKafkaListener {
         log.info("Sending broadcast with jsonPayload: {}", message);
         try {
             String response=  fcmService.sendNotification(msg.getTitle(), msg.getMsg(), msg.getUsername());
+            log.info("Broadcast notification sent successfully! {}",response);
 
             var bmr = BroadcastedMessages.builder().createdDate(LocalDateTime.now()).topic(msg.getTitle()).message(msg.getMsg()).username(msg.getUsername()).status(response).eventCode("broadcast-admin-msg").build();
             bmrRepo.save(bmr);
