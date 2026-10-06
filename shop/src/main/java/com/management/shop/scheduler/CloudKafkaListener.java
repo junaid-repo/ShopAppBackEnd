@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.management.shop.dto.BrodcastNotificationsRequest;
 import com.management.shop.entity.BroadcastedMessages;
 import com.management.shop.entity.MessageEntity;
+import com.management.shop.entity.UserInfo;
 import com.management.shop.repository.BroadcastedMessageRepository;
 import com.management.shop.repository.NotificationsRepo;
+import com.management.shop.repository.UserInfoRepository;
 import com.management.shop.service.FCMService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Random;
 
 @Slf4j
 @Component
@@ -32,7 +35,8 @@ public class CloudKafkaListener {
 
     @Autowired
     private FCMService fcmService;
-
+    @Autowired
+    UserInfoRepository userInfoRepo;
     @Autowired
     BroadcastedMessageRepository bmrRepo;
 
@@ -71,21 +75,28 @@ public class CloudKafkaListener {
         }
 
         usernames.forEach(username -> {
-            log.info("just before sending notification to firebase for user {} with title {} and message {}", username, message.getTitle(), message.getMsg());
+            log.info("just before sending notification to firebase for user {} with title {} and message {} and userflag {}", username, message.getTitle(), message.getMsg(), message.getUserFlag());
             try {
-                String response = fcmService.sendNotification(message.getTitle(), message.getMsg(), username);
+                String messageBody = message.getMsg();
+
+                if (message.getUserFlag()) {
+                   UserInfo userList= userInfoRepo.findByUsername(username).orElse(UserInfo.builder().name("User").build());
+                    messageBody = getRandomString()+" "+ userList.getName() + ", " + message.getMsg();
+                }
+
+                String response = fcmService.sendNotification(message.getTitle(), messageBody, username);
                 log.info("Broadcast notification sent successfully! {}", response);
 
                 var bmr = BroadcastedMessages.builder()
                         .createdDate(LocalDateTime.now())
                         .topic(message.getTitle())
-                        .message(message.getMsg())
+                        .message(messageBody)
                         .username(username)
                         .status(response)
                         .eventCode("broadcast-admin-msg")
                         .build();
                 bmrRepo.save(bmr);
-                saveMessage(username, message.getTitle(), message.getMsg(), response, "broadcast-admin-msg");
+                saveMessage(username, message.getTitle(), messageBody, response, "broadcast-admin-msg");
             } catch (Exception e) {
                 log.error("Failed to send notification to user {}: {}", username, e.getMessage());
                 throw new RuntimeException("Failed to send notification to user: " + username, e);
@@ -157,8 +168,20 @@ public class CloudKafkaListener {
                 .searchKey(username)
                 .updatedDate(LocalDateTime.now())
                 .isSent(Boolean.FALSE)
-                .cronEx("na")
+
                 .build();
         notiRepo.save(messageEntity);
+    }
+
+    private String getRandomString() {
+        // 1. Define your strings here
+        String[] options = {"Hi", "Hello", "Dear", "Greetings", "Salutations", "Hey there", "Good day", "Howdy", "What's up", "Yo"};
+
+        // 2. Pick a random index
+        Random random = new Random();
+        int randomIndex = random.nextInt(options.length);
+
+        // 3. Return the string
+        return options[randomIndex];
     }
 }
