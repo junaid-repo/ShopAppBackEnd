@@ -1,6 +1,7 @@
 package com.management.shop.controller;
 
 import com.management.shop.dto.BrodcastNotificationsRequest;
+import com.management.shop.entity.BroadcastHistory;
 import com.management.shop.scheduler.NotificationsSaver;
 import com.management.shop.service.CloudKafkaService;
 import com.management.shop.service.FCMService;
@@ -83,6 +84,21 @@ public class NotificationController {
             log.error("Error broadcasting push notification", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to send broadcast notification: " + e.getMessage());
+        }
+
+
+
+    }
+    @GetMapping("/broadcast/getHistory")
+    public ResponseEntity<List<BroadcastHistory>> getHistory() {
+        List<BroadcastHistory> response = null;
+        try {
+            response = cloudKafkaService.getBroadCastHistory();
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error broadcasting push notification", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(response);
         }
 
 

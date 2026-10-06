@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.management.shop.dto.BrodcastNotificationsRequest;
 import com.management.shop.entity.BroadcastedMessages;
+import com.management.shop.entity.MessageEntity;
 import com.management.shop.repository.BroadcastedMessageRepository;
+import com.management.shop.repository.NotificationsRepo;
 import com.management.shop.service.FCMService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +46,9 @@ public class CloudKafkaListener {
         fcmService.sendNotification("sampleMsg", message, "butch35");
     }
 
+    @Autowired
+    private NotificationsRepo notiRepo;
+
     @RetryableTopic(
             attempts = "3",
             backoff = @Backoff(delay = 1000, multiplier = 2.0),
@@ -80,6 +85,7 @@ public class CloudKafkaListener {
                         .eventCode("broadcast-admin-msg")
                         .build();
                 bmrRepo.save(bmr);
+                saveMessage(username, message.getTitle(), message.getMsg(), response, "broadcast-admin-msg");
             } catch (Exception e) {
                 log.error("Failed to send notification to user {}: {}", username, e.getMessage());
                 throw new RuntimeException("Failed to send notification to user: " + username, e);
@@ -134,5 +140,25 @@ public class CloudKafkaListener {
                 .eventCode("broadcast-admin-msg-dlt")
                 .build();
         bmrRepo.save(bmr);
+    }
+
+    private void saveMessage(String username, String title, String msg, String status, String eventCode) {
+        MessageEntity messageEntity = MessageEntity.builder().createdDate(LocalDateTime.now()).domain("system")
+                .title(title)
+                .subject(title)
+                .details(msg)
+                .isDeleted(false)
+                .isDone(false)
+                .isRead(false)
+                .isFlagged(false)
+                .userId(username)
+
+                .updatedBy(username)
+                .searchKey(username)
+                .updatedDate(LocalDateTime.now())
+                .isSent(Boolean.FALSE)
+                .cronEx("na")
+                .build();
+        notiRepo.save(messageEntity);
     }
 }
