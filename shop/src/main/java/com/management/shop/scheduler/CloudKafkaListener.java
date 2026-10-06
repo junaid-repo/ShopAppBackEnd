@@ -167,7 +167,7 @@ public class CloudKafkaListener {
                 .updatedBy(username)
                 .searchKey(username)
                 .updatedDate(LocalDateTime.now())
-                .isSent(Boolean.FALSE)
+                .isSent(Boolean.TRUE)
 
                 .build();
         notiRepo.save(messageEntity);
