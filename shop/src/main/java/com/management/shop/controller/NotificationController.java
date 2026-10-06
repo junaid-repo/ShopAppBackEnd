@@ -1,14 +1,19 @@
 package com.management.shop.controller;
 
+import com.management.shop.dto.BrodcastNotificationsRequest;
 import com.management.shop.scheduler.NotificationsSaver;
+import com.management.shop.service.CloudKafkaService;
 import com.management.shop.service.FCMService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -23,6 +28,9 @@ public class NotificationController {
     @Autowired
     private NotificationsSaver notifications;
 
+    @Autowired
+    private CloudKafkaService cloudKafkaService;
+
     @PostMapping("/send")
     public String sendNotification(@RequestBody NotificationRequest request) {
         return fcmService.sendNotification(
@@ -30,6 +38,7 @@ public class NotificationController {
                 request.getBody()
         );
     }
+
     @PostMapping("/save/firebase/permission/token")
     public String saveFirebasePermissionToken(@RequestBody Map<String, String> request) {
         try {
@@ -47,6 +56,7 @@ public class NotificationController {
                     e);
         }
     }
+
     @PostMapping("/demo/test/notification")
     public String dummyTestNotification() {
 
@@ -55,23 +65,71 @@ public class NotificationController {
         return "Token saved successfully!";
     }
 
-}
 
-// Simple DTO class
-class NotificationRequest {
-    private String token;
-    private String title;
-    private String body;
-   private String username;
+    @GetMapping("/users")
+   public ResponseEntity<List<String>> getUsers(){
 
-    // Getters and Setters
-    public String getToken() { return token; }
-    public void setToken(String token) { this.token = token; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+        List<String> users=fcmService.getAllUsers();
+        return ResponseEntity.ok(users);
 
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
+    }
+    @PostMapping("/broadcast/pushMessage")
+    public ResponseEntity<String> broadcastPushNotification(@RequestBody BrodcastNotificationsRequest request) {
+        String response = null;
+        try {
+            response = cloudKafkaService.broadcastPushNotification(request);
+            return ResponseEntity.ok("Broadcast notification sent successfully!");
+        } catch (Exception e) {
+            log.error("Error broadcasting push notification", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to send broadcast notification: " + e.getMessage());
+        }
+
+
+
+    }
+
+
+
+
+    // Simple DTO class
+    class NotificationRequest {
+        private String token;
+        private String title;
+        private String body;
+        private String username;
+
+        // Getters and Setters
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public String getBody() {
+            return body;
+        }
+
+        public void setBody(String body) {
+            this.body = body;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+    }
 }

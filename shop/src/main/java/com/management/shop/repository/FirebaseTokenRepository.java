@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public interface FirebaseTokenRepository extends JpaRepository<FirebaseTokenEntity, Integer> {
     
@@ -22,4 +23,7 @@ public interface FirebaseTokenRepository extends JpaRepository<FirebaseTokenEnti
     @Transactional
     @Query("DELETE FROM FirebaseTokenEntity fte WHERE fte.firebaseToken = ?1")
     void deleteByFirebaseToken(String deadToken);
+
+    @Query("SELECT distinct fte.username FROM FirebaseTokenEntity fte")
+    List<String> findUniqueUsernames();
 }

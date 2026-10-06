@@ -3,6 +3,7 @@ package com.management.shop.controller;
 import com.management.shop.dto.SupportTicketRequest;
 import com.management.shop.dto.SupportTicketResponse;
 import com.management.shop.entity.TicketsEntity;
+import com.management.shop.service.CloudKafkaService;
 import com.management.shop.service.TicketsSerivce;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,9 @@ public class TicketsController {
 
     @Autowired
     TicketsSerivce serv;
+
+    @Autowired
+    CloudKafkaService kafkaService;
 
     @PostMapping("api/tickets/create")
     ResponseEntity<SupportTicketResponse> saveSupportTicket(@RequestBody SupportTicketRequest request){
@@ -65,6 +69,20 @@ public class TicketsController {
             System.out.println("Received file: " + attachment.getOriginalFilename());
             System.out.println("File size: " + attachment.getSize() + " bytes");
         }
+
+        // ... call your email service ...
+
+        return ResponseEntity.ok("Email sent successfully.");
+    }
+
+
+    @GetMapping("auth/test/kafka")
+    public ResponseEntity<String> handleEmailRequest2(
+          @RequestParam String msg)   {
+
+        kafkaService.sendOrderCreatedEvent(msg,"okay");
+
+
 
         // ... call your email service ...
 
