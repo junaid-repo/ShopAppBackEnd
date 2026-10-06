@@ -43,9 +43,10 @@ public class PDFGSTInvoiceUtil {
         // --- Core Calculations (null-safe, exact and normalized to two decimals) ---
         List<OrderItemInvoice> rawProducts = data.getProducts() != null ? data.getProducts() : Collections.emptyList();
         boolean enableDecimalPlace = !Boolean.FALSE.equals(data.getEnableDecimalPlace());
+        boolean gstExcluded = Boolean.TRUE.equals(data.getGstExcluded());
 
         BigDecimal taxableAmount = sumTaxableAmount(rawProducts);
-        BigDecimal gstAmount = sumAmount(rawProducts, "getTaxAmount", "getTax");
+        BigDecimal gstAmount = gstExcluded ? BigDecimal.ZERO : sumAmount(rawProducts, "getTaxAmount", "getTax");
         // Each line's totalAmount is already the final line value (including tax).
         // Adding GST again double-counts tax, especially for Walk-In invoices.
         BigDecimal grandTotal = MoneyUtils.amount(sumAmount(rawProducts, "getTotalAmount"));
@@ -110,27 +111,34 @@ public class PDFGSTInvoiceUtil {
             m.put("quantity", safeGetDouble(p, "getQuantity", "getQty")); // Quantity left exact
             m.put("discountPercentage", p.getDiscountPercentage()); // Percentages left exact
 
+            // Measure unit
+            String itemMeasureUnit = p.getItemMeasureUnit() != null && !p.getItemMeasureUnit().trim().isEmpty()
+                    ? p.getItemMeasureUnit().trim()
+                    : (p.getMeasureUnit() != null && !p.getMeasureUnit().trim().isEmpty() ? p.getMeasureUnit().trim() : "");
+            m.put("itemMeasureUnit", itemMeasureUnit);
+            m.put("measureUnit", itemMeasureUnit);
+
             // Rounding monetary amounts
             m.put("rate", getRoundedAmount(p, "getRate", "getPrice"));
-            BigDecimal taxAmount = getRoundedAmount(p, "getTaxAmount", "getTax");
+            BigDecimal taxAmount = gstExcluded ? BigDecimal.ZERO : getRoundedAmount(p, "getTaxAmount", "getTax");
             m.put("taxAmount", taxAmount);
-            m.put("taxPercentage", MoneyUtils.percentage(p.getTaxPercentage()));
-            m.put("zeroGst", taxAmount.signum() == 0);
+            m.put("taxPercentage", gstExcluded ? BigDecimal.ZERO : MoneyUtils.percentage(p.getTaxPercentage()));
+            m.put("zeroGst", !gstExcluded && taxAmount.signum() == 0);
             m.put("totalAmount", getRoundedAmount(p, "getTotalAmount", "getAmount", "getTotal"));
-            m.put("igstAmount", normalizeAmount(p.getIgst()));
-            m.put("cgstAmount", normalizeAmount(p.getCgst()));
-            m.put("sgstAmount", normalizeAmount(p.getSgst()));
+            m.put("igstAmount", gstExcluded ? BigDecimal.ZERO : normalizeAmount(p.getIgst()));
+            m.put("cgstAmount", gstExcluded ? BigDecimal.ZERO : normalizeAmount(p.getCgst()));
+            m.put("sgstAmount", gstExcluded ? BigDecimal.ZERO : normalizeAmount(p.getSgst()));
 
-            m.put("igstPercentage", p.getIgstPercentage());
-            m.put("cgstPercentage", p.getCgstPercentage());
-            m.put("sgstPercentage", p.getSgstPercentage());
+            m.put("igstPercentage", gstExcluded ? 0.0 : p.getIgstPercentage());
+            m.put("cgstPercentage", gstExcluded ? 0.0 : p.getCgstPercentage());
+            m.put("sgstPercentage", gstExcluded ? 0.0 : p.getSgstPercentage());
 
             productsForTemplate.add(m);
         }
 
         // --- Process GST Summary to Round Amounts ---
         List<Map<String, Object>> roundedGstSummary = new ArrayList<>();
-        if (data.getGstSummary() != null) {
+        if (!gstExcluded && data.getGstSummary() != null) {
             for (Map<String, Object> gstMap : data.getGstSummary()) {
                 Map<String, Object> roundedGst = new HashMap<>(gstMap);
                 if (roundedGst.containsKey("amount")) {
@@ -213,11 +221,12 @@ public class PDFGSTInvoiceUtil {
         context.setVariable("showDueDate", data.getAddDueDate() != null ? data.getShowTotalDiscount() : false);
         context.setVariable("showSupportInfo", data.getShowSupportInfo() != null ? data.getShowSupportInfo() : false);
         context.setVariable("removeTerms", data.getRemoveTerms() != null ? data.getRemoveTerms() : false);
-        context.setVariable("gstBreakdown", data.getShowGstBreakdown() != null ? data.getShowGstBreakdown() : false);
+        context.setVariable("gstExcluded", gstExcluded);
+        context.setVariable("gstBreakdown", !gstExcluded && Boolean.TRUE.equals(data.getShowGstBreakdown()));
         context.setVariable("showBankDetails", data.getShowBankDetails() != null ? data.getShowBankDetails() : false);
         context.setVariable("showUpiId", data.getShowUpiId() != null ? data.getShowUpiId() : false);
         context.setVariable("showQrCode", data.getShowQrcode() != null ? data.getShowQrcode() : false);
-        context.setVariable("showProductGst", data.getShowProductGst() != null ? data.getShowProductGst() : false);
+        context.setVariable("showProductGst", !gstExcluded && Boolean.TRUE.equals(data.getShowProductGst()));
         context.setVariable("hideTaxBreakdownForWalkIn", Boolean.TRUE.equals(data.getHideTaxBreakdownForWalkIn()));
         context.setVariable("showProductAmount", !Boolean.TRUE.equals(data.getHideTaxBreakdownForWalkIn()));
 
@@ -313,6 +322,11 @@ public class PDFGSTInvoiceUtil {
             Map<String, Object> m = new HashMap<>();
             m.put("productName", nullSafeString(safeGetString(p, "getProductName", "getName")));
             m.put("quantity", safeGetDouble(p, "getQuantity", "getQty"));
+            String itemMeasureUnit = p.getItemMeasureUnit() != null && !p.getItemMeasureUnit().trim().isEmpty()
+                    ? p.getItemMeasureUnit().trim()
+                    : (p.getMeasureUnit() != null && !p.getMeasureUnit().trim().isEmpty() ? p.getMeasureUnit().trim() : "");
+            m.put("itemMeasureUnit", itemMeasureUnit);
+            m.put("measureUnit", itemMeasureUnit);
             m.put("totalAmount", getRoundedAmount(p, "getTotalAmount", "getAmount", "getTotal"));
             productsForTemplate.add(m);
         }

@@ -429,6 +429,7 @@ public class ShopService {
                     .name(request.getName() == null ? "" : request.getName())
                     .category(request.getCategory() == null ? "" : request.getCategory())
                     .location(request.getLocation() == null ? "" : request.getLocation())
+                    .unit(request.getUnit() == null ? "" : request.getUnit())
                     .status(status)
                     .userId(extractUsername())
                     .stock(request.getStock())
@@ -447,6 +448,7 @@ public class ShopService {
                     .userId(extractUsername())
                     .category(request.getCategory() == null ? "" : request.getCategory())
                     .location(request.getLocation() == null ? "" : request.getLocation())
+                    .unit(request.getUnit() == null ? "" : request.getUnit())
                     .active(true)
                     .status(status)
                     .stock(request.getStock())
@@ -500,6 +502,7 @@ public class ShopService {
                     .userId(request.getUsername())
                     .category(request.getCategory() == null ? "" : request.getCategory())
                     .location(request.getLocation() == null ? "" : request.getLocation())
+                    .unit(request.getUnit() == null ? "" : request.getUnit())
                     .active(true)
                     .status(status)
                     .stock(request.getStock())
@@ -584,6 +587,9 @@ public class ShopService {
             productEntity.setName(request.getName());
             productEntity.setCategory(request.getCategory());
             productEntity.setLocation(request.getLocation());
+            if (request.getUnit() != null) {
+                productEntity.setUnit(request.getUnit());
+            }
             productEntity.setTaxPercent(request.getTax());
             productEntity.setCostPrice(request.getCostPrice());
             productEntity.setActive(true);
@@ -599,6 +605,7 @@ public class ShopService {
                     .userId(username)
                     .category(request.getCategory())
                     .location(request.getLocation())
+                    .unit(request.getUnit() == null ? "" : request.getUnit())
                     .active(true)
                     .status(request.getStock() < 0 ? "Out of Stock" : "In Stock")
                     .stock(request.getStock())
@@ -630,6 +637,7 @@ public class ShopService {
         var productEntity = ProductEntity.builder().id(request.getSelectedProductId()).name(request.getName())
                 .active(true).category(request.getCategory()).userId(extractUsername()).status(status).stock(request.getStock())
                 .location(request.getLocation())
+                .unit(request.getUnit() == null ? "" : request.getUnit())
                 .updatedDate(LocalDateTime.now())
                 .updatedBy(extractUsername())
                 .hsn(request.getHsn()).taxPercent(request.getTax()).price(request.getPrice()).costPrice(request.getCostPrice()).build();
@@ -881,7 +889,9 @@ public class ShopService {
 
         // 3. Process Cart Items (Calculates taxes, profits, stock)
         persistCartItems(cartResult, billResponse, userSettings, username);
-        billingProcess.saveGstListing(billResponse.getInvoiceNumber(), username);
+        if (!Boolean.TRUE.equals(request.getExcludeGst())) {
+            billingProcess.saveGstListing(billResponse.getInvoiceNumber(), username);
+        }
 
         // 4. Update Bill with final profit
         billResponse.setInvoiceStatus("ACTIVE");
@@ -995,6 +1005,7 @@ public class ShopService {
                 .subTotalAmount(MoneyUtils.asAmountDouble(cartResult.baseAmount()))
                 .createdDate(LocalDateTime.now())
                 .invoiceStatus("PROCESSING")
+                .excludeGst(request.getExcludeGst() != null ? request.getExcludeGst() : Boolean.FALSE)
                 .build();
 
         return billRepo.save(billingEntity);
@@ -1100,6 +1111,7 @@ public class ShopService {
         String shopState = shop != null && shop.getShopState() != null ? shop.getShopState() : "West Bengal";
         String customerState = request.getSelectedCustomer().getState();
         boolean intraStateSale = customerState != null && customerState.equalsIgnoreCase(shopState);
+        boolean excludeGst = Boolean.TRUE.equals(request.getExcludeGst());
 
         for (ProductBillDTO item : request.getCart()) {
             ProductEntity product = prodRepo.findByIdAndUserId(item.getId(), username);
@@ -1129,7 +1141,9 @@ public class ShopService {
             BigDecimal lineTotal = MoneyUtils.amount(discountedUnitPrice.multiply(quantity));
             BigDecimal lineDiscount = MoneyUtils.amount(originalLineTotal.subtract(lineTotal));
 
-            BigDecimal taxPercentage = MoneyUtils.percentage(product.getTaxPercent());
+            BigDecimal taxPercentage = excludeGst
+                    ? BigDecimal.ZERO.setScale(MoneyUtils.PERCENTAGE_SCALE)
+                    : MoneyUtils.percentage(product.getTaxPercent());
             if (taxPercentage.signum() < 0) {
                 throw new IllegalArgumentException("GST percentage cannot be negative: " + item.getId());
             }
@@ -1146,15 +1160,17 @@ public class ShopService {
             BigDecimal sgstPercentage = BigDecimal.ZERO.setScale(MoneyUtils.PERCENTAGE_SCALE);
             BigDecimal igstPercentage = BigDecimal.ZERO.setScale(MoneyUtils.PERCENTAGE_SCALE);
 
-            if (intraStateSale) {
-                cgst = MoneyUtils.amount(lineTaxAmount.divide(BigDecimal.valueOf(2), 8, MoneyUtils.ROUNDING_MODE));
-                sgst = MoneyUtils.amount(lineTaxAmount.subtract(cgst));
-                cgstPercentage = MoneyUtils.percentage(
-                        taxPercentage.divide(BigDecimal.valueOf(2), 8, MoneyUtils.ROUNDING_MODE));
-                sgstPercentage = cgstPercentage;
-            } else {
-                igst = lineTaxAmount;
-                igstPercentage = taxPercentage;
+            if (!excludeGst) {
+                if (intraStateSale) {
+                    cgst = MoneyUtils.amount(lineTaxAmount.divide(BigDecimal.valueOf(2), 8, MoneyUtils.ROUNDING_MODE));
+                    sgst = MoneyUtils.amount(lineTaxAmount.subtract(cgst));
+                    cgstPercentage = MoneyUtils.percentage(
+                            taxPercentage.divide(BigDecimal.valueOf(2), 8, MoneyUtils.ROUNDING_MODE));
+                    sgstPercentage = cgstPercentage;
+                } else {
+                    igst = lineTaxAmount;
+                    igstPercentage = taxPercentage;
+                }
             }
 
             BigDecimal lineProfit = MoneyUtils.amount(
@@ -1179,6 +1195,7 @@ public class ShopService {
                     .tax(MoneyUtils.asAmountDouble(lineTaxAmount))
                     .subTotal(MoneyUtils.asAmountDouble(lineBaseAmount))
                     .total(MoneyUtils.asAmountDouble(lineTotal))
+                    .measureUnit(item.getMeasureUnit())
                     .updatedAt(LocalDateTime.now())
                     .build();
 
@@ -3349,6 +3366,7 @@ public class ShopService {
                     .costPrice(BigDecimal.valueOf(obj.getCostPrice()))
                     .tax(obj.getTaxPercent())
                     .stock(obj.getStock())
+                    .unit(obj.getUnit())
                     .build();
             response.add(prodSearch);
 

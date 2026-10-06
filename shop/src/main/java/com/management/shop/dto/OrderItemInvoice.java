@@ -13,6 +13,7 @@ public class OrderItemInvoice {
     private String productName;
     private String hsnCode; // NEW
     private int quantity;
+    private String measureUnit;
     private String description;
     private double rate; // Price BEFORE tax
     private double taxAmount; // Total tax for this line item
@@ -25,5 +26,6 @@ public class OrderItemInvoice {
     private Double sgstPercentage;
     private double igst;
     private Double igstPercentage;// Total for this line (rate * quantity + tax)
+    private String itemMeasureUnit; // e.g., "pcs", "kg", etc.
 
 }

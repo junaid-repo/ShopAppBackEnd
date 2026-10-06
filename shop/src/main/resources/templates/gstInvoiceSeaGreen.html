@@ -254,7 +254,7 @@
             <img th:if="${shopLogoBase64}" th:src="'data:image/png;base64,' + ${shopLogoBase64}" alt="Logo" style="max-height: 60px;"/>
             <span th:unless="${shopLogoBase64}" th:text="${shopLogoText}">LOGO</span>
         </div>
-        <h1 class="invoice-title">Tax Invoice</h1>
+        <h1 class="invoice-title" th:text="${gstExcluded} ? 'Invoice' : 'Tax Invoice'">Tax Invoice</h1>
         <div class="shop-name-header">
             <div th:text="${shopName}"></div>
         </div>
@@ -311,7 +311,7 @@
             <th class="col-rate text-right" th:if="${showRateColumn}">Rate</th>
             <th class="col-amount text-right">Amount</th>
             <th class="col-disc text-right" th:if="${showIndividualDiscountPercentage}">Disc %</th>
-            <th class="col-tax text-right" th:if="${showProductGst}">Tax</th>
+            <th class="col-tax text-right" th:if="${showProductGst and !gstExcluded}">Tax</th>
             <th class="col-total text-right">Total</th>
         </tr>
         </thead>
@@ -323,16 +323,16 @@
                        th:text="${product['description']}"></small>
             </td>
             <td class="col-hsn text-right" th:if="${showHsnColumn}" th:text="${product['hsnCode']}"></td>
-            <td class="col-qty text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></td>
+            <td class="col-qty text-right" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + (${product['itemMeasureUnit'] != null and !#strings.isEmpty(product['itemMeasureUnit'])} ? ' ' + ${product['itemMeasureUnit']} : '')"></td>
             <td class="col-rate text-right" th:if="${showRateColumn}"
                 th:text="'₹ ' + ${amounts.grouped(product['rate'])}"></td>
             <td class="col-amount text-right"
                 th:text="'₹ ' + ${amounts.grouped(product['rate'] * product['quantity'])}"></td>
             <td class="col-disc text-right" th:if="${showIndividualDiscountPercentage}"
                 th:text="${amounts.percentage(product['discountPercentage'])} + '%'"></td>
-            <td class="col-tax text-right"  th:if="${showProductGst}">
-                    <span th:if="${product['igstAmount'] > 0}"
-                          th:text="'₹ ' + ${amounts.grouped(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
+            <td class="col-tax text-right"  th:if="${showProductGst and !gstExcluded}">
+                <span th:if="${product['igstAmount'] > 0}"
+                      th:text="'₹ ' + ${amounts.grouped(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
                 <span th:if="${product['cgstAmount'] > 0}"
                       th:text="'CGST ₹ ' + ${amounts.grouped(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
                 <br th:if="${product['sgstAmount'] > 0}"/>
@@ -377,7 +377,7 @@
 
         <div class="right-area">
             <div class="totals-area">
-                <div class="totals-row" th:if="${!hideTaxBreakdownForWalkIn}">
+                <div class="totals-row" th:if="${!hideTaxBreakdownForWalkIn and !gstExcluded}">
                     <span>Taxable Amount</span>
                     <span th:text="'₹ ' + ${amounts.grouped(taxableAmount)}"></span>
                 </div>
@@ -385,7 +385,7 @@
                     <span>Discount</span>
                     <span th:text="'- ₹ ' + ${amounts.grouped(totalDiscountAmount)}"></span>
                 </div>
-                <div class="totals-row" th:each="gst : ${gstSummary}">
+                <div class="totals-row" th:if="${!gstExcluded}" th:each="gst : ${gstSummary}">
                     <span th:text="${gst['type']} + ' @ ' + ${amounts.percentage(gst['percentage'])} + '%'"></span>
                     <span th:text="'₹ ' + ${amounts.grouped(gst['amount'])}"></span>
                 </div>

@@ -27,6 +27,7 @@ public class BillingRequest {
     private Double discountPercentage;
     private String remarks;
 	private String paymentMethod;
+    private Boolean excludeGst;
 	
 
 }

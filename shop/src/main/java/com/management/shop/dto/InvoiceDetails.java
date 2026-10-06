@@ -32,4 +32,6 @@ public class InvoiceDetails {
         private Integer customerId;
         private Integer reminderCount;
         private String status;
+        private Boolean excludeGst;
+        private String measureUnit;
 }

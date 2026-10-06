@@ -230,7 +230,7 @@
             <tbody>
             <tr th:each="product : ${products}">
                 <td class="item-name" th:text="${product.productName}">Product Name</td>
-                <td class="item-qty" th:text="${#numbers.formatDecimal(product.quantity, 0, 'COMMA', 0, 'POINT')}">1</td>
+                <td class="item-qty" th:text="${#numbers.formatDecimal(product.quantity, 0, 'COMMA', 0, 'POINT')} + (${product['itemMeasureUnit'] != null and !#strings.isEmpty(product['itemMeasureUnit'])} ? ' ' + ${product['itemMeasureUnit']} : '')">1</td>
                 <td class="item-total">₹<span th:text="${amounts.grouped(product.totalAmount)}">0</span></td>
             </tr>
             </tbody>

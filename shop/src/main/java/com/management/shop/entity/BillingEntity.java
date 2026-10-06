@@ -61,7 +61,6 @@ public class BillingEntity {
 
     private String updatedBy;
     private String userId;
-
-
+    private Boolean excludeGst;
 
 }

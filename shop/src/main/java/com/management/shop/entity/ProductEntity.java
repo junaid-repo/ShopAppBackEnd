@@ -38,6 +38,7 @@ public class ProductEntity {
 	private Integer taxPercent;
     private String hsn;
     private String location;
+    private String unit;
     private String userId;
     private LocalDateTime updatedDate;
     private String updatedBy;
