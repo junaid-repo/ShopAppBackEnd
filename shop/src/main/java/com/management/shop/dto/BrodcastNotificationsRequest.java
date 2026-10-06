@@ -16,5 +16,6 @@ public class BrodcastNotificationsRequest {
     String msg;
     String title;
     String username;
+    Boolean userFlag;
 
 }
