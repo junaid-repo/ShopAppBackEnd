@@ -170,7 +170,7 @@
             <th>Product Details</th>
             <th>Qty</th>
             <th>Price</th>
-            <th>GST</th>
+            <th th:if="${!#bools.isTrue(gstExcluded)}">GST</th>
             <th>Total</th>
         </tr>
         </thead>
@@ -178,10 +178,10 @@
         <tr th:each="product : ${products}">
             <td th:text="${product.productName}"></td>
             <td th:text="${product.details}" style="text-align: left;"></td>
-            <td th:text="${product.quantity}"></td>
+            <td th:text="${product.quantity} + (${product.itemMeasureUnit != null and !#strings.isEmpty(product.itemMeasureUnit)} ? ' ' + ${product.itemMeasureUnit} : '')"></td>
             <td th:text="${amounts.grouped(product.unitPrice - product.gst)}"></td>
 
-            <td th:text="${amounts.grouped(product.gst)}"></td>
+            <td th:if="${!#bools.isTrue(gstExcluded)}" th:text="${amounts.grouped(product.gst)}"></td>
             <td th:text="${amounts.roundedTotal(product.unitPrice)}"></td>
         </tr>
         </tbody>
@@ -189,7 +189,7 @@
 
     <div class="total-section">
         <h4>Sub Total: <span th:text="${amounts.grouped(totalAmount)}"></span></h4>
-        <h4>GST: <span th:text="${amounts.grouped(gstRate)}"></span></h4>
+        <h4 th:if="${!#bools.isTrue(gstExcluded)}">GST: <span th:text="${amounts.grouped(gstRate)}"></span></h4>
         <h3>Grand Total <small>(rounded off)</small>: <span th:text="${amounts.roundedTotal(grandTotal)}"></span></h3>
     </div>
 

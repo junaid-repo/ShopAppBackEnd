@@ -20,6 +20,7 @@ public class ProductRequest {
 	private Integer tax;
     private String hsn;
     private String location;
+    private String unit;
     private String username;
     private String status;
 }

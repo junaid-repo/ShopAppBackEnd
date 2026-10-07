@@ -20,4 +20,5 @@ public class ProductSearchDto {
     int tax; // Assuming tax is a whole number percentage
     int stock;
     String hsn;
+    String unit;
 }

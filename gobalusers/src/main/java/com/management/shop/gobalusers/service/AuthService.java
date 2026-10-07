@@ -91,6 +91,9 @@ public class AuthService {
     @Autowired
     private RefreshTokenService refreshTokenService;
 
+    @Autowired
+    private LoginHistoryRepository loginHistoryRepo;
+
     @Value("${auth.refresh-cookie.name:refreshToken}")
     private String refreshCookieName;
 
@@ -551,6 +554,20 @@ public class AuthService {
                     );
                     response.addHeader("Set-Cookie", cookieHeader);
                 }
+                try {
+                    LoginHistory logHistory =null;
+                    if(token!=null){
+                             logHistory = LoginHistory.builder().username(authRequest.getUsername()).loggedTiming(LocalDateTime.now()).createdBy("SYSTEM").loggedInStatus(Boolean.TRUE).build();
+                        }
+                    else{
+                        logHistory = LoginHistory.builder().username(authRequest.getUsername()).loggedTiming(LocalDateTime.now()).createdBy("SYSTEM").loggedInStatus(Boolean.FALSE).build();
+
+                    }
+                    loginHistoryRepo.save(logHistory);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
 
                 return token;
             }

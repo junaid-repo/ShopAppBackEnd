@@ -21,4 +21,5 @@ public class ProductBillDTO {
 	private Integer stock;
 	private Integer quantity;
     private String details;
+    private String measureUnit;
 }

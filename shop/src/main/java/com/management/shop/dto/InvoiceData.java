@@ -93,4 +93,6 @@ public class InvoiceData {
     Boolean showProductGst;
     Boolean hideTaxBreakdownForWalkIn;
     Boolean enableDecimalPlace;
+
+    Boolean gstExcluded;
 }

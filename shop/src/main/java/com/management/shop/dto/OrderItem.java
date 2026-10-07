@@ -23,4 +23,10 @@ public class OrderItem {
     private Double igstPercentage;
     private String hsn;
     private Double discount;
+    private String measureUnit;
+    private String itemMeasureUnit;
+
+    public String getItemMeasureUnit() {
+        return itemMeasureUnit != null ? itemMeasureUnit : measureUnit;
+    }
 }

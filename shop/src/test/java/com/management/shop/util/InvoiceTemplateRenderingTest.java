@@ -134,6 +134,52 @@ class InvoiceTemplateRenderingTest {
         assertDoesNotThrow(() -> templateEngine.process("invoice", context));
     }
 
+    @Test
+    void rendersPlainInvoiceWhenGstExcluded() {
+        Context context = invoiceContext();
+        context.setVariable("gstExcluded", true);
+        context.setVariable("showProductGst", false);
+        context.setVariable("gstBreakdown", false);
+        context.setVariable("gstSummary", List.of());
+
+        for (String template : GST_TEMPLATES) {
+            String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
+            assertFalse(html.contains("TAX INVOICE"), template);
+            assertFalse(html.contains("Tax Invoice"), template);
+            assertFalse(html.contains("Taxable Amount"), template);
+            assertFalse(html.contains("TAXABLE AMOUNT"), template);
+        }
+    }
+
+    @Test
+    void rendersQuantityWithItemMeasureUnitWhenPresent() {
+        Context context = invoiceContext();
+        Map<String, Object> product = product();
+        product.put("quantity", 5);
+        product.put("itemMeasureUnit", "Kg");
+        context.setVariable("products", List.of(product));
+
+        for (String template : GST_TEMPLATES) {
+            String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
+            assertTrue(html.contains("5 Kg"), template);
+        }
+    }
+
+    @Test
+    void rendersQuantityWithoutUnitWhenItemMeasureUnitIsAbsent() {
+        Context context = invoiceContext();
+        Map<String, Object> product = product();
+        product.put("quantity", 5);
+        product.put("itemMeasureUnit", null);
+        context.setVariable("products", List.of(product));
+
+        for (String template : GST_TEMPLATES) {
+            String html = assertDoesNotThrow(() -> templateEngine.process(template, context), template);
+            assertFalse(html.contains("5 Pcs"), template);
+            assertFalse(html.contains("5 null"), template);
+        }
+    }
+
     private Context invoiceContext() {
         Context context = new Context();
         Map<String, Object> values = new HashMap<>();
@@ -163,9 +209,12 @@ class InvoiceTemplateRenderingTest {
                 "showShopPanOnInvoice", "showCustomerGst", "combineAddress", "showIndividualDiscountPercentage",
                 "showHsnColumn", "showRateColumn", "showTotalDiscountPercentage", "showDueAmount", "showDueDate",
                 "showSupportInfo", "removeTerms", "gstBreakdown", "showBankDetails", "showUpiId", "showQrCode",
-                "showProductGst")) {
+                "showProductGst", "showProductAmount")) {
             values.put(key, true);
         }
+
+        values.put("hideTaxBreakdownForWalkIn", false);
+        values.put("gstExcluded", false);
 
         context.setVariables(values);
         return context;
@@ -189,6 +238,7 @@ class InvoiceTemplateRenderingTest {
         product.put("igstPercentage", BigDecimal.ZERO);
         product.put("cgstPercentage", new BigDecimal("9.00"));
         product.put("sgstPercentage", new BigDecimal("9.00"));
+        product.put("itemMeasureUnit", "Pcs");
         return product;
     }
 

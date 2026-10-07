@@ -3,6 +3,7 @@ package com.management.shop.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.management.shop.dto.BrodcastNotificationsRequest;
+import com.management.shop.dto.SupportTicketRequest;
 import com.management.shop.entity.BroadcastHistory;
 import com.management.shop.entity.BroadcastedMessages;
 import com.management.shop.repository.BroadcastHistoryRepository;
@@ -70,6 +71,16 @@ public class CloudKafkaService {
 
 
         return "ok";
+    }
+    public String sendSupportTicketIntimation(SupportTicketRequest request, String username) throws JsonProcessingException {
+        request.setUsername(username);
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        String jsonPayload=objectMapper.writeValueAsString(request);
+
+        kafkaTemplate.send("sendEmail", jsonPayload);
+
+        return "okay";
     }
 
     public void consumeBroadcastAdminMsg(String message) throws JsonProcessingException {

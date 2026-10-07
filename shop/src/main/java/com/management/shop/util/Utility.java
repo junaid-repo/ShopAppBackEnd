@@ -210,6 +210,7 @@ public class Utility {
                         .discountPercentage(toZero(it.getDiscount()))
                         .description(toEmpty(it.getDetails()))
                         .totalAmount(totalForLine)
+                        .itemMeasureUnit(toEmpty(it.getMeasureUnit()))
                         .build();
                 products.add(line);
             }
@@ -351,6 +352,7 @@ public class Utility {
                 .discountPercentage(order.getDiscountRate())
                 .discountAmount(order.getDiscountAmount())
                 .gstSummary(gstSummary)
+                .gstExcluded(order.getExcludeGst())
 
                 .bankAccountName(toEmpty(userProfile.getBankHolder()))
                 .bankAccountNumber(toEmpty(userProfile.getBankAccount()))
@@ -637,6 +639,7 @@ public class Utility {
                             .discount(obj.getDiscountPercentage())
                             .quantity(obj.getQuantity())
                             .hsn(prodRes.getHsn())
+                            .measureUnit(toEmpty(obj.getMeasureUnit()))
                             .build();
                 }).collect(Collectors.toList());
 
@@ -662,6 +665,8 @@ public class Utility {
                 .totalAmount(billDetails.getTotalAmount())
                 .customerName(toEmpty(customerEntity.getName()))
                 .paid(paid)
+                .excludeGst(billDetails.getExcludeGst() != null && billDetails.getExcludeGst())
+
                 .build();
     }
 

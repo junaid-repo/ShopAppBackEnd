@@ -127,7 +127,7 @@ public class AuthController {
     @PostMapping("/auth/authenticate")
     public String authenticateAndGetToken(@RequestBody AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
 
-        // 🟢 Passed 'request' so the service can determine the correct domain (.info or .store)
+        // 🟢 Passed 'request' so the service can determine the correct domain (.info or .store)m
         String token = serv.authAndsetCookies(authRequest, request, response);
         return token;
 

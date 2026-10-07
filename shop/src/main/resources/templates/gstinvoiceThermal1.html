@@ -291,7 +291,7 @@
                     </span>
 
                     <!-- ADDED: GST breakdown per product (show only when enabled) -->
-                    <div th:if="${showProductGst}">
+                    <div th:if="${showProductGst and !gstExcluded}">
                         <span class="sub-desc" th:if="${product['igstAmount'] != null and product['igstAmount'] > 0}"
                               th:text="'IGST: ' + ${amounts.grouped(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
                         <span class="sub-desc" th:if="${product['cgstAmount'] != null and product['cgstAmount'] > 0}"
@@ -303,7 +303,7 @@
                     </div>
                 </td>
 
-                <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')}"></td>
+                <td class="c-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 'NONE', 0, 'POINT')} + (${product['itemMeasureUnit'] != null and !#strings.isEmpty(product['itemMeasureUnit'])} ? ' ' + ${product['itemMeasureUnit']} : '')"></td>
                 <td class="c-price" th:text="${amounts.grouped(product['rate'])}"></td>
                 <td class="c-total" th:text="${amounts.roundedTotal(product['totalAmount'])}"></td>
             </tr>
@@ -312,7 +312,7 @@
     </table>
 
     <div class="totals-block">
-        <div class="t-row" th:if="${!hideTaxBreakdownForWalkIn}">
+        <div class="t-row" th:if="${!hideTaxBreakdownForWalkIn and !gstExcluded}">
             <span>SUBTOTAL</span>
             <span th:text="${amounts.grouped(taxableAmount)}"></span>
         </div>
@@ -322,7 +322,7 @@
             <span th:text="'-' + ${amounts.grouped(totalDiscountAmount)}"></span>
         </div>
 
-        <th:block th:if="${gstBreakdown}">
+        <th:block th:if="${gstBreakdown and !gstExcluded}">
             <div class="t-row" th:each="gst : ${gstSummary}">
                 <span th:text="${gst['type']} + ' (' + ${amounts.percentage(gst['percentage'])} + '%)'"></span>
                 <span th:text="${amounts.grouped(gst['amount'])}"></span>

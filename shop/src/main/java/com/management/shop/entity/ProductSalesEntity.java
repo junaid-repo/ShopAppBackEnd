@@ -52,6 +52,9 @@ public class ProductSalesEntity {
     private Double discountAmount;
     @Column(columnDefinition = "DECIMAL(19,2)")
     private Double profitOnCP;
+
+    @Column(name="measure_unit")
+    private String measureUnit;
     private LocalDateTime updatedAt;
     private String userId;
 

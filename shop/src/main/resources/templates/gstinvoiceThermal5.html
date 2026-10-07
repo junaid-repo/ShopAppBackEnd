@@ -250,14 +250,14 @@
                     <span class="item-sub" th:if="${showIndividualDiscountPercentage}" th:text="'Disc: ' + ${amounts.percentage(product['discountPercentage'])} + '%'"></span>
 
                     <!-- ADDED: GST breakdown per product (show only when enabled) -->
-                    <div th:if="${showProductGst}" style="font-size:0.9em; color:#666; margin-top:3px;">
+                    <div th:if="${showProductGst and !gstExcluded}" style="font-size:0.9em; color:#666; margin-top:3px;">
                         <span th:if="${product['igstAmount'] != null and product['igstAmount'] > 0}" th:text="'IGST: ' + ${amounts.grouped(product['igstAmount'])} + ' (' + ${amounts.percentage(product['igstPercentage'])} + '%)'"></span>
                         <span th:if="${product['cgstAmount'] != null and product['cgstAmount'] > 0}" th:text="'CGST: ' + ${amounts.grouped(product['cgstAmount'])} + ' (' + ${amounts.percentage(product['cgstPercentage'])} + '%)'"></span>
                         <span th:if="${product['sgstAmount'] != null and product['sgstAmount'] > 0}" th:text="'SGST: ' + ${amounts.grouped(product['sgstAmount'])} + ' (' + ${amounts.percentage(product['sgstPercentage'])} + '%)'"></span>
                         <span th:if="${product['zeroGst']}" th:text="'GST: ' + ${amounts.grouped(product['taxAmount'])} + ' (' + ${amounts.percentage(product['taxPercentage'])} + '%)'"></span>
                     </div>
                 </td>
-                <td class="col-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)}"></td>
+                <td class="col-qty" th:text="${#numbers.formatDecimal(product['quantity'], 1, 0)} + (${product['itemMeasureUnit'] != null and !#strings.isEmpty(product['itemMeasureUnit'])} ? ' ' + ${product['itemMeasureUnit']} : '')"></td>
                 <td class="col-price" th:text="${amounts.grouped(product['rate'])}"></td>
                 <td class="col-amt" th:text="${amounts.roundedTotal(product['totalAmount'])}"></td>
             </tr>
@@ -266,7 +266,7 @@
     </table>
 
     <div class="totals-wrapper">
-        <div class="total-row" th:if="${!hideTaxBreakdownForWalkIn}">
+        <div class="total-row" th:if="${!hideTaxBreakdownForWalkIn and !gstExcluded}">
             <span style="color: #666;">Subtotal</span>
             <span th:text="${amounts.grouped(taxableAmount)}"></span>
         </div>
@@ -276,7 +276,7 @@
             <span th:text="'- ' + ${amounts.grouped(totalDiscountAmount)}"></span>
         </div>
 
-        <div class="total-row" th:each="gst : ${gstSummary}" style="font-size: 0.9em;">
+        <div class="total-row" th:if="${!gstExcluded}" th:each="gst : ${gstSummary}" style="font-size: 0.9em;">
             <span th:text="${gst['type']} + ' (' + ${amounts.percentage(gst['percentage'])} + '%)'" style="color: #666;"></span>
             <span th:text="${amounts.grouped(gst['amount'])}"></span>
         </div>
