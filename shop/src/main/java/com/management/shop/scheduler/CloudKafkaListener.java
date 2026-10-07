@@ -2,7 +2,10 @@ package com.management.shop.scheduler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mailjet.client.errors.MailjetException;
+import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.management.shop.dto.BrodcastNotificationsRequest;
+import com.management.shop.dto.SupportTicketRequest;
 import com.management.shop.entity.BroadcastedMessages;
 import com.management.shop.entity.MessageEntity;
 import com.management.shop.entity.UserInfo;
@@ -10,6 +13,8 @@ import com.management.shop.repository.BroadcastedMessageRepository;
 import com.management.shop.repository.NotificationsRepo;
 import com.management.shop.repository.UserInfoRepository;
 import com.management.shop.service.FCMService;
+import com.management.shop.util.EmailSender;
+import com.management.shop.util.OrderEmailTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +31,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
@@ -39,6 +45,13 @@ public class CloudKafkaListener {
     UserInfoRepository userInfoRepo;
     @Autowired
     BroadcastedMessageRepository bmrRepo;
+
+    @Autowired
+    EmailSender email;
+
+    @Autowired
+    OrderEmailTemplate emailTemplate;
+
 
     @Value("${kafka.event.topic.broadcastadminmsg:broadcast-admin-msg}")
     private String broadcastAdminMsgTopic;
@@ -59,6 +72,25 @@ public class CloudKafkaListener {
             dltStrategy = DltStrategy.FAIL_ON_ERROR,
             dltTopicSuffix = "-dlt"
     )
+
+    @KafkaListener(topics="sendEmail", groupId="shop-backend-group")
+    public void consumeSendEmail(String message) throws JsonProcessingException, MailjetSocketTimeoutException, MailjetException {
+        ObjectMapper mapper = new ObjectMapper();
+        SupportTicketRequest msgBody= mapper.readValue(message, SupportTicketRequest.class);
+
+        log.info("Sending email with jsonPayload: {}", message);
+
+        String emailContent = emailTemplate.getTicketCreationMailConent(msgBody, msgBody.getUsername());
+
+        // if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+        CompletableFuture<String> futureResult = email.sendEmailForTicketIntimation("nadanasim3001@gmail.com",
+                msgBody.getTicketNumber(), "Support",
+                emailContent, "Instabill");
+        System.out.println(futureResult);
+        // }
+
+
+    }
     @KafkaListener(topics = "broadcast-admin-msg", groupId = "shop-backend-group")
     public void consumeBroadcastAdminMsg(String request) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();

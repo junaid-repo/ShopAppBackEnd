@@ -1,6 +1,7 @@
 package com.management.shop.service;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mailjet.client.errors.MailjetException;
 import com.mailjet.client.errors.MailjetSocketTimeoutException;
 import com.management.shop.dto.ChatMessage;
@@ -48,6 +49,9 @@ public class TicketsSerivce {
     @Autowired
     EmailSender email;
 
+    @Autowired
+    CloudKafkaService kafkaServ;
+
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         System.out.println("Current user: " + username);
@@ -69,14 +73,14 @@ public class TicketsSerivce {
         entity.setUsername(extractUsername());
 
 
-        List<TicketsEntity> ticketList=supportTicketRepo.getOpenTicketListPerUser("open",extractUsername());
+        List<TicketsEntity> ticketList = supportTicketRepo.getOpenTicketListPerUser("open", extractUsername());
 
-        if(ticketList.size()>2){
+        if (ticketList.size() > 2) {
             var response = SupportTicketResponse.builder()
                     .createdDate(LocalDateTime.now())
                     .status(request.getStatus())
                     .topic(request.getTopic())
-                    .summary("You already have "+ticketList.size()+" tickets. You can have maximum of 3 open tickets. Please close the other tickets and try")
+                    .summary("You already have " + ticketList.size() + " tickets. You can have maximum of 3 open tickets. Please close the other tickets and try")
                     .closingRemarks("")
                     .build();
 
@@ -86,11 +90,9 @@ public class TicketsSerivce {
         }
 
 
-
-
         TicketsEntity ticketEntity = supportTicketRepo.save(entity);
 
-        if(ticketEntity!=null) {
+        if (ticketEntity != null) {
             String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
             String sequentialPart = String.format("%04d", ticketEntity.getId());
             String ticketNumber = "TKT-" + datePart + "-" + sequentialPart;
@@ -100,8 +102,13 @@ public class TicketsSerivce {
             request.setUsername(entity.getUsername());
         }
 
+
         try {
-            String emailContent = emailTemplate.getTicketCreationMailConent(request, extractUsername());
+            kafkaServ.sendSupportTicketIntimation(request, extractUsername());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+          /*  String emailContent = emailTemplate.getTicketCreationMailConent(request, extractUsername());
 
            // if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
                 CompletableFuture<String> futureResult = email.sendEmailForTicketIntimation("nadanasim3001@gmail.com",
@@ -109,13 +116,7 @@ public class TicketsSerivce {
                         emailContent, "Instabill");
                 System.out.println(futureResult);
            // }
-
-        } catch (MailjetException | MailjetSocketTimeoutException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-
+*/
 
 
         var response = SupportTicketResponse.builder().ticketNumber(String.valueOf(ticketEntity.getTicketNumber()))
@@ -166,7 +167,7 @@ public class TicketsSerivce {
             request.setSummary(request.getSummary());
             request.setUsername(extractUsername());
 
-            supportTicketRepo.updateExistingTicket(request.getTicketNumber(),"closed", request.getClosingRemarks(),LocalDateTime.now(), extractUsername());
+            supportTicketRepo.updateExistingTicket(request.getTicketNumber(), "closed", request.getClosingRemarks(), LocalDateTime.now(), extractUsername());
             try {
                 chatRepo.removeClosedChatHistory(request.getTicketNumber());
             } catch (Exception e) {
@@ -235,10 +236,10 @@ public class TicketsSerivce {
 
     public List<ChatMessage> getHistoryForTicket(String ticketNumber) {
 
-        List<ChatMessageEntity> chatHistory=    chatRepo.findByTicketNumberOrderByTimestampAsc(ticketNumber);
+        List<ChatMessageEntity> chatHistory = chatRepo.findByTicketNumberOrderByTimestampAsc(ticketNumber);
 
-        List<ChatMessage> response=chatHistory.stream().map(obj->{
-            ChatMessage chat= new ChatMessage();
+        List<ChatMessage> response = chatHistory.stream().map(obj -> {
+            ChatMessage chat = new ChatMessage();
 
             chat.setChatId(obj.getTicketNumber());
             chat.setContent(obj.getContent());
@@ -250,7 +251,7 @@ public class TicketsSerivce {
 
         }).collect(Collectors.toList());
 
-        System.out.println("The chats for ticket-->"+ticketNumber+" is " + response);
+        System.out.println("The chats for ticket-->" + ticketNumber + " is " + response);
 
         return response;
     }
@@ -258,18 +259,18 @@ public class TicketsSerivce {
     public String sendSupportEmail(String subject, String body, MultipartFile attachment) {
 
         try {
-            byte[] mailAttachemnt=null;
-            if(attachment!=null) {
-                  mailAttachemnt = attachment.getBytes();
+            byte[] mailAttachemnt = null;
+            if (attachment != null) {
+                mailAttachemnt = attachment.getBytes();
             }
             String emailContent = emailTemplate.generateSupportEmailHtml(extractUsername(), subject, body);
 
-           // if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
-                CompletableFuture<String> futureResult = email.sendSupportEmail("nadanasim3001@gmail.com",
-                        subject, extractUsername(),
-                        mailAttachemnt, emailContent, "Instabill");
-                System.out.println(futureResult);
-           // }
+            // if (Arrays.asList(environment.getActiveProfiles()).contains("prod")||Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
+            CompletableFuture<String> futureResult = email.sendSupportEmail("nadanasim3001@gmail.com",
+                    subject, extractUsername(),
+                    mailAttachemnt, emailContent, "Instabill");
+            System.out.println(futureResult);
+            // }
 
         } catch (MailjetException | MailjetSocketTimeoutException e) {
             // TODO Auto-generated catch block
