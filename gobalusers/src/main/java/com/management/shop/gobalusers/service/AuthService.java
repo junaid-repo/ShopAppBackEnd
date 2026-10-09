@@ -588,11 +588,13 @@ public class AuthService {
 
             logHistory = loginHistoryRepo.findByUsername(authRequest.getUsername());
 
+            long initCount=1;
+
             if(logHistory != null) {
-                loginHistoryRepo.updateLoginHistory(authRequest.getUsername(), LocalDateTime.now(), status, logHistory.getLoginCount() + 1);
+                loginHistoryRepo.updateLoginHistory(authRequest.getUsername(), LocalDateTime.now(), status, logHistory.getLoginCount() + initCount);
             }
             else {
-                logHistory = LoginHistory.builder().username(authRequest.getUsername()).loggedTiming(LocalDateTime.now()).createdBy("SYSTEM").loginCount(1l).loggedInStatus(status).build();
+                logHistory = LoginHistory.builder().username(authRequest.getUsername()).loggedTiming(LocalDateTime.now()).createdBy("SYSTEM").loginCount(initCount).loggedInStatus(status).build();
             }
 
 

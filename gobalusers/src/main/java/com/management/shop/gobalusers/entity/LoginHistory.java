@@ -28,5 +28,5 @@ public class LoginHistory {
     private String createdBy;
     private Boolean loggedInStatus;
     private LocalDateTime loggedTiming;
-    private Long loginCount=0l;
+    private Long loginCount;
 }
