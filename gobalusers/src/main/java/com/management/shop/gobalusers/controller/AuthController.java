@@ -121,7 +121,7 @@ public class AuthController {
     @PostMapping("/auth/verify-otp")
     public OtpVerifyResponse verifyOTP(@RequestBody OtpVerifyRequest userInfo) {
         log.info("Entered verifyOTP with payload  " + userInfo);
-        return serv.verifyOTP(userInfo);
+        return serv.verifyOTP(userInfo);    
     }
 
     @PostMapping("/auth/authenticate")

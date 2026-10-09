@@ -509,11 +509,21 @@ public class AuthService {
                 cookie.setDomain("localhost");
                 response.addCookie(cookie);
             }
+
+            try {
+                saveLoginHistory(authRequest, token);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+
             return token;
         } else {
             throw new UsernameNotFoundException("invalid user request !");
         }
     }
+
+
 
     public String authAndsetCookies(AuthRequest authRequest, HttpServletRequest request, HttpServletResponse response) {
         log.info("Inside authAndsetCookies with username --> " + authRequest.getUsername());
@@ -554,19 +564,13 @@ public class AuthService {
                     );
                     response.addHeader("Set-Cookie", cookieHeader);
                 }
-                try {
-                    LoginHistory logHistory =null;
-                    if(token!=null){
-                             logHistory = LoginHistory.builder().username(authRequest.getUsername()).loggedTiming(LocalDateTime.now()).createdBy("SYSTEM").loggedInStatus(Boolean.TRUE).build();
-                        }
-                    else{
-                        logHistory = LoginHistory.builder().username(authRequest.getUsername()).loggedTiming(LocalDateTime.now()).createdBy("SYSTEM").loggedInStatus(Boolean.FALSE).build();
 
-                    }
-                    loginHistoryRepo.save(logHistory);
+                try {
+                    saveLoginHistory(authRequest, token);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
 
 
                 return token;
@@ -575,6 +579,27 @@ public class AuthService {
             throw new UsernameNotFoundException("invalid user request !");
         }
         return null;
+    }
+
+    private void saveLoginHistory(AuthRequest authRequest, String token){
+        try {
+            LoginHistory logHistory = null;
+            Boolean status = token != null ? Boolean.TRUE : Boolean.FALSE;
+
+            logHistory = loginHistoryRepo.findByUsername(authRequest.getUsername());
+
+            if(logHistory != null) {
+                loginHistoryRepo.updateLoginHistory(authRequest.getUsername(), LocalDateTime.now(), status, logHistory.getLoginCount() + 1);
+            }
+            else {
+                logHistory = LoginHistory.builder().username(authRequest.getUsername()).loggedTiming(LocalDateTime.now()).createdBy("SYSTEM").loginCount(1l).loggedInStatus(status).build();
+            }
+
+
+            loginHistoryRepo.save(logHistory);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public boolean isHostedEnvironment() {
