@@ -2,6 +2,7 @@ package com.management.shop.controller;
 
 import com.management.shop.dto.SupportTicketRequest;
 import com.management.shop.dto.SupportTicketResponse;
+import com.management.shop.entity.LoginHistory;
 import com.management.shop.entity.TicketsEntity;
 import com.management.shop.service.CloudKafkaService;
 import com.management.shop.service.TicketsSerivce;
@@ -87,6 +88,13 @@ public class TicketsController {
         // ... call your email service ...
 
         return ResponseEntity.ok("Email sent successfully.");
+    }
+    @GetMapping("api/admin/loginHistory")
+    public ResponseEntity<List<LoginHistory>> getAllUserLogin(){
+
+        List<LoginHistory> response=serv.getAllUserLogin();
+
+        return ResponseEntity.ok(response);
     }
 
 }

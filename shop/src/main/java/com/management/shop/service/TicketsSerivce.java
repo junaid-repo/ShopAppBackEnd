@@ -8,8 +8,10 @@ import com.management.shop.dto.ChatMessage;
 import com.management.shop.dto.SupportTicketRequest;
 import com.management.shop.dto.SupportTicketResponse;
 import com.management.shop.entity.ChatMessageEntity;
+import com.management.shop.entity.LoginHistory;
 import com.management.shop.entity.TicketsEntity;
 import com.management.shop.repository.ChatMessageRepository;
+import com.management.shop.repository.LoginHistoryRepository;
 import com.management.shop.repository.SupportTicketRepository;
 import com.management.shop.util.EmailSender;
 import com.management.shop.util.OrderEmailTemplate;
@@ -51,6 +53,9 @@ public class TicketsSerivce {
 
     @Autowired
     CloudKafkaService kafkaServ;
+
+    @Autowired
+    LoginHistoryRepository loginHistoryRepo;
 
     public String extractUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -281,4 +286,9 @@ public class TicketsSerivce {
         return "success";
     }
 
+    public List<LoginHistory> getAllUserLogin() {
+
+
+        return loginHistoryRepo.findAllByLogged(Boolean.TRUE);
+    }
 }

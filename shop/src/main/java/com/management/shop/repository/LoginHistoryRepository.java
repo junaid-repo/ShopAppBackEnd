@@ -1,13 +1,14 @@
-package com.management.shop.gobalusers.repository;
+package com.management.shop.repository;
 
-import com.management.shop.gobalusers.entity.LoginHistory;
-import jakarta.transaction.Transactional;
+ import com.management.shop.entity.LoginHistory;
+ import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+ import java.util.List;
 
 @Repository
 public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Integer> {
@@ -15,8 +16,8 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Inte
     @Query(value="SELECT * FROM login_history WHERE username = ?1 ORDER BY logged_timing DESC LIMIT 1", nativeQuery = true)
     LoginHistory findByUsername(String username);
 
-    @Modifying
-    @Transactional
-    @Query(value="update login_history set logged_timing = ?2, logged_in_status = ?3, login_count=?4 where username = ?1 order by logged_timing desc limit 1", nativeQuery = true)
-    void updateLoginHistory(String username, LocalDateTime now, Boolean status, Long loginCount);
+    @Query(value="select * from login_history where logged_in_status = ?1 order by logged_timing desc", nativeQuery = true)
+    List<LoginHistory> findAllByLogged(Boolean status);
+
+
 }
